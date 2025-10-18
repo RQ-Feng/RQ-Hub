@@ -79,18 +79,15 @@ Notify("加载完成", "已成功加载")
 --Tab界面
 Tab = Window:MakeTab({
     Name = "主界面",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 Esp = Window:MakeTab({
     Name = "透视",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 others = Window:MakeTab({
     Name = "其他",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 --子界面
 Section = Tab:AddSection({

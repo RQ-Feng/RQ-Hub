@@ -150,28 +150,23 @@ loadfinish()--其他结束->加载完成信息
 Notify("加载完成", "已成功加载")
 Tab = Window:MakeTab({
     Name = "主界面",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 Esp = Window:MakeTab({
     Name = "透视",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 Del = Window:MakeTab({
     Name = "删除",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 another = Window:MakeTab({
     Name = "杂项",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 others = Window:MakeTab({
     Name = "其他",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 Tab:AddToggle({
     Name = "实体提醒",

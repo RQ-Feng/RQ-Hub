@@ -112,23 +112,19 @@ function teleportPlayerTo(player,toPositionVector3,saveposition) -- 传送玩家
 end
 Window:MakeTab({
     Name = "主界面",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 Window:MakeTab({
     Name = "透视",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 indow:MakeTab({
     Name = "传送",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
  = Window:MakeTab({
     Name = "其他",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Icon = "rbxassetid://4483345998"
 })
 n = Tab:AddSection({
     Name = "通用"
