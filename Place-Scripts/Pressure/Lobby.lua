@@ -347,7 +347,7 @@ Animator:AddButton({
         Animation("rbxassetid://18836343961")
     end
 })
-    Section = others:AddSection({
+Section = others:AddSection({
     Name = "其他"
 })
 others:AddButton({

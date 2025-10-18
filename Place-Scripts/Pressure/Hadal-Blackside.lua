@@ -20,18 +20,18 @@ Window = OrionLib:MakeWindow({
     ConfigFolder = "Cfg/Pressure-Game"
 })
 -- local设置
-local entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
-local noautoinst = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet"}
-local playerPositions = {} -- 存储玩家坐标
-local Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
-local EspConnects = {}
-local TeleportService = game:GetService("TeleportService") -- 传送服务
-local Players = game:GetService("Players") -- 玩家服务
-local Character = Players.LocalPlayer.Character -- 本地玩家Character
-local humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
-local PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
-local RS = game:GetService("ReplicatedStorage")
-local RemoteFolder = RS.Events -- Remote Event储存区之一
+entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
+noautoinst = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet"}
+playerPositions = {} -- 存储玩家坐标
+Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
+EspConnects = {}
+TeleportService = game:GetService("TeleportService") -- 传送服务
+Players = game:GetService("Players") -- 玩家服务
+Character = Players.LocalPlayer.Character -- 本地玩家Character
+humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
+PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
+RS = game:GetService("ReplicatedStorage")
+RemoteFolder = RS.Events -- Remote Event储存区之一
 --local结束->Function设置
 function Notify(name,content,time,Sound,SoundId) -- 信息
     OrionLib:MakeNotification({
@@ -57,7 +57,7 @@ function copyitems(copyitem) -- 复制物品
     create_NumberValue.Name = copyitem
     create_NumberValue.Parent = game.Players.LocalPlayer.PlayerFolder.Inventory
 end
-local function createBilltoesp(theobject,name,color,hlset) -- 创建BillboardGui-颜色:Color3.new(r,g,b)
+function createBilltoesp(theobject,name,color,hlset) -- 创建BillboardGui-颜色:Color3.new(r,g,b)
     bill = Instance.new("BillboardGui", theobject) -- 创建BillboardGui
     bill.AlwaysOnTop = true
     bill.Size = UDim2.new(0, 100, 0, 50)
