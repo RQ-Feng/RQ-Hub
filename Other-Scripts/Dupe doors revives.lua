@@ -1,8 +1,8 @@
-DuplicationAmount = Number
-AccountToDuplicateTo = 'USER_NAME'
-AntiSomeLag = bool
---DupeMoreRevivesMode = false --So lagggggggggggggg
+-- DuplicationAmount = Number
+-- AccountToDuplicateTo = USER_NAME
+-- AntiSomeLag = Boolean
 
+--DupeMoreRevivesMode is WIP
 --// Function
 local function Notify(text,duration)
     game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -13,7 +13,7 @@ local function Notify(text,duration)
 end
 
 if game.PlaceId ~= 6516141723 then Notify('Please execute in doors lobby.') return end
-if not DuplicationAmount or not AntiSomeLag or AccountToDuplicateTo == 'USER_NAME' then Notify('Please enter the variables.') return end
+if not DuplicationAmount or not AntiSomeLag or not AccountToDuplicateTo then Notify('Please enter the variables.') return end
 
 --// Remote
 local RemotesFolder = game:GetService("ReplicatedStorage").RemotesFolder
@@ -61,5 +61,6 @@ for i = 1, DuplicationCount do ReviveFriend:FireServer(AccountToDuplicateTo) end
 --         end
 --     end)
 -- end
+
 
 Notify('Duping completed!',5)
