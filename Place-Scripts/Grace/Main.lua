@@ -1,4 +1,12 @@
-if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end--lib
+--Grace
+loadsuc, OrionLib = pcall(function()
+    return loadstring(game:HttpGet('https://raw.githubusercontent.com/C-Feng-dev/Orion/refs/heads/main/main.lua'))()
+end)
+if loadsuc ~= true then
+    warn("OrionLib加载错误,原因:" .. OrionLib)
+    return
+end
+print("--OrionLib已加载完成--------------------------------加载中--")
 OrionLib:MakeNotification({
     Name = "加载中...",
     Content = "可能会有短暂卡顿",
