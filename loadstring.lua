@@ -1,1 +1,0 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Loader.lua"))()
