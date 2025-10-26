@@ -1,6 +1,6 @@
 print("--------------------成功注入，正在加载中--------------------")
 local function load(url) return loadstring(game:HttpGet(url))() end
-local OrionLib = load('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua')
+OrionLib = load('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua')
 local baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/"
 local PlaceTable = load(baseUrl .. "PlaceTable.lua")
 
