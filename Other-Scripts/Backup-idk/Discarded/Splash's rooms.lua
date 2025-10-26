@@ -312,40 +312,6 @@ Music:AddButton({
         delNotification("MusicBox")
     end
 })
-local others = Window:MakeTab({--others
-	Name = "其他",
-	Icon = "rbxassetid://4483345998",
-	PremiumOnly = false
-})
-others:AddButton({
-	Name = "注入Infinity Yield",
-	Callback = function()
-        Notification("注入Infinity Yield","尝试注入中")
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-        Notification("注入Infinity Yield","注入完成(如果没有加载就是失败了)")
-	end    
-})
-others:AddButton({
-	Name = "注入Dex v2 white(会卡顿)",
-	Callback = function()
-        Notification("注入Dex v2 white","尝试注入中")
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/MariyaFurmanova/Library/main/dex2.0'))()
-        Notification("注入Dex v2 white","注入完成(如果没有加载就是失败了)")
-	end    
-})
-others:AddButton({
-    Name = "删除此窗口",
-    Callback = function()
-        OrionLib:Destroy()
-    end
-})
-others:AddButton({
-	Name = "关闭Dex",
-	Callback = function()
-        game.CoreGui.Dex:Destroy()
-        Notification("Dex","已关闭")
-	end    
-})
 workspace.DescendantAdded:Connect(function(inst)--删除
     if inst.Name == "table" and OrionLib.Flags.notable.Value then
         inst:Destroy()

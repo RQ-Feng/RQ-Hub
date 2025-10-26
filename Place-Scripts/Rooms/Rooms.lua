@@ -169,24 +169,6 @@ Esp:AddToggle({ -- 实体
 
     end
 })
-Section = others:AddSection({
-    Name = "其他"
-})
-others:AddButton({
-    Name = "注入Infinity Yield",
-    Callback = function()
-        Notify("注入Infinity Yield", "尝试注入中")
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-        Notify("注入Infinity Yield", "注入完成(如果没有加载则重试)")
-    end
-})
-others:AddButton({
-    Name = "删除此窗口",
-    Callback = function()
-        OrionLib:Destroy()
-    end
-})
-loadstring(game:HttpGet('https://raw.githubusercontent.com/C-Feng-dev/My-own-Script/refs/heads/main/Script/Tabs/OrionGui-About.lua'))()
 workspaceDA = workspace.DescendantAdded:Connect(function(inst) -- 其他
     if inst:IsA("ClickDetector") and OrionLib.Flags.InfInteract.Value then -- 无限交互距离
         inst.MaxActivationDistance = inf
