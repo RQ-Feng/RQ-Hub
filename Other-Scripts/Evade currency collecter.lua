@@ -52,23 +52,27 @@ local function AddConnection(signal,func,value)
 end
 
 local function AvoidEntityAnchorFunction()
-    while AvoidEntityByAnchor do
-        char:WaitForChild('HumanoidRootPart').Anchored = true
-        char:PivotTo(CFrame.new(0,10000,0))
-        wait(10)
-    end
+    task.spawn(function() 
+        while AvoidEntityByAnchor do
+            char:WaitForChild('HumanoidRootPart').Anchored = true
+            char:PivotTo(CFrame.new(0,10000,0))
+            wait(10)
+        end
+    end)
 end
 
 local function CollectBread(bread)
     if not char then return end
-    local AutoCollectCurrencyBackup
-    AutoCollectCurrencyBackup = not AutoCollectCurrency
+    local AutoCollectCurrencBackup;AutoCollectCurrencyBackup = not AutoCollectCurrency
     if AutoCollectCurrency then 
         AutoCollectCurrency = false 
         char:WaitForChild('HumanoidRootPart').Anchored = false
     end
     repeat char:PivotTo(bread:WaitForChild('HumanoidRootPart').CFrame) wait() until not bread
-    if AutoCollectCurrencyBackup then AvoidEntityAnchorFunction() end
+    if AutoCollectCurrencyBackup then 
+        AvoidEntityByAnchor = true
+        AvoidEntityAnchorFunction() 
+    end
 end
 
 Window = OrionLib:MakeWindow({
