@@ -56,7 +56,7 @@ local function AvoidEntityAnchorFunction()
         while AvoidEntityByAnchor do
             char:WaitForChild('HumanoidRootPart').Anchored = true
             char:PivotTo(CFrame.new(0,10000,0))
-            wait(10)
+            task.wait(10)
         end
     end)
 end
