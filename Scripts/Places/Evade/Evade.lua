@@ -1,5 +1,6 @@
---临时
-OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))()
+
+if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end
+if not ESPLibrary then ESPLibrary = load("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau") end
 local ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
 ESPLibrary.GlobalConfig.Rainbow = true
 OrionLib:MakeNotification({
@@ -16,7 +17,9 @@ local char = LocalPlayer.Character
 LocalPlayer.CharacterAdded:Connect(function(newchar) char = newchar end)
 
 local VisualEsp,AutoCollectCurrency,AutoZoom,AvoidEntityByAnchor
-local Tickets = workspace.Game.Effects.Tickets
+local Games = workspace.Game
+local Tickets = Games.Effects.Tickets
+local Spawns = Games.Map.Parts.Spawns
 local Zoom = LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
 
 local function Notify(name,content,Sound,SoundId) -- 信息
@@ -51,6 +54,10 @@ local function AddConnection(signal,func,value)
     end)
 end
 
+local function BackToSpawn()
+    pcall(function() char:WaitForChild('HumanoidRootPart').Anchored = false char:PivotTo(Spawns:FindFirstChild('SpawnLocation').CFrame) end)
+end
+
 local function AvoidEntityAnchorFunction()
     task.spawn(function() 
         while AvoidEntityByAnchor do
@@ -58,21 +65,17 @@ local function AvoidEntityAnchorFunction()
             char:PivotTo(CFrame.new(0,10000,0))
             task.wait(10)
         end
+        if not AvoidEntityByAnchor then BackToSpawn() end
     end)
 end
 
 local function CollectBread(bread)
     if not char then return end
-    local AutoCollectCurrencBackup;AutoCollectCurrencyBackup = not AutoCollectCurrency
-    if AutoCollectCurrency then 
-        AutoCollectCurrency = false 
-        char:WaitForChild('HumanoidRootPart').Anchored = false
-    end
-    repeat char:PivotTo(bread:WaitForChild('HumanoidRootPart').CFrame) wait() until not bread
-    if AutoCollectCurrencyBackup then 
-        AvoidEntityByAnchor = true
-        AvoidEntityAnchorFunction() 
-    end
+    print('CollectBread')
+    while bread and AutoCollectCurrency do pcall(function()
+        if AvoidEntityByAnchor then char:FindFirstChild('HumanoidRootPart').Anchored = false end
+        char:PivotTo(bread:FindFirstChild('HumanoidRootPart').CFrame)
+    end) task.wait() end
 end
 
 Window = OrionLib:MakeWindow({
@@ -106,7 +109,7 @@ Tab:AddToggle({
     Callback = function(value)
         AutoCollectCurrency = value
         if AutoCollectCurrency then
-            for _,bread in pairs(Tickets:GetChildren()) do CollectBread(bread) end
+            for _,bread in pairs(Tickets:GetChildren()) do CollectBread(bread) continue end
             AddConnection(Tickets.ChildAdded,function(bread) 
                 if AutoCollectCurrency then CollectBread(bread) end
             end,AutoCollectCurrency)
@@ -118,7 +121,7 @@ Tab:AddToggle({
     Default = false,
     Callback = function(value)
         AvoidEntityByAnchor = value
-        if AvoidEntityByAnchor and char then AvoidEntityAnchorFunction() end
+        if AvoidEntityByAnchor and char then AvoidEntityAnchorFunction() else BackToSpawn() end
     end
 })
 Esp:AddToggle({
