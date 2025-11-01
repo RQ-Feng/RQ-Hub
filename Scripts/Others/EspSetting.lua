@@ -48,7 +48,7 @@ task.spawn(function()
 				'Cartoon',
                 'FredokaOne'
 			},
-			Callback = function(Value) GlobalESPSetting['Font'] = Enum.Font[font] end   
+			Callback = function(font) GlobalESPSetting['Font'] = Enum.Font[font] end   
 		})		
 		ESPSetting:AddSlider({
 			Name = "文字大小",
