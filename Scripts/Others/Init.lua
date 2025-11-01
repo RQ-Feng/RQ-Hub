@@ -1,4 +1,4 @@
-local checklist = {OrionLib,ESPLibrary,RQHub}; if not checklist[3] then return end
+local checklist = {OrionLib,ESPLibrary,RQHub}; if #checklist ~= 3 then return end
 --------------------------------------------------Services
 cloneref = type(cloneref) == 'function' and cloneref or function(...) return ... end
 
