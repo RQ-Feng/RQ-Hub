@@ -1,6 +1,5 @@
 print("--------------------成功注入，正在加载中--------------------")
 local function load(url,value) 
-    print(url,value)
     local cache;task.spawn(function() cache = loadstring(game:HttpGet(url))() end) 
     repeat task.wait() until cache
     if value then value = true end
