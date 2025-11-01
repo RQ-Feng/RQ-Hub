@@ -6,13 +6,6 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 4
 })
-Window = OrionLib:MakeWindow({
-    IntroText = "Pressure",
-    Name = "Pressure",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Pressure-Game"
-})
 -- local设置
 entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
 noautoinst = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet"}

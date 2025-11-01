@@ -13,13 +13,6 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 4
 })
-local Window = OrionLib:MakeWindow({
-	IntroText = "Rooms&Doors",
-	Name = "Rooms&Doors",
-	HidePremium = false,
-	SaveConfig = true,
-	ConfigFolder = "RDScript"
-})
 local EspConnects = {}
 local TeleportService = game:GetService("TeleportService") -- 传送服务
 local Players = game:GetService("Players") -- 玩家服务

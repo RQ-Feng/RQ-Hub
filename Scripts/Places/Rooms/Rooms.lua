@@ -6,13 +6,6 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 4
 })
-Window = OrionLib:MakeWindow({
-    IntroText = "Rooms",
-    Name = "Rooms",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Rooms"
-})
 -- local设置
 local a60 = workspace:WaitForChild("monster")
 local a120 = workspace:WaitForChild("monster2")

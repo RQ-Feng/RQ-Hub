@@ -6,13 +6,6 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 4
 })
-Window = OrionLib:MakeWindow({
-    IntroText = "Pressure Lobby",
-    Name = "Pressure-Lobby",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Pressure-Lobby"
-})
 -- local设置
 EspConnects = {}
 TeleportService = game:GetService("TeleportService") -- 传送服务

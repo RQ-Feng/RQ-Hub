@@ -1,11 +1,6 @@
 if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end
 if not ESPLibrary then ESPLibrary = load("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau") end
-local ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
-ESPLibrary.GlobalConfig.Rainbow = true
 
-loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-script/Setting.lua'))()
-
-local Players = game:GetService('Players')
 local LocalPlayer = Players.LocalPlayer
 local char = LocalPlayer.Character
 LocalPlayer.CharacterAdded:Connect(function(newchar) char = newchar end)
@@ -59,12 +54,6 @@ local function CollectBread(bread)
         char:PivotTo(bread:FindFirstChild('HumanoidRootPart').CFrame)
     end) task.wait() end
 end
-
-Window = OrionLib:MakeWindow({
-    IntroText = "Evade",
-    Name = "Evade",
-    SaveConfig = false
-})
 
 Tab = Window:MakeTab({
     Name = "主界面",

@@ -12,13 +12,6 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 4
 })
-Window = OrionLib:MakeWindow({
-    IntroText = "Regretevator",
-    Name = "Regretevator",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Regretevator"
-})
 function Notify(name,content,time,Sound,SoundId) -- 信息
     OrionLib:MakeNotification({
         Name = name,

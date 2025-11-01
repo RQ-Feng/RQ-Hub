@@ -6,13 +6,6 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 4
 })
-Window = OrionLib:MakeWindow({
-    IntroText = "The Raveyard",
-    Name = "Pressure-The Raveyard",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Pressure-Raveyard"
-})
 -- local设置
 EspConnects = {}
 doors = {"CryptDoor","GraveyardGate"}

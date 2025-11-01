@@ -6,13 +6,6 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 4
 })
-Window = OrionLib:MakeWindow({
-    IntroText = "Delutional office",
-    Name = "Delutional office",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Delusional-office"
-})
 -- local设置
 local EspConnects = {}
 local TeleportService = game:GetService("TeleportService") -- 传送服务

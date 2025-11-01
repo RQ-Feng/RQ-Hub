@@ -5,13 +5,6 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 4
 })
-local Window = OrionLib:MakeWindow({
-	IntroText = "SplashRooms",
-	Name = "SplashRooms",
-	HidePremium = false,
-	SaveConfig = true,
-	ConfigFolder = "SplashRooms"
-})
 local Tab = Window:MakeTab({--main
 	Name = "主界面",
 	Icon = "rbxassetid://4483345998",

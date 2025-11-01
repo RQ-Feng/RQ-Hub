@@ -13,13 +13,6 @@ RS = game:GetService("ReplicatedStorage")
 Character = Players.LocalPlayer.Character -- 本地玩家Character
 humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
 PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
-Window = OrionLib:MakeWindow({
-    IntroText = "Grace",
-    Name = "Grace",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Grace"
-})
 function Notify(name,content,time,Sound,SoundId) -- 信息
     OrionLib:MakeNotification({
         Name = name,

@@ -1,5 +1,10 @@
 print("--------------------成功注入，正在加载中--------------------")
-local function load(url) return loadstring(game:HttpGet(url))() end 
+local function load(url,value) 
+    local cache;task.spawn(function() cache = loadstring(game:HttpGet(url))() end) 
+    repeat task.wait() until cache
+    if value then value = true end
+    return cache
+end
 
 local baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/"
 
@@ -11,24 +16,33 @@ if not Game or not Place then game:GetService("StarterGui"):SetCore("SendNotific
 --Check place done
 OrionLib = load('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua')
 ESPLibrary = load("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau")
-if not OrionLib then return end
-OrionLib:MakeNotification({
-    Name = "加载中",
-    Content = "请稍等...",
-    Time = 5
-})
+if not OrionLib then warn('OrionLib isn\'t loaded!') return end
 
 RQHub = {
+    ['Loaded'] = false,
     ['ESPSetting'] = {
         ['Color'] = Color3.new(),
         ['TextSize'] = 17
     }
 }
 
-load(baseUrl .. 'Others/Init.lua')--init
+task.spawn(function() load(baseUrl .. 'Others/Init.lua') end) --init
+task.spawn(function() load(baseUrl .. "Places/" .. Game.Folder .. '/' .. Place .. ".lua",RQHub['Loaded']) end) -- 加载链接 
+repeat task.wait() until RQHub['Loaded']
 load(baseUrl .. 'Others/EspSetting.lua')-- Esp设置
 load('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-scripts/Setting.lua')-- UI设置
 
-checklist = {}; workfunc,failfunc = load(baseUrl .. 'Others/Checker.lua'); checklist = nil--check functions
+checklist = {}; workfunc,failfunc = load(baseUrl .. 'Others/Checker.lua'); checklist = nil--检测函数
 
-load(baseUrl .. "Places/" .. Game.Folder .. '/' .. Place .. ".lua") -- 加载链接 
+OrionLib:MakeNotification({
+    Name = "加载中",
+    Content = "请稍等...",
+    Time = 5
+})
+
+Window = OrionLib:MakeWindow({
+    IntroText = "RQHub-WIP",
+    Name = 'RQHub |',Game.Folder,'-',Place,
+    SaveConfig = true,
+    ConfigFolder = 'RQHub\\'..Game.Folder..'\\'..Place
+})
