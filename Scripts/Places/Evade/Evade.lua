@@ -2,11 +2,6 @@ if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubuserc
 if not ESPLibrary then ESPLibrary = load("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau") end
 local ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
 ESPLibrary.GlobalConfig.Rainbow = true
-OrionLib:MakeNotification({
-    Name = "加载中",
-    Content = "请稍等...",
-    Time = 5
-})
 
 loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-script/Setting.lua'))()
 
@@ -30,18 +25,6 @@ local function Notify(name,content,Sound,SoundId) -- 信息
         Sound = Sound,
         SoundId = SoundId
     })
-end
-
-local function esp(inst,value)
-    local ESPElement = ESPLibrary:Add({
-        Name = inst.Name,
-        Model = inst,
-        MaxDistance = 1000,
-        TextSize = 17,
-        ESPType = "Highlight"
-    })
-    repeat task.wait() until not value
-    ESPElement:Destroy()
 end
 
 local function AddConnection(signal,func,value)
@@ -131,9 +114,7 @@ Esp:AddToggle({
         VisualEsp = value
         if VisualEsp then
             for _,visual in pairs(Tickets:GetChildren()) do 
-                if visual.Name == 'Visual' then 
-                    esp(visual,VisualEsp) 
-                end 
+                if visual.Name == 'Visual' then AddESP({inst = visual,value = VisualEsp}) end 
             end
         end
     end
