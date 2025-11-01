@@ -40,9 +40,9 @@ OrionLib:MakeNotification({
     Time = 5
 })
 
-Window = OrionLib:MakeWindow({
-    IntroText = "RQHub-WIP",
-    Name = 'RQHub |',Game.Folder,'-',Place,
-    SaveConfig = true,
-    ConfigFolder = 'RQHub\\'..Game.Folder..'\\'..Place
-})
+-- Window = OrionLib:MakeWindow({
+--     IntroText = "RQHub-WIP",
+--     Name = 'RQHub |',Game.Folder,'-',Place,
+--     SaveConfig = true,
+--     ConfigFolder = 'RQHub\\'..Game.Folder..'\\'..Place
+-- })
