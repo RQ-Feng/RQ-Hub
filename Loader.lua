@@ -37,6 +37,6 @@ Window = OrionLib:MakeWindow({
     ConfigFolder = 'RQHub\\'..Game.Folder..'\\'..Place
 })
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/MoveWindow/Scripts/Places/" .. Game.Folder .. '/' .. Place .. ".lua"))() -- 加载链接 
+loadstring(game:HttpGet(baseUrl .. "Places/" .. Game.Folder .. '/' .. Place .. ".lua"))() -- 加载链接 
 loadstring(game:HttpGet(baseUrl .. 'Others/EspSetting.lua'))()-- Esp设置
 loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-scripts/Setting.lua'))()-- UI设置
