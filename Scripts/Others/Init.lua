@@ -71,3 +71,4 @@ function RefreshESP()
     end
 end
 print('Init:I\'m done!')
+return true
