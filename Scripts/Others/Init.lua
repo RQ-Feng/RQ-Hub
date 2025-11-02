@@ -47,6 +47,10 @@ TextService = Services.TextService
 TextChatService = Services.TextChatService
 CaptureService = Services.CaptureService
 VoiceChatService = Services.VoiceChatService
+--------------------------------------------------Other important 
+LocalPlayer = Players.LocalPlayer
+Character = LocalPlayer.Character
+LocalPlayer.CharacterAdded:Connect(function(newchar) char = newchar end)
 --------------------------------------------------ESP
 local CurrentEspSetting = RQHub['ESPSetting']
 local ESPElements = {}
