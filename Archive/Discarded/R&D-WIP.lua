@@ -1,25 +1,3 @@
-print("--------------------成功注入，正在加载中--------------------")
-local loadsuc, OrionLib = pcall(function()
-    return loadstring(game:HttpGet('https://raw.githubusercontent.com/C-Feng-dev/Orion/refs/heads/main/main.lua'))()
-end)
-if loadsuc ~= true then
-    warn("OrionLib加载错误,原因:" .. OrionLib)
-    return
-end
-print("--OrionLib已加载完成--------------------------------加载中--")
-OrionLib:MakeNotification({
-    Name = "加载中...",
-    Content = "可能会有短暂卡顿",
-    Image = "rbxassetid://4483345998",
-    Time = 4
-})
-local Window = OrionLib:MakeWindow({
-	IntroText = "Rooms&Doors",
-	Name = "Rooms&Doors",
-	HidePremium = false,
-	SaveConfig = true,
-	ConfigFolder = "RDScript"
-})
 local EspConnects = {}
 local TeleportService = game:GetService("TeleportService") -- 传送服务
 local Players = game:GetService("Players") -- 玩家服务

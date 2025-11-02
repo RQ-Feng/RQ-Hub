@@ -6,19 +6,6 @@ Players = game:GetService("Players") -- 玩家服务
 Character = Players.LocalPlayer.Character -- 本地玩家Character
 Humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
 PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
-OrionLib:MakeNotification({
-    Name = "加载中...",
-    Content = "可能会有短暂卡顿",
-    Image = "rbxassetid://4483345998",
-    Time = 4
-})
-Window = OrionLib:MakeWindow({
-    IntroText = "Regretevator",
-    Name = "Regretevator",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Regretevator"
-})
 function Notify(name,content,time,Sound,SoundId) -- 信息
     OrionLib:MakeNotification({
         Name = name,
@@ -28,74 +15,6 @@ function Notify(name,content,time,Sound,SoundId) -- 信息
         SoundId = SoundId,
         Sound = Sound
     })
-end
-function nofloorerr()
-    Notify("透视失败","楼层未出现",3,true)
-end
-function createBilltoesp(theobject,name,color,hlset) -- 创建BillboardGui-颜色:Color3.new(r,g,b)
-    Instance.new("BillboardGui", theobject) -- 创建BillboardGui
-    bill.AlwaysOnTop = true
-    bill.Size = UDim2.new(0, 100, 0, 50)
-    bill.Adornee = theobject
-    bill.MaxDistance = 2000
-    bill.Name = name .. "esp"
-    Instance.new("Frame", bill) -- 创建Frame-圆形
-    mid.AnchorPoint = Vector2.new(0.5, 0.5)
-    mid.BackgroundColor3 = color
-    mid.Size = UDim2.new(0, 8, 0, 8)
-    mid.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Instance.new("UICorner", mid).CornerRadius = UDim.new(1, 0)
-    Instance.new("UIStroke", mid)
-    Instance.new("TextLabel", bill) -- 创建TextLabel-显示
-    txt.AnchorPoint = Vector2.new(0.5, 0.5)
-    txt.BackgroundTransparency = 1
-    txt.TextColor3 =color
-    txt.Size = UDim2.new(1, 0, 0, 20)
-    txt.Position = UDim2.new(0.5, 0, 0.7, 0)
-    txt.Text = name
-    Instance.new("UIStroke", txt)
-    if hlset then
-        nstance.new("Highlight",bill)
-        hl.Name = name .. "透视高光"
-        hl.Parent = PlayerGui
-        hl.Adornee = theobject
-        hl.DepthMode = "AlwaysOnTop"
-        hl.FillColor = color
-        hl.FillTransparency = "0.6"
-    end
-    task.spawn(function()
-        while hl do
-            if hl.Adornee == nil or not hl.Adornee:IsDescendantOf(workspace) then
-                hl:Destroy()
-            end
-            task.wait()
-        end
-    end)
-end
-function espmodel(modelname,name,r,g,b,hlset) -- Esp物品(Model对象)用
-    for _, themodel in pairs(workspace:GetDescendants()) do
-        if themodel:IsA("Model") and themodel.Parent.Name ~= Players and themodel.Name == modelname then
-            createBilltoesp(themodel,name, Color3.new(r,g,b),hlset)
-        end
-    end
-    workspace.DescendantAdded:Connect(function(themodel)
-        if themodel:IsA("Model") and themodel.Parent.Name ~= Players and themodel.Name == modelname then
-            createBilltoesp(themodel,name, Color3.new(r,g,b),hlset)
-        end
-    end)
-    table.insert(EspConnects,esp)
-end
-function unesp(name) -- unEsp物品用
-    for _, esp in pairs(workspace:GetDescendants()) do
-        if esp.Name == name .. "esp" then
-            esp:Destroy()
-        end
-    end
-    for _, hl in pairs(workspace:GetDescendants()) do
-        if hl.Name == name .. "透视高光" then
-            hl:Destroy()
-        end
-    end
 end
 function teleportPlayerTo(player,toPositionVector3,saveposition) -- 传送玩家-Vector3.new(x,y,z)
     if player.Character:FindFirstChild("HumanoidRootPart") then
@@ -110,15 +29,15 @@ Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })
-indow:MakeTab({
+Window:MakeTab({
     Name = "传送",
     Icon = "rbxassetid://4483345998"
 })
- = Window:MakeTab({
+Window:MakeTab({
     Name = "其他",
     Icon = "rbxassetid://4483345998"
 })
-n = Tab:AddSection({
+Tab:AddSection({
     Name = "通用"
 })
 Tab:AddToggle({ -- 轻松交互
