@@ -1,5 +1,3 @@
-if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end
-if not ESPLibrary then ESPLibrary = load("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau") end--lib
 -- local设置
 EspConnects = {}
 Character = Players.LocalPlayer.Character -- 本地玩家Character

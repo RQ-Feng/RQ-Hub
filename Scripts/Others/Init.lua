@@ -1,4 +1,12 @@
-local checklist = {OrionLib,ESPLibrary,RQHub}; if #checklist ~= 3 then warn('Checklist not success,return.') return end
+--------------------------------------------------Checker
+if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end
+if not ESPLibrary then ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))() end--lib
+if not RQHub then warn('Checklist not success,return.') return end
+if not Window then Window = OrionLib:MakeWindow({
+    IntroText = "RQHub-Alt",
+    Name = 'RQHub | Alt window',
+    SaveConfig = false
+}) end
 --------------------------------------------------Services
 cloneref = type(cloneref) == 'function' and cloneref or function(...) return ... end
 
@@ -68,4 +76,11 @@ function RefreshESP()
             ESPElement.CurrentSettings[i] = value
         end
     end
+end
+--------------------------------------------------Other functions
+function AddConnection(signal,func,Value)
+    Value = Value or true
+    local event = signal:Connect(func)
+    repeat task.wait() until not OrionLib:IsRunning() or not Value
+    event:Disconnect()
 end
