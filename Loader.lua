@@ -1,11 +1,4 @@
 print("--------------------成功注入，正在加载中--------------------")
-local function load(url,value) 
-    print(url)
-    local cache;task.spawn(function() cache = loadstring(game:HttpGet(url))() end) 
-    repeat task.wait() until cache
-    if value then value = true end
-    return cache
-end
 
 local baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/"
 
