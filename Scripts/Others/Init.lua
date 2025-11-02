@@ -1,7 +1,7 @@
-local checklist = {OrionLib,ESPLibrary,RQHub}; if #checklist ~= 3 then return end
+local checklist = {OrionLib,ESPLibrary,RQHub}; if #checklist ~= 3 then warn('Checklist not success,return.') return end
 --------------------------------------------------Services
 cloneref = type(cloneref) == 'function' and cloneref or function(...) return ... end
-
+print('cloneref state')
 Services = setmetatable({}, {
     __index = function(self, name)
         local success, cache = pcall(function() return cloneref(game:GetService(name)) end)
@@ -9,7 +9,7 @@ Services = setmetatable({}, {
         else error("Invalid Roblox Service: " .. tostring(name)) end
     end
 })
-
+print('Services metatable')
 CoreGui = Services.CoreGui
 Players = Services.Players
 UserInputService = Services.UserInputService
@@ -39,10 +39,11 @@ TextService = Services.TextService
 TextChatService = Services.TextChatService
 CaptureService = Services.CaptureService
 VoiceChatService = Services.VoiceChatService
+print('All services')
 --------------------------------------------------ESP
 local CurrentEspSetting = RQHub['ESPSetting']
 local ESPElements = {}
-
+print('Esp funcs')
 function AddESP(ESPConfig)
     if not ESPConfig.inst then return end
     ESPConfig.value = ESPConfig.value or true
