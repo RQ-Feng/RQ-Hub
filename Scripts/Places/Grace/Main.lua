@@ -1,25 +1,11 @@
 if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end
 if not ESPLibrary then ESPLibrary = load("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau") end--lib
-OrionLib:MakeNotification({
-    Name = "加载中...",
-    Content = "可能会有短暂卡顿",
-    Image = "rbxassetid://4483345998",
-    Time = 4
-})
 Connects = {}
 noautoinst = {}
-Players = game:GetService("Players") -- 玩家服务
 RS = game:GetService("ReplicatedStorage")
 Character = Players.LocalPlayer.Character -- 本地玩家Character
 humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
 PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
-Window = OrionLib:MakeWindow({
-    IntroText = "Grace",
-    Name = "Grace",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Grace"
-})
 function Notify(name,content,time,Sound,SoundId) -- 信息
     OrionLib:MakeNotification({
         Name = name,
