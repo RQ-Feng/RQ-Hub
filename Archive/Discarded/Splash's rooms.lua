@@ -1,17 +1,3 @@
-local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
-OrionLib:MakeNotification({
-    Name = "加载中...",
-    Content = "可能会有些许卡顿",
-    Image = "rbxassetid://4483345998",
-    Time = 4
-})
-local Window = OrionLib:MakeWindow({
-	IntroText = "SplashRooms",
-	Name = "SplashRooms",
-	HidePremium = false,
-	SaveConfig = true,
-	ConfigFolder = "SplashRooms"
-})
 local Tab = Window:MakeTab({--main
 	Name = "主界面",
 	Icon = "rbxassetid://4483345998",

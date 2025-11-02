@@ -1,18 +1,5 @@
 if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end
 if not ESPLibrary then ESPLibrary = load("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau") end--lib
-OrionLib:MakeNotification({
-    Name = "加载中...",
-    Content = "可能会有短暂卡顿",
-    Image = "rbxassetid://4483345998",
-    Time = 4
-})
-Window = OrionLib:MakeWindow({
-    IntroText = "Delutional office",
-    Name = "Delutional office",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "Cfg/Delusional-office"
-})
 -- local设置
 local EspConnects = {}
 local TeleportService = game:GetService("TeleportService") -- 传送服务
