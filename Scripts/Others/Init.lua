@@ -70,3 +70,4 @@ function RefreshESP()
         end
     end
 end
+print('Init:I\'m done!')
