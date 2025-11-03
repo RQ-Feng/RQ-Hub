@@ -23,7 +23,7 @@ RQHub = {
 checklist = {
     'hookfunction',
     'hookmetamethod'
-}; workfunc,failfunc = loadstring(game:HttpGet(baseUrl .. 'Others/Checker.lua'))(); checklist = nil--检测函数
+}; workfunc,failfunc = loadstring(game:HttpGet(baseUrl .. 'Utills/Checker.lua'))(); checklist = nil--检测函数
 
 OrionLib:MakeNotification({
     Name = "加载中",
@@ -38,7 +38,7 @@ Window = OrionLib:MakeWindow({
     ConfigFolder = 'RQHub\\'..Game.Folder..'\\'..Place
 })
 
-loadstring(game:HttpGet(baseUrl .. 'Others/Init.lua'))() --init
+loadstring(game:HttpGet(baseUrl .. 'Utills/Init.lua'))() --init
 loadstring(game:HttpGet(baseUrl .. "Places/" .. Game.Folder .. '/' .. Place .. ".lua"))() -- 加载链接 
-loadstring(game:HttpGet(baseUrl .. 'Others/EspSetting.lua'))()-- Esp设置
+loadstring(game:HttpGet(baseUrl .. 'Utills/EspSetting.lua'))()-- Esp设置
 loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-scripts/Setting.lua'))()-- UI设置

@@ -1,11 +1,11 @@
-local LocalPlayer = Players.LocalPlayer
-local char = LocalPlayer.Character
-LocalPlayer.CharacterAdded:Connect(function(newchar) char = newchar end)
-
 local VisualEsp,AutoCollectCurrency,AutoZoom,AvoidEntityByAnchor
-local Games = workspace.Game
-local Tickets = Games.Effects.Tickets
-local Spawns = Games.Map.Parts.Spawns
+
+local MainGame = workspace.Game
+
+local Stats = MainGame.Stats
+local Tickets = MainGame.Effects.Tickets
+local Spawns = MainGame.Map.Parts.Spawns
+
 local Zoom = LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
 
 local function Notify(name,content,Sound,SoundId) -- 信息
