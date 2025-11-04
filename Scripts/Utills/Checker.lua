@@ -6,11 +6,10 @@ local checker = {
 }
 
 local function CheckFunc(func)
+    if type(func) ~= 'string' then warn('Checker:Please enter string to check the function. (string expected, got',tostring(func) ..')') return end
     local result = type(getfenv(0)[func]) == 'function' and true or false
-    if result then 
-        print('✅',workfunc) table.insert(checker.work,func) 
-    else 
-        warn('❌',failfunc) table.insert(checker.fail,func) 
+    if result then print('✅',func) table.insert(checker.work,func) 
+    else warn('❌',func) table.insert(checker.fail,func) 
     end
 end
 
