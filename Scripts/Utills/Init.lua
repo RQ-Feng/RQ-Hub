@@ -1,7 +1,7 @@
 --------------------------------------------------Checker
 if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end
 if not ESPLibrary then ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))() end--lib
-if not RQHub then warn('Checklist not success,return.') return end
+if not RQHub then RQHub = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/baseHub_table.lua'))() end
 if not Window then Window = OrionLib:MakeWindow({
     IntroText = "RQHub-Alt",
     Name = 'RQHub | Alt window',
@@ -47,10 +47,12 @@ TextService = Services.TextService
 TextChatService = Services.TextChatService
 CaptureService = Services.CaptureService
 VoiceChatService = Services.VoiceChatService
---------------------------------------------------Other important 
+--------------------------------------------------Other important things
 LocalPlayer = Players.LocalPlayer
 Character = LocalPlayer.Character
-LocalPlayer.CharacterAdded:Connect(function(newchar) char = newchar end)
+LocalPlayer.CharacterAdded:Connect(function(newchar) Character = newchar end)
+Humanoid = Character:FindFirstChild("Humanoid")
+exec_name = identifyexecutor and identifyexecutor() or 'L_exec'
 --------------------------------------------------ESP
 local CurrentEspSetting = RQHub['ESPSetting']
 local ESPElements = {}
@@ -87,4 +89,25 @@ function AddConnection(signal,func,Value)
     local event = signal:Connect(func)
     repeat task.wait() until not OrionLib:IsRunning() or not Value
     event:Disconnect()
+end
+
+function BetterPrompt(Distance,value)
+    local function checkPrompt(prompt)
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = "0"
+            prompt.RequiresLineOfSight = false
+            prompt.MaxActivationDistance = Distance
+        end
+    end
+
+    for _,prompt in pairs(workspace:GetDescendants()) do checkPrompt(prompt) end
+    AddConnection(workspace.DescendantAdded,checkPrompt(prompt),value)
+end
+
+function FullBrightLite(Value)
+    local list = {Lighting.Ambient,Lighting.ColorShift_Bottom,Lighting.ColorShift_Top}
+    local white,black = Color3.new(1, 1, 1),Color3.new(0, 0, 0)
+    if not Value then return end
+    if Value then for _,item in pairs(list) do item = white;AddConnection(item.Changed,function() item = white end,Value) end
+    else for _,item in pairs(list) do item = black end end
 end
