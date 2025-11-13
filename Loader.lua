@@ -10,20 +10,15 @@ if not Game or not Place then game:GetService("StarterGui"):SetCore("SendNotific
 --Check place done
 OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))()
 ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
-if not OrionLib then warn('OrionLib isn\'t loaded!') return end
+RQHub = loadstring(game:HttpGet(baseUrl .. 'baseHub_table.lua'))()
+ExecutorChecker = loadstring(game:HttpGet(baseUrl .. 'Utills/Checker.lua'))()--检测函数
 
-RQHub = {
-    ['Loaded'] = false,
-    ['ESPSetting'] = {
-        ['Color'] = Color3.new(),
-        ['TextSize'] = 17
-    }
-}
-
-checklist = {
-    'hookfunction',
-    'hookmetamethod'
-}; workfunc,failfunc = loadstring(game:HttpGet(baseUrl .. 'Utills/Checker.lua'))(); checklist = nil--检测函数
+local checklist = {OrionLib,ESPLibrary,RQHub,ExecutorChecker}; if not checklist[4] then 
+    game:GetService("StarterGui"):SetCore("SendNotification",{
+        Title = "RQHub",Text = "加载资源时遇到问题.",
+        Duration = 10
+    });return
+end
 
 OrionLib:MakeNotification({
     Name = "加载中",
