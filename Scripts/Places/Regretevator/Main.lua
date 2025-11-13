@@ -1,12 +1,19 @@
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character -- 本地玩家Character
-local Humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
 local PlayerGui = LocalPlayer.PlayerGui--本地玩家PlayerGui
 
 local RE = ReplicatedStorage:FindFirstChild('RE')
-local AllFloors = RE.GetAllFloorNames:InvokeServer()
 
-local espJaoba,espLampert
+local function GetCurrentFloor() return workspace.Values.CurrentRoom.Value end
+
+local function EspFloorItems(floor,flag)
+    if GetCurrentFloor().Name ~= floor then return end
+    AddESP({
+        inst = GetCurrentFloor().Build.Lampert,
+        value = OrionLib.Flags['espJaoba']
+    })
+end
+
+-- workspace.PetCaptureDeluxe.Build.ActiveMonsters
+-- workspace.ButtonCompetition.Build.Buttons.Active
 
 local function teleportPlayerTo(player,toPositionVector3,saveposition) -- 传送玩家-Vector3.new(x,y,z)
     if player.Character:FindFirstChild("HumanoidRootPart") then
@@ -19,7 +26,7 @@ if RE:FindFirstChild(tostring(game.JobId)) then
     OrionLib:MakeNotification({
         Name = '绕过反作弊',
         Content = '检测到反作弊RemoteEvent,为了账户安全已自动移除',
-        Time = 5
+        Time = 3
     })
 end
 
@@ -31,6 +38,10 @@ local Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })
+local Floor = Window:MakeTab({
+    Name = "楼层",
+    Icon = "rbxassetid://4483345998"
+})
 local TP = Window:MakeTab({
     Name = "传送",
     Icon = "rbxassetid://4483345998"
@@ -38,36 +49,16 @@ local TP = Window:MakeTab({
 Tab:AddSection({
     Name = "通用"
 })
-Tab:AddToggle({ -- 轻松交互
-    Name = "轻松交互",
-    Default = true,
-    Callback = function(Value)
-        if Value then
-            ezinst = true
-            task.spawn(function()
-                while ezinst and OrionLib:IsRunning() do
-                    for _, toezInteract in pairs(workspace:GetDescendants()) do
-                        if toezInteract:IsA("ProximityPrompt") then
-                            toezInteract.HoldDuration = "0"
-                            toezInteract.RequiresLineOfSight = false
-                            toezInteract.MaxActivationDistance = "12"
-                        end
-                    end
-                    task.wait(0.1)
-                end
-            end)
-        else
-            ezinst = false
-        end
-    end
-})
-local RotateHeadManuallyEvent,HeadRotationX,HeadRotationY
-Tab:AddToggle({ -- 轻松交互
+Tab:AddToggle({
     Name = "手动旋转头部",
     Default = false,
+    Flag = 'RotateHeadManually',
     Callback = function(Value)
-        RotateHeadManually = Value
-        LocalPlayer:SetAttribute("NO_LOOK",Value)
+        if Value then
+            Character.SetPlayerRotation:FireServer(OrionLib.Flags['HeadRotationY'].Value,OrionLib.Flags['HeadRotationX'].Value)
+            Character.ClientLookAt.Enabled = false
+            Humanoid.AutoRotate = true
+        else Character.ClientLookAt.Enabled = true end
     end
 })
 Tab:AddSlider({
@@ -76,10 +67,10 @@ Tab:AddSlider({
 	Max = 6.3,
 	Default = 0,
 	Increment = 0.1,
-	Callback = function(Value)
-		HeadRotationX = Value
-        if RotateHeadManually then Character.SetPlayerRotation:FireServer(HeadRotationY,HeadRotationX) end
-	end    
+    Flag = 'HeadRotationX',
+    Callback = function(Value)
+        Character.SetPlayerRotation:FireServer(OrionLib.Flags['HeadRotationY'].Value,OrionLib.Flags['HeadRotationX'].Value)
+    end
 })
 Tab:AddSlider({
 	Name = "头部Y轴",
@@ -87,78 +78,109 @@ Tab:AddSlider({
 	Max = 6.3,
 	Default = 0,
 	Increment = 0.1,
-	Callback = function(Value)
-		HeadRotationY = Value
-        if RotateHeadManually then Character.SetPlayerRotation:FireServer(HeadRotationY,HeadRotationX) end
-	end    
+    Flag = 'HeadRotationY',
+    Callback = function()
+        Character.SetPlayerRotation:FireServer(OrionLib.Flags['HeadRotationY'].Value,OrionLib.Flags['HeadRotationX'].Value)
+    end
+})
+Tab:AddButton({
+    Name = "手动复活(强制)",
+    Callback = function() RE.Respawn:FireServer() end
+})
+Tab:AddToggle({
+    Name = "死亡时自动复活",
+    Flag = 'AutoRevive',
+    Default = true,
+    Callback = function(value)
+        if not value then return end
+        AddConnection(LocalPlayer.CharacterAdded,function(char)
+            AddConnection(char:WaitForChild('Humanoid').Died,function() RE.Respawn:FireServer() end,OrionLib.Flags['AutoRevive'])
+        end,OrionLib.Flags['AutoRevive'])
+        AddConnection(Humanoid.Died,function() RE.Respawn:FireServer() end,OrionLib.Flags['AutoRevive'])
+    end
 })
 Tab:AddToggle({ -- 轻松交互
     Name = "轻松交互",
+    Flag = 'BetterPrompt',
     Default = true,
     Callback = function(Value)
-        if Value then
-            ezinst = true
-            task.spawn(function()
-                while ezinst and OrionLib:IsRunning() do
-                    for _, toezInteract in pairs(workspace:GetDescendants()) do
-                        if toezInteract:IsA("ProximityPrompt") then
-                            toezInteract.HoldDuration = "0"
-                            toezInteract.RequiresLineOfSight = false
-                            toezInteract.MaxActivationDistance = "12"
-                        end
-                    end
-                    task.wait(0.1)
-                end
-            end)
-        else
-            ezinst = false
-        end
-    end
+        if not Value then return end
+        BetterPrompt(16,OrionLib.Flags['BetterPrompt'])
 })
 Tab:AddToggle({ -- 高亮
     Name = "高亮(低质量)",
+    Flag = 'FullBrightLite',
     Default = true,
     Callback = function(Value)
-        FullBrightLite = Value
-        if FullBrightLite then
-            task.spawn(function()
-                while FullBrightLite and OrionLib:IsRunning() do
-                    Light.Ambient = Color3.new(1, 1, 1)
-                    Light.ColorShift_Bottom = Color3.new(1, 1, 1)
-                    Light.ColorShift_Top = Color3.new(1, 1, 1)
-                    task.wait()
-                end
-            end)
-        else
-            Light.Ambient = Color3.new(0, 0, 0)
-            Light.ColorShift_Bottom = Color3.new(0, 0, 0)
-            Light.ColorShift_Top = Color3.new(0, 0, 0)
+        if not Value then return end
+        FullBrightLite(OrionLib.Flags['FullBrightLite'])
+    end
+})
+Esp:AddToggle({
+    Name = "软盘透视",
+    Flag = 'espFloppies',
+    Callback = function(Value)
+        if not Value then return end
+        for _,floppy in pairs(workspace:GetDescendants()) do
+            if inst.Name == 'Normal' and inst['Recolor'] and OrionLib.Flags['espFloppies'].Value then
+                AddESP({
+                    inst = inst.Parent,
+                    value = OrionLib.Flags['espFloppies']
+                })
+            end
         end
     end
 })
-Esp:AddButton({
+Esp:AddToggle({
     Name = "Jaoba透视(Jaoba楼层)",
-    Callback = function(Value)
-        espJaoba = Value
-        if workspace.UES == nil or not espJaoba then return end
+    Flag = 'espJaoba',
+    Callback = function()
+        if GetCurrentFloor().Name ~= 'UES' then return end
         AddESP({
-            inst = workspace.UES.Build.JAOBA,
-            value = espJaoba
+            inst = GetCurrentFloor().Build.JAOBA,
+            value = OrionLib.Flags['espJaoba']
         })
     end
 })
-Esp:AddButton({
+Esp:AddToggle({
     Name = "Lampert透视(3008楼层)",
+    Flag = 'espLampert',
     Callback = function()
-        if workspace['3008_Room'] == nil then return end
-        AddESP(ESPConfig)
+        if GetCurrentFloor().Name ~= '3008_Room' then return end
         AddESP({
-            inst = workspace['3008_Room'].Build.Lampert,
-            value = espLampert
+            inst = GetCurrentFloor().Build.Lampert,
+            value = OrionLib.Flags['espLampert']
         })
     end
 })
 
-local floordetector;floordetector = AddConnection(workspace.ChildAdded,function()
-  
+--workspace.bugbo.Build.Rocks
+TP:AddToggle({
+    Name = "自动传送至通关区",
+    Default = false,
+    Flag = 'AutoWin'
+})
+AddConnection(workspace.Values.CurrentRoom.Changed,function()
+    local floor = GetCurrentFloor();if not floor then return end
+    if GetCurrentFloor().Name == 'UES' and OrionLib.Flags['espJaoba'].Value then
+        AddESP({
+            inst = GetCurrentFloor().Build.JAOBA,
+            value = OrionLib.Flags['espJaoba']
+        })
+    end
+    if GetCurrentFloor().Name == '3008_Room' and OrionLib.Flags['espLampert'].Value then
+        AddESP({
+            inst = GetCurrentFloor().Build.Lampert,
+            value = OrionLib.Flags['espLampert']
+        })
+    end
+    AddConnection(floor.DescendantAdded,function(inst)
+        if inst.Name == 'WinPart' and OrionLib.Flags['AutoWin'].Value then Character:PivotTo(inst.CFrame) end
+        if inst.Name == 'Normal' and inst['Recolor'] and OrionLib.Flags['espFloppies'].Value then
+            AddESP({
+                inst = inst.Parent,
+                value = OrionLib.Flags['espFloppies']
+            })
+        end
+    end)
 end)

@@ -1,4 +1,4 @@
-local VisualEsp,AutoCollectCurrency,AutoZoom,AvoidEntityByAnchor
+local AutoCollectCurrency,AutoZoom
 
 local MainGame = workspace.Game
 
@@ -19,27 +19,18 @@ local function Notify(name,content,Sound,SoundId) -- 信息
     })
 end
 
-local function AddConnection(signal,func,value)
-    pcall(function() 
-        value = value or true
-        local event = signal:Connect(func)
-        repeat task.wait() until not OrionLib:IsRunning() or not value
-        event:Disconnect()
-    end)
-end
-
 local function BackToSpawn()
     pcall(function() char:WaitForChild('HumanoidRootPart').Anchored = false char:PivotTo(Spawns:FindFirstChild('SpawnLocation').CFrame) end)
 end
 
 local function AvoidEntityAnchorFunction()
     task.spawn(function() 
-        while AvoidEntityByAnchor do
+        while OrionLib.Flags['AvoidEntityByAnchor'].Value do
             char:WaitForChild('HumanoidRootPart').Anchored = true
             char:PivotTo(CFrame.new(0,10000,0))
             task.wait(10)
         end
-        if not AvoidEntityByAnchor then BackToSpawn() end
+        if not OrionLib.Flags['AvoidEntityByAnchor'] then BackToSpawn() end
     end)
 end
 
@@ -67,9 +58,7 @@ Tab:AddSlider({
     Default = 1,
     Increment = 0.1,
     Flag = 'AutoZoom',
-    Callback = function(value)
-        Zoom.Value = value
-    end
+    Callback = function(value) Zoom.Value = value end
 })
 Tab:AddToggle({
     Name = "自动收集活动货币",
@@ -87,31 +76,40 @@ Tab:AddToggle({
 Tab:AddToggle({
     Name = "躲避实体(固定传送)",
     Default = false,
+    Flag = 'AvoidEntityByAnchor',
     Callback = function(value)
-        AvoidEntityByAnchor = value
-        if AvoidEntityByAnchor and char then AvoidEntityAnchorFunction() else BackToSpawn() end
+        if value and char then AvoidEntityAnchorFunction() else BackToSpawn() end
+    end
+})
+Esp:AddToggle({
+    Name = "实体透视",
+    Default = true,
+    Flag = "EntitiesEsp",
+    Callback = function()
+        Players:GetPlayerFromCharacter()
     end
 })
 Esp:AddToggle({
     Name = "活动货币透视",
     Default = true,
     Flag = "VisualEsp",
-    Callback = function(value)
-        VisualEsp = value
-        if VisualEsp then
-            for _,visual in pairs(Tickets:GetChildren()) do 
-                if visual.Name == 'Visual' then AddESP({inst = visual,value = VisualEsp}) end 
-            end
+    Callback = function()
+        if not OrionLib.Flags['VisualEsp'].Value then return end
+        for _,visual in pairs(Tickets:GetChildren()) do 
+            if visual.Name == 'Visual' then AddESP({
+                inst = visual,
+                value = OrionLib.Flags['VisualEsp']
+            })end 
         end
     end
 })
 
 AddConnection(Tickets.ChildAdded,function(inst) -- 其他
     if inst.Name ~= 'Visual' then return end
-    if VisualEsp then esp(inst,VisualEsp) end
+    if OrionLib.Flags['VisualEsp'].Value then esp(inst,OrionLib.Flags['VisualEsp']) end
 end)
 
-AddConnection(Zoom.Changed,function() Zoom.Value = OrionLib.Flags['AutoZoom'].Value end)
+AddConnection(Zoom.Changed,function() Zoom.Value = OrionLib.Flags['AutoZoom'] end)
 
 task.spawn(function()
     repeat task.wait() until not OrionLib:IsRunning()

@@ -59,11 +59,12 @@ local ESPElements = {}
 
 function AddESP(ESPConfig)
     if not ESPConfig.inst then return end
-    ESPConfig.value = ESPConfig.value or true
+    ESPConfig.value = ESPConfig.value or {['Value'] = true}
     ESPConfig.Type = ESPConfig.Type or "Highlight"
+    ESPConfig.Name = ESPConfig.Name or ESPConfig.inst.Name
 
     local ESPElement = ESPLibrary:Add({
-        Name = ESPConfig.inst.Name,
+        Name = ESPConfig.Name,
         Model = ESPConfig.inst,
         Color = CurrentEspSetting['Color'],
         MaxDistance = inf,
@@ -71,7 +72,7 @@ function AddESP(ESPConfig)
         ESPType = ESPConfig.Type
     })
     table.insert(ESPElements,ESPElement)
-    repeat task.wait() until not ESPConfig.value or not OrionLib:IsRunning()
+    repeat task.wait() until not ESPConfig.value.Value or not OrionLib:IsRunning()
     table.remove(ESPElements,table.find(ESPElements,ESPElement))
     ESPElement:Destroy()
 end
@@ -85,29 +86,28 @@ function RefreshESP()
 end
 --------------------------------------------------Other functions
 function AddConnection(signal,func,Value)
-    Value = Value or true
-    local event = signal:Connect(func)
-    repeat task.wait() until not OrionLib:IsRunning() or not Value
-    event:Disconnect()
+    Value = Value or {['Value'] = true}
+    local event;event = signal:Connect(func)
+    task.spawn(function() repeat task.wait() until not OrionLib:IsRunning() or not Value.Value;event:Disconnect() end)
+    return
 end
 
 function BetterPrompt(Distance,value)
     local function checkPrompt(prompt)
-        if prompt:IsA("ProximityPrompt") then
+        if prompt and prompt:IsA("ProximityPrompt") then
             prompt.HoldDuration = "0"
             prompt.RequiresLineOfSight = false
             prompt.MaxActivationDistance = Distance
         end
     end
-
     for _,prompt in pairs(workspace:GetDescendants()) do checkPrompt(prompt) end
-    AddConnection(workspace.DescendantAdded,checkPrompt(prompt),value)
+    AddConnection(workspace.DescendantAdded,checkPrompt,value)
 end
 
 function FullBrightLite(Value)
+    if not Value then return end
     local list = {Lighting.Ambient,Lighting.ColorShift_Bottom,Lighting.ColorShift_Top}
     local white,black = Color3.new(1, 1, 1),Color3.new(0, 0, 0)
-    if not Value then return end
-    if Value then for _,item in pairs(list) do item = white;AddConnection(item.Changed,function() item = white end,Value) end
+    if Value.Value then for _,item in pairs(list) do item = white;AddConnection(Lighting.Changed,function() item = white end,Value) end
     else for _,item in pairs(list) do item = black end end
 end
