@@ -20,17 +20,6 @@ function test(name: string, func,shouldCallback: boolean)
     return success
 end
 
-test("readfile", readfile, false)
-test("listfiles", listfiles, false)
-test("writefile", writefile, false)
-test("makefolder", makefolder, false)
-test("appendfile", appendfile, false)
-test("isfile", isfile, false)
-test("isfolder", isfolder, false)
-test("delfile", delfile, false)
-test("delfolder", delfolder, false)
-test("loadfile", loadfile, false)
-
 test("getrenv", getrenv, false)
 
 test("queue_on_teleport", queue_on_teleport, false)
@@ -75,7 +64,7 @@ test("firesignal", function()
 
     assert(fired, "Failed to fire a BindableEvent")
 end)
-local canFirePrompt = test("fireproximityprompt", function()
+test("fireproximityprompt", function()
     local prompt = Instance.new("ProximityPrompt", Instance.new("Part",orkspace))
     local triggered = false
 
@@ -88,50 +77,8 @@ local canFirePrompt = test("fireproximityprompt", function()
     assert(triggered, "Failed to fire proximity prompt")
 end)
 
---// Fixes \\--
-if not canFirePrompt then
-    local function fireProximityPrompt(prompt: ProximityPrompt, lookToPrompt, Instant)
-        if not prompt:IsA("ProximityPrompt") then
-            return error("ProximityPrompt expected, got " .. typeof(prompt))
-        end
-
-        local connection
-        local promptPosition = prompt.Parent:GetPivot().Position
-    
-        local originalEnabled = prompt.Enabled
-        local originalHold = prompt.HoldDuration
-        local originalLineOfSight = prompt.RequiresLineOfSight
-        local originalCamCFrame = workspace.CurrentCamera.CFrame
-        
-        prompt.Enabled = true
-        prompt.RequiresLineOfSight = false
-        if Instant then prompt.HoldDuration = 0 end
-
-        if lookToPrompt == true then
-            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, promptPosition)
-            connection = workspace.CurrentCamera:GetPropertyChangedSignal("CFrame"):Connect(function()
-                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, promptPosition)
-            end)
-            task.wait()
-        end
-
-        prompt:InputHoldEnd()
-        prompt:InputHoldBegin()
-        task.wait(prompt.HoldDuration + 0.05)
-        prompt:InputHoldEnd()
-
-        if connection then connection:Disconnect() end
-
-        prompt.Enabled = originalEnabled
-        prompt.HoldDuration = originalHold
-        prompt.RequiresLineOfSight = originalLineOfSight
-        if lookToPrompt == true then workspace.CurrentCamera.CFrame = originalCamCFrame end
-    end
-end
-
 --// Load \\--
 ExecutorChecker["_ExecutorName"] = executorName
-ExecutorChecker["_SupportsFileSystem"] = (ExecutorChecker["isfile"] and ExecutorChecker["delfile"] and ExecutorChecker["listfiles"] and ExecutorChecker["writefile"] and ExecutorChecker["makefolder"] and ExecutorChecker["isfolder"])
 
 for name, result in pairs(ExecutorChecker) do
     if ExecutorCheckerInfo[name] then 

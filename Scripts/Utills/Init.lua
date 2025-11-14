@@ -1,7 +1,8 @@
 --------------------------------------------------Checker
 if not OrionLib then OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))() end
-if not ESPLibrary then ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))() end--lib
+if not ESPLibrary then ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))() end
 if not RQHub then RQHub = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/baseHub_table.lua'))() end
+if not ExecutorChecker then ExecutorChecker = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/Utills/ExecutorChecker.lua'))() end
 if not Window then Window = OrionLib:MakeWindow({
     IntroText = "RQHub-Alt",
     Name = 'RQHub | Alt window',
@@ -90,6 +91,46 @@ function AddConnection(signal,func,Value)
     local event;event = signal:Connect(func)
     task.spawn(function() repeat task.wait() until not OrionLib:IsRunning() or not Value.Value;event:Disconnect() end)
     return
+end
+
+if not ExecutorChecker['fireproximityprompt'] then
+    function fireproximityprompt(prompt: ProximityPrompt, lookToPrompt, Instant)
+        if not prompt:IsA("ProximityPrompt") then
+            return error("ProximityPrompt expected, got " .. typeof(prompt))
+        end
+
+        local connection
+        local promptPosition = prompt.Parent:GetPivot().Position
+    
+        local originalEnabled = prompt.Enabled
+        local originalHold = prompt.HoldDuration
+        local originalLineOfSight = prompt.RequiresLineOfSight
+        local originalCamCFrame = workspace.CurrentCamera.CFrame
+        
+        prompt.Enabled = true
+        prompt.RequiresLineOfSight = false
+        if Instant then prompt.HoldDuration = 0 end
+
+        if lookToPrompt == true then
+            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, promptPosition)
+            connection = workspace.CurrentCamera:GetPropertyChangedSignal("CFrame"):Connect(function()
+                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, promptPosition)
+            end)
+            task.wait()
+        end
+
+        prompt:InputHoldEnd()
+        prompt:InputHoldBegin()
+        task.wait(prompt.HoldDuration + 0.05)
+        prompt:InputHoldEnd()
+
+        if connection then connection:Disconnect() end
+
+        prompt.Enabled = originalEnabled
+        prompt.HoldDuration = originalHold
+        prompt.RequiresLineOfSight = originalLineOfSight
+        if lookToPrompt == true then workspace.CurrentCamera.CFrame = originalCamCFrame end
+    end
 end
 
 function BetterPrompt(Distance,value)
