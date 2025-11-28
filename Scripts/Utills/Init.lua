@@ -53,6 +53,7 @@ LocalPlayer = Players.LocalPlayer
 Character = LocalPlayer.Character
 LocalPlayer.CharacterAdded:Connect(function(newchar) Character = newchar end)
 Humanoid = Character:FindFirstChild("Humanoid")
+HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 exec_name = identifyexecutor and identifyexecutor() or 'L_exec'
 --------------------------------------------------ESP
 local CurrentEspSetting = RQHub['ESPSetting']
@@ -94,42 +95,25 @@ function AddConnection(signal,func,Value)
 end
 
 if not ExecutorChecker['fireproximityprompt'] then
-    function fireproximityprompt(prompt: ProximityPrompt, lookToPrompt, Instant)
-        if not prompt:IsA("ProximityPrompt") then
-            return error("ProximityPrompt expected, got " .. typeof(prompt))
-        end
-
-        local connection
-        local promptPosition = prompt.Parent:GetPivot().Position
+    function fireproximityprompt(prompt: ProximityPrompt)
+        if not prompt:IsA("ProximityPrompt") then return error("ProximityPrompt expected, got " .. typeof(prompt)) end
     
         local originalEnabled = prompt.Enabled
         local originalHold = prompt.HoldDuration
         local originalLineOfSight = prompt.RequiresLineOfSight
-        local originalCamCFrame = workspace.CurrentCamera.CFrame
         
         prompt.Enabled = true
         prompt.RequiresLineOfSight = false
-        if Instant then prompt.HoldDuration = 0 end
-
-        if lookToPrompt == true then
-            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, promptPosition)
-            connection = workspace.CurrentCamera:GetPropertyChangedSignal("CFrame"):Connect(function()
-                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, promptPosition)
-            end)
-            task.wait()
-        end
+        prompt.HoldDuration = 0
 
         prompt:InputHoldEnd()
         prompt:InputHoldBegin()
         task.wait(prompt.HoldDuration + 0.05)
         prompt:InputHoldEnd()
 
-        if connection then connection:Disconnect() end
-
         prompt.Enabled = originalEnabled
         prompt.HoldDuration = originalHold
         prompt.RequiresLineOfSight = originalLineOfSight
-        if lookToPrompt == true then workspace.CurrentCamera.CFrame = originalCamCFrame end
     end
 end
 

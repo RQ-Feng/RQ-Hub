@@ -5,9 +5,9 @@ local baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/mai
 local PlaceTable,Game,Place = loadstring(game:HttpGet(baseUrl .. "PlaceTable.lua"))()
 Game = PlaceTable[game.GameId]
 if Game then Place = Game.PlaceId[game.PlaceId] end
-
+--检查Place
 if not Game or not Place then game:GetService("StarterGui"):SetCore("SendNotification",{Title = "不支持此地点",Text = "请使用其他中心",Duration = 5}) return end
---Check place done
+
 OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))()
 ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
 RQHub = loadstring(game:HttpGet(baseUrl .. 'baseHub_table.lua'))()
