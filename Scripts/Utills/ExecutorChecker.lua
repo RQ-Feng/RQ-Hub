@@ -6,6 +6,7 @@ local brokenFeatures = {
     ["Arceus"] = { "require" },
     ["Codex"] = { "require" },
     ["VegaX"] = { "require" },
+    ["Solara"] = { "require" }
 }
 
 function test(name: string, func,shouldCallback: boolean)
