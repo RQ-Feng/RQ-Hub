@@ -1,4 +1,4 @@
---ESPLibrary.GlobalConfig['Rainbow'] = true
+ESPLibrary.GlobalConfig['Rainbow'] = true
 local RemotesFolder = game:GetService("ReplicatedStorage").RemotesFolder
 
 local function CurrentRoom()
@@ -35,7 +35,9 @@ local Items = {
     ['Candle'] = '蜡烛',
     ['Flashlight'] = '手电筒',
     ['SkeletonKey'] = '骷髅钥匙',
-    ['Crucifix'] = '十字架'
+    ['Crucifix'] = '十字架',
+    ['LiveHintBook'] = '书本',
+    ['LiveBreakerPolePickup'] = '开关'
 }
 
 local Entities = {
@@ -43,7 +45,11 @@ local Entities = {
     ['AmbushMoving'] = 'Ambush',
     ['SallyMoving'] = 'Sally',
     ['Eyes'] = 'Eyes',
-    ['Dupe'] = 'Dupe'
+    ['Dupe'] = 'Dupe',
+    ['OnlyLocalization'] = {
+        ['FigureRig'] = 'Figure'
+        --['HaltMoving'] = 'Halt'
+    }
 }
 
 local Prompts = {
