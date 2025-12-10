@@ -272,8 +272,8 @@ end)
 
 task.spawn(function() --Fuck u Jam
     local Jam = MainUI.Initiator.Main_Game.Health.Jam
-    if Jam then Jam.Volume = 0 end
-    repeat task.wait() until Jam.IsPlaying; Jam:Stop(); warn('Stupid Jam GO AWAY')
+	warn(Jam and 'Stupid Jam GO AWAY' or 'Ok there\'s not Jam'))
+    if Jam then Jam.Volume = 0 else return end
 end)
 
 task.spawn(function() --Fuck u ItemShop UI
