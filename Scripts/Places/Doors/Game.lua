@@ -213,6 +213,27 @@ Feature:AddToggle({
         SetClipFunction(Character,true)
     end
 })
+
+
+
+Feature:AddToggle({
+    Name = "开启跳跃",
+    Flag = 'CanJump',
+    Default = false,
+    Callback = function(Value)
+        Character:SetAttribute("CanJump", Value)
+        AddConnection(Character:GetAttributeChangedSignal('CanJump'),function() Character:SetAttribute("CanJump", Value) end,OrionLib.Flags['CanJump'])
+    end
+})
+Feature:AddToggle({
+    Name = "开启滑铲",
+    Flag = 'CanSlide',
+    Default = false,
+    Callback = function(Value)
+        Character:SetAttribute("CanSlide", Value)
+        AddConnection(Character:GetAttributeChangedSignal('CanSlide'),function() Character:SetAttribute("CanSlide", Value) end,OrionLib.Flags['CanSlide'])
+    end
+})
 -- Feature:AddDropdown({
 -- 	Name = "Dropdown",
 --     Flag = 'Dropdown',

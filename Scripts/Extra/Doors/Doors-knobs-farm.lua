@@ -1,4 +1,8 @@
+local LobbyPlaceId,GamePlaceId,DoorsGameId = 6516141723,6839171747,2440500124
+if game.GameId ~= DoorsGameId then warn('Incorrect game'); return end
+
 warn('Knobs farm is loaded!')
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local StarterGui = game:GetService("StarterGui")
@@ -6,13 +10,13 @@ local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local LobbyPlaceId,GamePlaceId,DoorsGameId = 6516141723,6839171747,2440500124
-local ByAutoRejoin,StopFarming,TryingReconnect,Statisticsed,Voided = false,false,false,false,false
+local ByAutoRejoin,TryingReconnect = false,false
+local StopFarming,Statisticsed,Voided = false,false,false
+local FastMode = (replicatesignal and type(replicatesignal) == 'function') and true or false
+local CurrentGetKnobs; if FastMode then CurrentGetKnobs = 0 end
 local StartTime,FarmTimeOut = os.clock(),os.clock()
 
-if game.GameId ~= DoorsGameId then warn('Incorrect game'); return end
-
-game:GetService("GuiService").ErrorMessageChanged:Connect(function(info)--Reconnecter
+game:GetService("GuiService").ErrorMessageChanged:Connect(function(info)--Reconnecter 
     if TryingReconnect or info ~= 'Lost connection to the game server, please reconnect' then return end--Yeah hard code idc
 	warn('Seems like u got a disconnect,reconnecting...')
     for tried = 1,5 do 
@@ -25,15 +29,14 @@ end)
 
 StarterGui:SetCore('SendNotification',{
     Title = 'Doors knobs farm',
-    Text = 'Loaded!',
+    Text = '已加载',
     Duration = 5
 })
-
+--Character
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local RemotesFolder = ReplicatedStorage:WaitForChild("RemotesFolder")
-
 --Config
 local defaultCfg = {
     ['AllFarmknobs'] = 0,
@@ -59,13 +62,6 @@ local function WaitChild(Parent,instName)
     if typeof(Parent) ~= 'Instance' or type(instName) ~= 'string' then return end
     local Cache
     repeat Cache = Parent:WaitForChild(instName,0.1) until Cache
-    return Cache
-end
-
-local function WaitInstance(instPath)
-    if type(instPath) ~= 'string' then return end
-    local Cache
-    repeat _suc,Cache = Parent:WaitForChild(instName,0.1) until Cache
     return Cache
 end
 
@@ -95,19 +91,11 @@ local function TeleportPlayer(TeleportCFrame)
     HumanoidRootPart.CFrame = CFrame.new(TeleportCFrame.Position)
 end
 
-Notify('是否清除累计记录?',30,{
-	Button1 = '是',
-	Button2 = '否',
-	Callback = function(choice)
-		if choice ~= '是' then return end
-        cfg = defaultCfg; saveCfg()
-	end
-})
-
 if game.PlaceId == LobbyPlaceId then--Rejoin the game in the lobby
     warn('In lobby,teleporting to game...')
     Notify('Rejoining the game...')
-    local defaultMods = {
+
+    local default = {
         'LightsOut',
         'Gloombat',
         'NoGuidingLight',
@@ -124,6 +112,25 @@ if game.PlaceId == LobbyPlaceId then--Rejoin the game in the lobby
         'ItemSpawnNone',
         'Jammin',
     }
+
+    local fallback = {
+        'Gloombat',
+        'NoGuidingLight',
+        'TimothyMore',
+        'ScreechLight',
+        'ScreechFast',
+        'RushFaster',
+        'NoKeySound',
+        'LeastHidingSpots',
+        'Fog',
+        'EyesMore',
+        'HideTime',
+        'LightsLeast',
+        'ItemSpawnNone',
+        'DupeMore',
+        'PlayerDamageMore'
+    }
+
     
     local function CreateElevator(mod)
         if type(mod) ~= 'table' then return end
@@ -134,13 +141,16 @@ if game.PlaceId == LobbyPlaceId then--Rejoin the game in the lobby
             Destination = 'Hotel',
             Settings = {}
         })
+        task.wait(1.2)--Wait for cooldown
     end
 
-    CreateElevator(defaultMods)
-    task.wait(1.2)
-    CreateElevator({})
+    CreateElevator(default)--150%
+    CreateElevator(fallback)--125%
+    CreateElevator({})--Final fallback--0%
     return
 end
+
+repeat task.wait() until game:GetService("ReplicatedFirst")._Loaded.Value--Wait for game loaded
 
 --Interact things
 local MainUI = WaitChild(LocalPlayer.PlayerGui,'MainUI')
@@ -154,6 +164,15 @@ local CameraScript,MovementScript; repeat --Waiting for scripts
 until CameraScript and MovementScript
 
 MovementScript.Enabled = false
+
+Notify('是否清除累计记录?',30,{
+	Button1 = '是',
+	Button2 = '否',
+	Callback = function(choice)
+		if choice ~= '是' then return end
+        cfg = defaultCfg; saveCfg()
+	end
+})
 
 --Interact
 local function BetterPrompt(prompt)
@@ -214,6 +233,7 @@ local function GetKey(KeyObtain)
 end
 
 local function GetGoldPile(GoldPile)
+    if GoldPile.Name ~= 'GoldPile' then return end
     local Hitbox = WaitChild(GoldPile,'Hitbox')
     local LootPrompt = WaitChild(GoldPile,'LootPrompt')
     repeat 
@@ -222,6 +242,26 @@ local function GetGoldPile(GoldPile)
         task.wait() 
     until not GoldPile or not GoldPile.Parent    
     CameraScript.Enabled = true
+end
+
+local function antiafk()
+    if getconnections then
+        for _, connection in pairs(getconnections(LocalPlayer.Idled)) do
+            if connection["Disable"] then connection["Disable"](connection)
+            elseif connection["Disconnect"] then connection["Disconnect"](connection) end
+        end
+    else
+        local VirtualUser = game:GetService('VirtualUser')
+        LocalPlayer.Idled:Connect(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+        end)
+    end
+end
+
+local function GetLootSpawned(Loot)
+    if not Loot or not Loot:IsA('Model') then return false end
+    return Loot:FindFirstChild('LootHolder') and true or false
 end
 
 local function Statistics()
@@ -246,34 +286,32 @@ local function Statistics()
     })
 end
 
+--Farmer
 warn('Start farming...')
+warn(FastMode and 'W' or 'L','exploit')
 
 RemotesFolder.Statistics.OnClientEvent:Connect(function(table)
-    Statisticsed = true
+    local GotKnobs = table['Knobs'][3]
     local farmtime = math.floor(os.clock() - StartTime)
-    cfg['AllFarmknobs'] = cfg['AllFarmknobs'] + table['Knobs'][3]
-    cfg['AllFarmTime'] = cfg['AllFarmTime'] + farmtime
-    Notify(`共获取 {cfg['AllFarmknobs']} 个knobs,共用时 {cfg['AllFarmTime']} 秒.\n此次用时 {farmtime} 秒.`)
-    saveCfg()
-end)
+    local notifyStr = (FastMode and '目前共获取 %d 个knobs.' or '共获取 %d 个knobs,共用时 %d 秒.\n此次用时 %d 秒.')
+    :format((FastMode and CurrentGetKnobs or cfg['AllFarmknobs']),cfg['AllFarmTime'],farmtime)
 
-RemotesFolder:FindFirstChild("UseEnemyModule").OnClientEvent:Connect(function(entity)--HOW DARE U VOID AND RUSH
-    if entity ~= 'Void' then return end
-    task.wait(2); warn('HOW DARE U VOID')
-    RemotesFolder.PreRunShop:FireServer(); CameraScript.Enabled = true; Voided = true
-
-    repeat until workspace:FindFirstChild('RushMoving') or CurrentDoor():WaitForChild('Lock',0.1)
-    warn(workspace:FindFirstChild('RushMoving') and 'Oh no rush is coming,RUN!' or 'I hate the lock bruh'); StopFarming = true
-end)
-
-RemotesFolder:FindFirstChild("PlayerDied").OnClientEvent:Connect(function()--HOW DARE U VOID AND RUSH
-    warn('HOW BRO'); Statistics(); StopFarming = true
+    if not FastMode then 
+        Statisticsed = true
+        cfg['AllFarmTime'] = cfg['AllFarmTime'] + farmtime
+        cfg['AllFarmknobs'] = cfg['AllFarmknobs'] + GotKnobs
+        saveCfg()
+    else CurrentGetKnobs = CurrentGetKnobs + GotKnobs end
+    
+    Notify(notifyStr,1.5)
 end)
 
 task.spawn(function() --Fuck u Jam
     local Jam = MainUI.Initiator.Main_Game.Health.Jam
-	warn(Jam and 'Stupid Jam GO AWAY' or 'Ok there\'s not Jam'))
-    if Jam then Jam.Volume = 0 else return end
+    if Jam then Jam.Volume = 0 end
+    StarterGui.MainUI.Initiator.Main_Game.Health.Jam:Destroy()
+    game:GetService("SoundService").Main.Jamming:Destroy()
+	warn(Jam and 'Stupid Jam GO AWAY' or 'Ok there\'s not Jam')
 end)
 
 task.spawn(function() --Fuck u ItemShop UI
@@ -303,6 +341,111 @@ task.spawn(function() --Fuck u Screech
     local ScreechRE = WaitChild(RemotesFolder,'Screech') 
     ScreechRE.Name = '_Screech'
     warn('Stupid Screech GO AWAY')
+end)
+
+if FastMode then 
+    local HighestLoots,HighestPercent = {},0
+    local GoldVal = LocalPlayer.PlayerGui.TopbarUI.Topbar.StatsTopbarHandler.StatModules.Gold.GoldVal
+
+    local function ReStatistics()
+        replicatesignal(LocalPlayer.Kill)
+        RemotesFolder.Statistics:FireServer()
+    end
+    
+    local function InitFastFarm()
+        Notify('点击选择行为',math.huge,{
+            Button1 = '重开',
+            Button2 = '返回大厅',
+            Callback = function(choice)
+                local Remote = choice == '重开' and RemotesFolder.PlayAgain or RemotesFolder.Lobby
+                Notify(choice..'中...',10)
+                Remote:FireServer()
+            end
+        })
+        LocalPlayer.CharacterAdded:Connect(ReStatistics)
+        antiafk(); ReStatistics()
+    end
+
+    if GoldVal.Value ~= 0 then Notify('已自动开始farm.',10); InitFastFarm(); return end
+
+    local function CheckLoot(Loot,Percent)
+        if not Loot:GetAttribute('LoadModule') then HighestLoots[Loot] = {}
+        else
+            local Parent = table.find(HighestLoots,Loot.Parent)
+            if Parent then table.insert(HighestLoots[Parent],Loot)
+            else return Loot end
+        end
+    end
+
+    local function OpenLoot(Loot)
+        local Childs = Loot:GetChildren()
+        if #Childs == 0 then return end
+
+        for _,child in pairs(Childs) do
+            if not child:IsA('ProximityPrompt') then continue end
+            
+            task.spawn(function() repeat LookToInteract(child:FindFirstAncestorWhichIsA('Model').PrimaryPart,child); task.wait() until GetLootSpawned(Loot) end)
+        end
+    end
+
+    local function CheckRoom(room)
+        if room.Name == '0' or not room:IsA('Model') then return end
+
+        local LootItems = {}
+    
+        for _,Item in pairs(room:GetDescendants()) do
+            if not Item:IsA('Model') or not Item:GetAttribute('LootPercent') or Item.Name == 'ChestBoxLocked' then continue end
+            LootItems[Item] = Item:GetAttribute('LootPercent')
+            HighestPercent = math.max(HighestPercent,Item:GetAttribute('LootPercent'))
+        end
+    
+        for Loot,Percent in pairs(LootItems) do
+            if Percent < HighestPercent then continue end
+            local LootReturn = CheckLoot(Loot,Percent)
+            if LootReturn then return LootReturn end
+        end
+
+        local SelectedLoot
+
+        for Loot,Child in pairs(HighestLoots) do
+            if not Child[1] or Child[1]:GetAttribute('LootPercent') < HighestPercent then continue end
+            SelectedLoot = Loot; break
+        end
+
+        return SelectedLoot
+    end
+
+    local SelectedLoot = CheckRoom(workspace.CurrentRooms['1'])
+    
+    if SelectedLoot then
+        TeleportPlayer(SelectedLoot.PrimaryPart.CFrame)
+        RemotesFolder.PreRunShop:FireServer()
+        for _,Loot in pairs(SelectedLoot:GetChildren()) do OpenLoot(Loot) end
+        Notify('手动点击以开始farm',math.huge,{
+            Button1 = '开始',
+            Button2 = '取消',
+            Callback = function(choice)
+                if choice ~= '开始' then return end
+                InitFastFarm()
+            end
+        })
+        return
+    else warn('L seed,trying to use slowMode...') end
+end
+--L SlowMode
+if not ReplicatedStorage.GameData.PreRun.Value then warn('bruh u can\'t use slowmode rn'); Notify('请在开局前执行',10); return end
+
+RemotesFolder:FindFirstChild("UseEnemyModule").OnClientEvent:Connect(function(entity)--HOW DARE U VOID AND RUSH
+    if entity ~= 'Void' then return end
+    task.wait(1.5); warn('HOW DARE U VOID')
+    RemotesFolder.PreRunShop:FireServer(); CameraScript.Enabled = true; Voided = true
+
+    repeat until workspace:FindFirstChild('RushMoving') or CurrentDoor():WaitForChild('Lock',0.1)
+    warn(workspace:FindFirstChild('RushMoving') and 'Oh no rush is coming,RUN!' or 'I hate the lock bruh'); StopFarming = true
+end)
+
+RemotesFolder:FindFirstChild("PlayerDied").OnClientEvent:Connect(function()--What?
+    warn('HOW BRO'); Statistics(); StopFarming = true
 end)
 
 task.spawn(function()--Open doors loop
@@ -369,48 +512,3 @@ task.spawn(function()--Forced Statistics
     CameraScript.Enabled = true
     MovementScript.Enabled = true 
 end)
-
-
-
-
--- local PathfindingService = game:GetService("PathfindingService")
-
--- -- This model contains a start, end and three paths between the player can walk on: Snow, Metal and LeafyGrass
--- local startPosition = workspace.RQ_Feng.HumanoidRootPart.Position
--- local finishPosition = workspace.CurrentRooms[game.ReplicatedStorage.GameData.LatestRoom.Value].RoomExit.Position
-
--- local path = PathfindingService:CreatePath({
--- 	AgentRadius = 3,
--- 	AgentHeight = 2,
--- 	WaypointSpacing = 4,
--- 	AgentCanJump = false,
--- 	Costs = {
--- 		Wood = math.huge,
--- 		ForceField = math.huge
--- 	},
--- })
-
--- -- Compute the path
--- local success, errorMessage = pcall(function()
--- 	path:ComputeAsync(startPosition, finishPosition)
--- end)
-
--- -- Confirm the computation was successful
--- if success and path.Status == Enum.PathStatus.Success then
--- 	-- For each waypoint, create a part to visualize the path
--- 	for _, waypoint in path:GetWaypoints() do
--- 		local part = Instance.new("Part")
--- 		part.Position = waypoint.Position
--- 		part.Size = Vector3.new(0.5, 0.5, 0.5)
--- 		part.Color = Color3.new(1, 0, 1)
--- 		part.Anchored = true
--- 		part.CanCollide = false
--- 		part.Parent = Workspace
--- 		Instance.new("Highlight",part)
--- 		workspace.RQ_Feng.Humanoid:MoveTo(part.Position)
--- 		workspace.RQ_Feng.Humanoid.MoveToFinished:Wait()
--- 		part:Destroy()
--- 	end
--- else
--- 	print(`Path unable to be computed, error: {errorMessage}`)
--- end

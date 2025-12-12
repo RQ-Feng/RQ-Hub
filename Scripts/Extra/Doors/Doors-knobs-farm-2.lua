@@ -40,32 +40,39 @@ local function ReStatistics()
     game:GetService("ReplicatedStorage").RemotesFolder.Statistics:FireServer()
 end
 
-local HighestPercent,HighestLoots = 0,{}
+
+
+
+
+
+
+
+
+
+--Inportant for now
+local HighestLoots,HighestPercent = {},0
 
 local function CheckRoom(room)
     if room.Name == '0' or not room:IsA('Model') then return end
     local LootItems = {}
 
     for _,Item in pairs(room:GetDescendants()) do
-        if not Item:IsA('Model') or not Item:GetAttribute('LootPercent') then continue end
-        if Item.Name ~= 'ChestBoxLocked' then LootItems[Item] = Item:GetAttribute('LootPercent') end
+        if not Item:IsA('Model') or not Item:GetAttribute('LootPercent') or Item.Name == 'ChestBoxLocked' then continue end
+        LootItems[Item] = Item:GetAttribute('LootPercent')
+        HighestPercent = math.max(HighestPercent,Item:GetAttribute('LootPercent'))
     end
 
-    local HighLoots = {}
-
-    for k,v in pairs(LootItems) do
-        HighestPercent = math.max(HighestPercent,v)
-        if v < HighestPercent then continue end
-        HighLoots[k] = k:GetAttribute('LootPercent')
+    for Loot,Percent in pairs(LootItems) do
+        if Percent < HighestPercent or not Loot:GetAttribute('LoadModule') then continue end
+        table.insert(HighestLoots,Loot)
     end
-    
-    for HighLoots,HighPercent in pairs(HighLoots) do if HighPercent >= HighestPercent then table.insert(HighestLoots,HighLoots) end end
-
-    for _,HighestLoot in pairs(HighestLoots) do Instance.new('Highlight',HighestLoot) end
-    TeleportPlayer(HighestLoots[1].PrimaryPart.Position)
 end
 
 for _,room in pairs(workspace.CurrentRooms:GetChildren()) do CheckRoom(room) end
+
+for _,HighestLoot in pairs(HighestLoots) do Instance.new('Highlight',HighestLoot) end
+TeleportPlayer(HighestLoots[math.random(1,#HighestLoot)].PrimaryPart.Position)
+
 LocalPlayer.CharacterAdded:Connect(ReStatistics)
 
 antiafk(); ReStatistics()
