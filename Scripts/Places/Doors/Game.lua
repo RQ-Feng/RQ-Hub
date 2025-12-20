@@ -166,11 +166,15 @@ Feature:AddToggle({
         local function BypassAC()
             while OrionLib.Flags['BypassAC'].Value and OrionLib:IsRunning() do
                 if CloneCollisionPart then CloneCollisionPart.Massless = not CloneCollisionPart.Massless end
-                task.wait(0.4)                
+                task.wait(0.2)                
             end
         end
 
         BypassAC();AddConnection(LocalPlayer.CharacterAdded,function(newchar) clone(newchar) end,OrionLib.Flags['BypassAC'])
+
+        repeat task.wait() until not OrionLib.Flags['BypassAC'].Value or not OrionLib:IsRunning()
+
+        CloneCollisionPart:Destroy()
     end
 })
 Feature:AddToggle({
@@ -185,6 +189,40 @@ Feature:AddToggle({
     end
 })
 Feature:AddSection({Name = "玩家"})
+Feature:AddToggle({
+    Name = "God mode",
+    Default = false,
+    Flag = 'Godmode',
+    Callback = function(Value)
+        if not Value then return end
+        local OriginalHipHeight = Humanoid.HipHeight
+        Humanoid.HipHeight = 0.001
+        AddConnection(Humanoid:GetPropertyChangedSignal("HipHeight"),function() Humanoid.HipHeight = 0.001 end,OrionLib.Flags['Godmode'])
+
+        SetClipFunction(Character)
+        AddConnection(Character.Collision:GetPropertyChangedSignal("CanCollide"),function() SetClipFunction(Character) end,OrionLib.Flags['Godmode'])
+        AddConnection(Character.Collision.CollisionCrouch:GetPropertyChangedSignal("CanCollide"),function() SetClipFunction(Character) end,OrionLib.Flags['Godmode'])
+
+        OrionLib.Flags['SilentCrouch'].Set(true)
+
+        local function GodmodeLoop()
+            repeat task.wait() until not OrionLib.Flags['SilentCrouch'].Value or not not OrionLib.Flags['Godmode'].Value or not OrionLib:IsRunning() 
+            if not OrionLib.Flags['Godmode'].Value then return end
+            OrionLib.Flags['SilentCrouch']:Set(true)
+            OrionLib:MakeNotification({
+                Name = "Godmode",
+                Content = "请不要手动关闭静步.",
+                Time = 2
+            })
+            GodmodeLoop()
+        end
+
+        GodmodeLoop()
+
+        repeat task.wait() until not OrionLib.Flags['Godmode'].Value or not OrionLib:IsRunning()
+        Humanoid.HipHeight = OriginalHipHeight
+    end
+})
 Feature:AddToggle({
     Name = "静步",
     Flag = 'SilentCrouch',
@@ -207,14 +245,12 @@ Feature:AddToggle({
     Callback = function(Value)
         SetClipFunction(Character)
         AddConnection(LocalPlayer.CharacterAdded,SetClipFunction,OrionLib.Flags['SmallHitbox'])
-        AddConnection(Character.Collision:GetPropertyChangedSignal("CanCollide"),SetClipFunction,OrionLib.Flags['SmallHitbox'])
-        AddConnection(Character.Collision.CollisionCrouch:GetPropertyChangedSignal("CanCollide"),SetClipFunction,OrionLib.Flags['SmallHitbox'])
+        AddConnection(Character.Collision:GetPropertyChangedSignal("CanCollide"),function() SetClipFunction(Character) end,OrionLib.Flags['SmallHitbox'])
+        AddConnection(Character.Collision.CollisionCrouch:GetPropertyChangedSignal("CanCollide"),function() SetClipFunction(Character) end,OrionLib.Flags['SmallHitbox'])
         repeat task.wait() until not OrionLib.Flags['SmallHitbox'].Value or not OrionLib:IsRunning()
         SetClipFunction(Character,true)
     end
 })
-
-
 
 Feature:AddToggle({
     Name = "开启跳跃",
@@ -223,6 +259,8 @@ Feature:AddToggle({
     Callback = function(Value)
         Character:SetAttribute("CanJump", Value)
         AddConnection(Character:GetAttributeChangedSignal('CanJump'),function() Character:SetAttribute("CanJump", Value) end,OrionLib.Flags['CanJump'])
+        repeat task.wait() until not OrionLib.Flags['CanJump'].Value or not OrionLib:IsRunning()
+        Character:SetAttribute("CanJump",false)
     end
 })
 Feature:AddToggle({
@@ -232,6 +270,8 @@ Feature:AddToggle({
     Callback = function(Value)
         Character:SetAttribute("CanSlide", Value)
         AddConnection(Character:GetAttributeChangedSignal('CanSlide'),function() Character:SetAttribute("CanSlide", Value) end,OrionLib.Flags['CanSlide'])
+        repeat task.wait() until not OrionLib.Flags['CanSlide'].Value or not OrionLib:IsRunning()
+        Character:SetAttribute("CanSlide",false)
     end
 })
 -- Feature:AddDropdown({
@@ -242,47 +282,6 @@ Feature:AddToggle({
 -- 	Callback = function(Value)
 -- 		print(Value)
 -- 	end    
--- })
--- Feature:AddToggle({
---     Name = "God mode",
---     Default = false,
---     Flag = 'Godmode',
---     Callback = function(Value)
---         if not Value then return end
-
---         local NoCharRaycastParam = RaycastParams.new()
---         NoCharRaycastParam.FilterType = Enum.RaycastFilterType.Exclude
---         NoCharRaycastParam.FilterDescendantsInstances = {Character}
-
---         SetClipFunction(Character)
-
---         AddConnection(Character.Collision:GetPropertyChangedSignal("CanCollide"),SetClipFunction,OrionLib.Flags['Godmode'])
-
---         AddConnection(Character.Collision.CollisionCrouch:GetPropertyChangedSignal("CanCollide"),function()
---             SetClipFunction(Character)
---             for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
---                 if track.Animation.AnimationId == Character.Animations.Crouch.AnimationId then
---                     track:Stop(0);break
---                 end
---             end
---         end,OrionLib.Flags['Godmode'])
-
---         local raycast = workspace:Raycast(HumanoidRootPart.Position,Vector3.new(HumanoidRootPart.Position.X,-1000,HumanoidRootPart.Position.Z), NoCharRaycastParam)
---         if not raycast then return end
---         Character.Collision.Position = HumanoidRootPart.Position - Vector3.new(0, raycast.Distance - 0.9, 0)
---         if Character:FindFirstChild('_CollisionPart') then Character:FindFirstChild('_CollisionPart').Position = Character.Collision.Position + Vector3.new(0, 2.5, 0) end
-
---         repeat task.wait() until not OrionLib.Flags['Godmode'].Value or not OrionLib:IsRunning() 
-
---         if Character.Collision.Position ~= HumanoidRootPart.Position then Character.Collision.Position = HumanoidRootPart.Position end
---         if Character:FindFirstChild('_CollisionPart') and Character:FindFirstChild('_CollisionPart').Position ~= HumanoidRootPart.Position then 
---             Character:FindFirstChild('_CollisionPart').Position = Character.Collision.Position + Vector3.new(0, 2.5, 0) --idk what is the correct distance xD
---         end
---         Character.Collision.CanCollide = not Character:GetAttribute("Crouching")
---         if Character.Collision:FindFirstChild("CollisionCrouch") then
---             Character.Collision.CollisionCrouch.CanCollide = Character:GetAttribute("Crouching")
---         end
---     end
 -- })
 Esp:AddToggle({
     Name = "钥匙透视",

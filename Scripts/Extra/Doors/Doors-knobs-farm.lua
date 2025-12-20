@@ -1,4 +1,4 @@
-local LobbyPlaceId,GamePlaceId,DoorsGameId = 6516141723,6839171747,2440500124
+local LobbyPlaceId,_GamePlaceId,DoorsGameId = 6516141723,6839171747,2440500124
 if game.GameId ~= DoorsGameId then warn('Incorrect game'); return end
 
 warn('Knobs farm is loaded!')
@@ -12,6 +12,8 @@ local LocalPlayer = Players.LocalPlayer
 
 local ByAutoRejoin,TryingReconnect = false,false
 local StopFarming,Statisticsed,Voided = false,false,false
+local executor = identifyexecutor and tostring(identifyexecutor())
+local StatisticsEvent,ReStatisticsEvent
 local FastMode = (replicatesignal and type(replicatesignal) == 'function') and true or false
 local CurrentGetKnobs; if FastMode then CurrentGetKnobs = 0 end
 local StartTime,FarmTimeOut = os.clock(),os.clock()
@@ -37,6 +39,12 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local RemotesFolder = ReplicatedStorage:WaitForChild("RemotesFolder")
+local GameData = ReplicatedStorage:WaitForChild("GameData")
+
+local executor_BlackList = {
+    ['Xeno'] = 'fireproximityprompt'
+}
+
 --Config
 local defaultCfg = {
     ['AllFarmknobs'] = 0,
@@ -93,31 +101,30 @@ end
 
 if game.PlaceId == LobbyPlaceId then--Rejoin the game in the lobby
     warn('In lobby,teleporting to game...')
-    Notify('Rejoining the game...')
+    Notify('重进中...')
 
     local default = {
-        'LightsOut',
-        'Gloombat',
-        'NoGuidingLight',
-        'PlayerCrouchSlow',
-        'PlayerSlowHealth',
-        'TimothyMore',
-        'DupeMost',
-        'LeastHidingSpots',
-        'Fog',
-        'HideTime',
-        'FigureFaster',
-        'HideLevel2',
-        'ScreechFaster',
-        'ItemSpawnNone',
-        'Jammin',
+        "LightsOut",
+        "Gloombat",
+        "NoGuidingLight",
+        "PlayerCrouchSlow",
+        "PlayerSlowHealth",
+        "TimothyMore",
+        "DupeMost",
+        "NoKeySound",
+        "LeastHidingSpots",
+        "ScreechFaster",
+        "Fog",
+        "HideTime",
+        "FigureFaster",
+        "ItemSpawnNone",
+        "Jammin"
     }
 
     local fallback = {
         'Gloombat',
         'NoGuidingLight',
         'TimothyMore',
-        'ScreechLight',
         'ScreechFast',
         'RushFaster',
         'NoKeySound',
@@ -138,19 +145,21 @@ if game.PlaceId == LobbyPlaceId then--Rejoin the game in the lobby
             FriendsOnly = true,
             MaxPlayers = 1,
             Mods = mod,
-            Destination = 'Hotel',
+            Destination = 'Mines',
             Settings = {}
         })
         task.wait(1.2)--Wait for cooldown
     end
 
     CreateElevator(default)--150%
-    CreateElevator(fallback)--125%
+    CreateElevator(fallback)--120%
     CreateElevator({})--Final fallback--0%
     return
 end
 
 repeat task.wait() until game:GetService("ReplicatedFirst")._Loaded.Value--Wait for game loaded
+
+if #Players:GetPlayers() > 1 then Notify('无法在多人游戏中使用',10); return end
 
 --Interact things
 local MainUI = WaitChild(LocalPlayer.PlayerGui,'MainUI')
@@ -163,20 +172,13 @@ local CameraScript,MovementScript; repeat --Waiting for scripts
     end); task.wait()
 until CameraScript and MovementScript
 
-MovementScript.Enabled = false
-
-Notify('是否清除累计记录?',30,{
-	Button1 = '是',
-	Button2 = '否',
-	Callback = function(choice)
-		if choice ~= '是' then return end
-        cfg = defaultCfg; saveCfg()
-	end
-})
-
 --Interact
 local function BetterPrompt(prompt)
     if typeof(prompt) ~= 'Instance' or not prompt:IsA("ProximityPrompt") then warn("[BetterPrompt]:ProximityPrompt expected, got " .. typeof(prompt)); return end
+
+    if not executor_BlackList[executor] or not executor_BlackList[executor]['fireproximityprompt'] then --no need to use fallback firepp
+        fireproximityprompt(prompt); return 
+    end
     
     prompt.Enabled = true
     prompt.RequiresLineOfSight = false
@@ -194,6 +196,9 @@ local function LookToInteract(targetPart,interactPrompt)
         ..targetPart:IsA('BasePart') and typeof(targetPart) or typeof(interactPrompt))
     end
 
+    if not executor_BlackList[executor] or not executor_BlackList[executor]['fireproximityprompt'] then --no need to use fallback firepp
+        fireproximityprompt(interactPrompt); return 
+    end
     CameraScript.Enabled = false
     workspace.CurrentCamera.FieldOfView = 120
     workspace.CurrentCamera.CFrame = CFrame.lookAt(HumanoidRootPart.Position,targetPart.Position)
@@ -201,7 +206,7 @@ local function LookToInteract(targetPart,interactPrompt)
 end
 --Important things getter
 local function LatestRoom()
-    return ReplicatedStorage.GameData.LatestRoom.Value
+    return GameData.LatestRoom.Value
 end
 
 local function CurrentRoom()
@@ -232,16 +237,13 @@ local function GetKey(KeyObtain)
     if CheckBackpackKey() then warn('Got key:',CheckBackpackKey().Name) else warn('Got key failed.') end
 end
 
-local function GetGoldPile(GoldPile)
-    if GoldPile.Name ~= 'GoldPile' then return end
+local function GetGoldPile(GoldPile)--Need to teleport manually
+    print(GoldPile,GoldPile.Parent)
+    if not GoldPile or GoldPile.Name ~= 'GoldPile' then return end
+    warn(GoldPile,GoldPile.Parent)
     local Hitbox = WaitChild(GoldPile,'Hitbox')
     local LootPrompt = WaitChild(GoldPile,'LootPrompt')
-    repeat 
-        TeleportPlayer(Hitbox.CFrame)
-        LookToInteract(Hitbox,LootPrompt) 
-        task.wait() 
-    until not GoldPile or not GoldPile.Parent    
-    CameraScript.Enabled = true
+    repeat LookToInteract(Hitbox,LootPrompt); task.wait() until not GoldPile or not GoldPile.Parent
 end
 
 local function antiafk()
@@ -259,9 +261,29 @@ local function antiafk()
     end
 end
 
-local function GetLootSpawned(Loot)
-    if not Loot or not Loot:IsA('Model') then return false end
-    return Loot:FindFirstChild('LootHolder') and true or false
+local function notityRejoin()
+    if StatisticsEvent then StatisticsEvent:Disconnect() end
+    for i = 1,3 do
+        Notify(i ~= 1 and '再次尝试重开...' or '重开中...',10)
+        RemotesFolder.PlayAgain:FireServer()
+        task.wait(10)
+    end
+end
+
+local function GetLootHolder(Loot)
+    if not Loot or not Loot:IsA('Model') then return true end
+    return Loot:FindFirstChild('LootHolder')
+end
+
+local function OpenLoot(Loot)
+    for _,prompt in pairs(Loot:GetDescendants()) do
+        if not prompt:IsA('ProximityPrompt') then continue end
+        local promptModel = prompt:FindFirstAncestorWhichIsA('Model')
+        while not GetLootHolder(promptModel) do
+            LookToInteract(promptModel.PrimaryPart,prompt)
+            task.wait() 
+        end; prompt.Enabled = false
+    end
 end
 
 local function Statistics()
@@ -273,6 +295,7 @@ local function Statistics()
         Button2 = '否',
         Callback = function(choice)
             if choice ~= '是' then return end
+            ByAutoRejoin = false
             RemotesFolder.PlayAgain:FireServer()
             Notify('是否返回大厅?',30,{
                 Button1 = '是',
@@ -288,13 +311,27 @@ end
 
 --Farmer
 warn('Start farming...')
-warn(FastMode and 'W' or 'L','exploit')
+warn(FastMode and 'W' or 'L','executor:',executor or '<this executor EVEN can\'t use identifyexecutor,so L.>')
 
-RemotesFolder.Statistics.OnClientEvent:Connect(function(table)
+Notify('是否清除累计记录?',30,{
+	Button1 = '是',
+	Button2 = '否',
+	Callback = function(choice)
+		if choice ~= '是' then return end
+        cfg = defaultCfg; saveCfg()
+	end
+})
+
+StatisticsEvent = RemotesFolder.Statistics.OnClientEvent:Connect(function(table)
+    warn('Got Statistics-knobs:',table['Knobs'][3])
     local GotKnobs = table['Knobs'][3]
     local farmtime = math.floor(os.clock() - StartTime)
-    local notifyStr = (FastMode and '目前共获取 %d 个knobs.' or '共获取 %d 个knobs,共用时 %d 秒.\n此次用时 %d 秒.')
-    :format((FastMode and CurrentGetKnobs or cfg['AllFarmknobs']),cfg['AllFarmTime'],farmtime)
+    
+    if GotKnobs == 0 and FastMode then 
+        Notify('无法获取knobs.\n自动重开.'); StopFarming = true
+        if not ByAutoRejoin then notityRejoin(); return end
+        return
+     end
 
     if not FastMode then 
         Statisticsed = true
@@ -302,15 +339,20 @@ RemotesFolder.Statistics.OnClientEvent:Connect(function(table)
         cfg['AllFarmknobs'] = cfg['AllFarmknobs'] + GotKnobs
         saveCfg()
     else CurrentGetKnobs = CurrentGetKnobs + GotKnobs end
+
+    local notifyStr = (FastMode and '目前共获取 %d 个knobs.' or '共获取 %d 个knobs,共用时 %d 秒.\n此次用时 %d 秒.')
+    :format((FastMode and CurrentGetKnobs or cfg['AllFarmknobs']),cfg['AllFarmTime'],farmtime)
     
-    Notify(notifyStr,1.5)
+    Notify(notifyStr,1)
 end)
 
 task.spawn(function() --Fuck u Jam
     local Jam = MainUI.Initiator.Main_Game.Health.Jam
     if Jam then Jam.Volume = 0 end
-    StarterGui.MainUI.Initiator.Main_Game.Health.Jam:Destroy()
-    game:GetService("SoundService").Main.Jamming:Destroy()
+    pcall(function(...)
+        game:GetService("SoundService").Main.Jamming:Destroy()
+        StarterGui.MainUI.Initiator.Main_Game.Health.Jam:Destroy()
+    end)
 	warn(Jam and 'Stupid Jam GO AWAY' or 'Ok there\'s not Jam')
 end)
 
@@ -343,97 +385,134 @@ task.spawn(function() --Fuck u Screech
     warn('Stupid Screech GO AWAY')
 end)
 
-if FastMode then 
-    local HighestLoots,HighestPercent = {},0
+if FastMode then
+    if GameData.Floor.Value ~= 'Mines' then return Notify('不支持此Floor.') end
+    
     local GoldVal = LocalPlayer.PlayerGui.TopbarUI.Topbar.StatsTopbarHandler.StatModules.Gold.GoldVal
+    local Loots = {'Locker_Small','OldWoodenTable','Toolbox','Toolbox_Locked','Locker_Small_Locked'}
 
     local function ReStatistics()
         replicatesignal(LocalPlayer.Kill)
         RemotesFolder.Statistics:FireServer()
     end
+
+    local WhitelistRemotes = {'Statistics','PlayAgain','Lobby','PreRunShop'}
+
+    local function FastMode_AntiLag()
+        LocalPlayer.PlayerGui:Destroy()
+        for _,remote in pairs(RemotesFolder:GetChildren()) do
+            if table.find(WhitelistRemotes,remote.Name) then continue end
+            remote:Destroy()
+        end
+    end
     
     local function InitFastFarm()
-        Notify('点击选择行为',math.huge,{
+        local AntiLagChose = false
+        task.spawn(function() task.wait(30); AntiLagChose = true end)
+        Notify('是否启用AntiLag\n(游戏GUI将会消失)',30,{
+            Button1 = '是',
+            Button2 = '否',
+            Callback = function(choice)
+                AntiLagChose = true
+                if choice ~= '是' then return end
+                FastMode_AntiLag()
+            end
+        })
+        repeat task.wait() until AntiLagChose
+        local GoldPicked = ReplicatedStorage.GameStats:FindFirstChild('Player_' .. LocalPlayer.Name).Total.GoldPicked
+        Notify('当前金币:' .. GoldPicked.Value .. '\n点击选择行为',math.huge,{
             Button1 = '重开',
             Button2 = '返回大厅',
             Callback = function(choice)
                 local Remote = choice == '重开' and RemotesFolder.PlayAgain or RemotesFolder.Lobby
                 Notify(choice..'中...',10)
+                StopFarming = true
+                if ReStatisticsEvent then ReStatisticsEvent:Disconnect() end
                 Remote:FireServer()
             end
         })
-        LocalPlayer.CharacterAdded:Connect(ReStatistics)
+        ReStatisticsEvent = LocalPlayer.CharacterAdded:Connect(ReStatistics)
         antiafk(); ReStatistics()
     end
 
-    if GoldVal.Value ~= 0 then Notify('已自动开始farm.',10); InitFastFarm(); return end
-
-    local function CheckLoot(Loot,Percent)
-        if not Loot:GetAttribute('LoadModule') then HighestLoots[Loot] = {}
-        else
-            local Parent = table.find(HighestLoots,Loot.Parent)
-            if Parent then table.insert(HighestLoots[Parent],Loot)
-            else return Loot end
-        end
-    end
-
-    local function OpenLoot(Loot)
-        local Childs = Loot:GetChildren()
-        if #Childs == 0 then return end
-
-        for _,child in pairs(Childs) do
-            if not child:IsA('ProximityPrompt') then continue end
-            
-            task.spawn(function() repeat LookToInteract(child:FindFirstAncestorWhichIsA('Model').PrimaryPart,child); task.wait() until GetLootSpawned(Loot) end)
-        end
-    end
-
-    local function CheckRoom(room)
-        if room.Name == '0' or not room:IsA('Model') then return end
-
-        local LootItems = {}
-    
-        for _,Item in pairs(room:GetDescendants()) do
-            if not Item:IsA('Model') or not Item:GetAttribute('LootPercent') or Item.Name == 'ChestBoxLocked' then continue end
-            LootItems[Item] = Item:GetAttribute('LootPercent')
-            HighestPercent = math.max(HighestPercent,Item:GetAttribute('LootPercent'))
-        end
-    
-        for Loot,Percent in pairs(LootItems) do
-            if Percent < HighestPercent then continue end
-            local LootReturn = CheckLoot(Loot,Percent)
-            if LootReturn then return LootReturn end
-        end
-
-        local SelectedLoot
-
-        for Loot,Child in pairs(HighestLoots) do
-            if not Child[1] or Child[1]:GetAttribute('LootPercent') < HighestPercent then continue end
-            SelectedLoot = Loot; break
-        end
-
-        return SelectedLoot
-    end
-
-    local SelectedLoot = CheckRoom(workspace.CurrentRooms['1'])
-    
-    if SelectedLoot then
-        TeleportPlayer(SelectedLoot.PrimaryPart.CFrame)
-        RemotesFolder.PreRunShop:FireServer()
-        for _,Loot in pairs(SelectedLoot:GetChildren()) do OpenLoot(Loot) end
+    if GoldVal.Value ~= 0 then 
         Notify('手动点击以开始farm',math.huge,{
             Button1 = '开始',
             Button2 = '取消',
             Callback = function(choice)
-                if choice ~= '开始' then return end
+                if choice ~= '开始' then StatisticsEvent:Disconnect(); return end
                 InitFastFarm()
             end
-        })
-        return
-    else warn('L seed,trying to use slowMode...') end
+        }); return 
+    end
+
+    if not GameData.PreRun.Value or LatestRoom() ~= 0 then warn('bruh u can\'t use slowmode rn')
+        Notify('请在开局前执行',60,{
+            Button1 = '重开',
+            Button2 = '取消',
+            Callback = function(choice) if choice == '重开' then notityRejoin(); return else StatisticsEvent:Disconnect() end end
+        }); return
+    end
+
+    -- local Tnum,Lnum = 0,0
+    -- local function addnum(inst,num) Instance.new('Highlight',inst); return num + 1 end
+    -- for _,item in pairs(CurrentRoom():GetDescendants()) do
+    --     if item.Name == 'Toolbox_Locked' then Tnum = addnum(item,Tnum) end
+    --     if item.Name == 'Locker_Small_Locked' then Lnum = addnum(item,Lnum) end
+    -- end
+    -- if Tnum + Lnum <= 1 then warn('L seed,replaying...'); notityRejoin(); return end
+
+
+    --ActivateEventPrompt
+    
+    TeleportPlayer(CFrame.new(CurrentDoor():FindFirstChild('Collision').Position  + Vector3.new(82,-10,-80)))
+    --RemotesFolder.PreRunShop:FireServer({'Lockpick'},false)
+    RemotesFolder.PreRunShop:FireServer({},false)
+
+    while GameData.PreRun.Value do
+        if (workspace.CurrentRooms["0"].StarterElevator.ElevatorCar.ElevatorRoot.Position - HumanoidRootPart.Position).Magnitude < 12 then
+            TeleportPlayer(CFrame.new(Vector3.new(330,-13,-280)))
+        end; task.wait()
+    end
+    
+    local GoldPiles = {}
+    for _,Loot in pairs(workspace.CurrentRooms['1']:WaitForChild('Assets'):GetChildren()) do--Extra gold gainer
+        local Name = Loot.Name
+        if not table.find(Loots,Name) or (Loot.PrimaryPart.Position - HumanoidRootPart.Position).Magnitude > 20 then continue end
+        OpenLoot(Loot); task.spawn(function()
+            if Loot:WaitForChild('GoldPile',5) then table.insert(GoldPiles,Loot.GoldPile) end
+        end)
+    end
+    task.wait(1)
+    for _,gold in pairs(GoldPiles) do GetGoldPile(gold) end
+
+    for _,Loot in pairs(workspace.CurrentRooms['0']:WaitForChild('Assets'):GetChildren()) do--Normal gold gainer
+        local Name = Loot.Name
+        if not table.find(Loots,Name) then continue end
+    end
+
+    CameraScript.Enabled = true
+
+    Notify('(测试)手动点击以开始farm',math.huge,{
+        Button1 = '开始',
+        Button2 = '取消',
+        Callback = function(choice)
+            if choice ~= '开始' then StatisticsEvent:Disconnect(); return end
+            InitFastFarm()
+        end
+    })
+    return
 end
 --L SlowMode
-if not ReplicatedStorage.GameData.PreRun.Value then warn('bruh u can\'t use slowmode rn'); Notify('请在开局前执行',10); return end
+if not GameData.PreRun.Value then 
+    warn('bruh u can\'t use slowmode rn')
+    Notify('请在开局前执行',math.huge,{
+        Button1 = '重开',
+        Button2 = '取消',
+        Callback = function(choice) if choice == '重开' then notityRejoin(); return else StatisticsEvent:Disconnect() end end
+    }); return
+end
+MovementScript.Enabled = false
 
 RemotesFolder:FindFirstChild("UseEnemyModule").OnClientEvent:Connect(function(entity)--HOW DARE U VOID AND RUSH
     if entity ~= 'Void' then return end
@@ -448,7 +527,7 @@ RemotesFolder:FindFirstChild("PlayerDied").OnClientEvent:Connect(function()--Wha
     warn('HOW BRO'); Statistics(); StopFarming = true
 end)
 
-task.spawn(function()--Open doors loop
+task.spawn(function()--Open doors loop - fallback
     repeat task.wait() until Character
     repeat
         local Assets = WaitChild(CurrentRoom(),'Assets')
@@ -460,7 +539,7 @@ task.spawn(function()--Open doors loop
         end
 
         for _,Item in pairs(Assets:GetDescendants()) do
-            if Item.Name == 'GoldPile' then warn(Item); GetGoldPile(Item) end
+            if Item.Name == 'GoldPile' then TeleportPlayer(Item.CFrame); GetGoldPile(Item) end
             if Item.Name == 'KeyObtain' and GetDoorLockedPart() and not CheckBackpackKey() then GetKey(Item) end
         end
         
