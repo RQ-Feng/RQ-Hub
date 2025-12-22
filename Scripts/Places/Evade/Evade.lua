@@ -1,5 +1,3 @@
-local AutoCollectCurrency,AutoZoom
-
 local MainGame = workspace.Game
 
 local Stats = MainGame.Stats
@@ -7,40 +5,66 @@ local Tickets = MainGame.Effects.Tickets
 local Spawns = MainGame.Map.Parts.Spawns
 
 local Zoom = LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
+local onDetector = {}
 
-local function Notify(name,content,Sound,SoundId) -- 信息
-    OrionLib:MakeNotification({
-        Name = name,
-        Content = content,
-        Image = "rbxassetid://4483345998",
-        Time = 3,
-        Sound = Sound,
-        SoundId = SoundId
-    })
+local function GetPlayerByChar(char)
+    if not char:IsA('Model') then return warn('[GetPlayerByChar] Expect model,got',char.ClassName or typeof(char)) end
+    return Players:FindFirstChild(char.Name)
 end
 
-local function BackToSpawn()
-    pcall(function() char:WaitForChild('HumanoidRootPart').Anchored = false char:PivotTo(Spawns:FindFirstChild('SpawnLocation').CFrame) end)
-end
+--------------------------------------------------功能专属
+local function PlayerDownedDetector(plr)
+    if plr == LocalPlayer or table.find(onDetector,plr) then return end
+    local Character = plr.Character or plr.CharacterAdded:Wait()
+    local DownedEsp--esp
+    local DownedName,CarriedName = '倒地玩家','倒地玩家(被抬起)'
+    local onDowned,onCarried --event
+    warn('detecting',Character.Name)
 
-local function AvoidEntityAnchorFunction()
-    task.spawn(function() 
-        while OrionLib.Flags['AvoidEntityByAnchor'].Value do
-            char:WaitForChild('HumanoidRootPart').Anchored = true
-            char:PivotTo(CFrame.new(0,10000,0))
-            task.wait(10)
-        end
-        if not OrionLib.Flags['AvoidEntityByAnchor'] then BackToSpawn() end
-    end)
-end
+    if Character:GetAttribute('Downed') then
+        warn(Character.Name,'downed!')
+        DownedEsp = AddESP({
+            Name = DownedName,
+            inst = Character,
+            Color = Color3.new(0, 1, 0),
+            value = OrionLib.Flags['DownedPlayerEsp']
+        })
+        warn(Character.Name,'got esp!')
+    end
 
-local function CollectBread(bread)
-    if not char then return end
-    print('CollectBread')
-    while bread and AutoCollectCurrency do pcall(function()
-        if AvoidEntityByAnchor then char:FindFirstChild('HumanoidRootPart').Anchored = false end
-        char:PivotTo(bread:FindFirstChild('HumanoidRootPart').CFrame)
-    end) task.wait() end
+    local function onCharacterAdded(Character)
+        onDowned = AddConnection(Character:GetAttributeChangedSignal('Downed'),function()
+            local downed = Character:GetAttribute('Downed')
+            if downed then
+                warn(Character.Name,'downed!')
+                DownedEsp = AddESP({
+                    Name = DownedName,
+                    inst = Character,
+                    Color = Color3.new(0, 1, 0),
+                    value = OrionLib.Flags['DownedPlayerEsp']
+                })
+                warn(Character.Name,'got esp!')
+            elseif DownedEsp then 
+                DownedEsp:Destroy() 
+                warn(Character.Name,'destroyed esp!')
+            end
+        end,OrionLib.Flags['DownedPlayerEsp'])
+
+        onCarried = AddConnection(Character:GetAttributeChangedSignal('Carried'),function()
+            local carried = Character:GetAttribute('Carried')
+            if not DownedEsp then return end
+            if carried then
+                warn(Character.Name,'carried!')
+                DownedEsp.CurrentSettings.Name = CarriedName
+                warn(Character.Name,'changed esp!')
+            else
+                DownedEsp.CurrentSettings.Name = DownedName
+                warn(Character.Name,'changed esp back!')
+            end
+        end,OrionLib.Flags['DownedPlayerEsp'])
+    end
+
+    AddConnection(plr.CharacterAdded,onCharacterAdded,OrionLib.Flags['DownedPlayerEsp'])
 end
 
 Tab = Window:MakeTab({
@@ -51,6 +75,16 @@ Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })
+local TimerPrefix = '当前%s时间剩余: %d 秒'
+local State = Stats:GetAttribute('RoundStarted') and '回合' or Stats:GetAttribute('Voting') and '投票阶段' or '中场休息'
+local Timer = Tab:AddLabel(TimerPrefix:format(State,Stats:GetAttribute('Timer')))
+AddConnection(Stats:GetAttributeChangedSignal('Timer'),function()
+    local CurrentTime = Stats:GetAttribute('Timer')
+    local State = Stats:GetAttribute('RoundStarted') and '回合' or Stats:GetAttribute('Voting') and '投票阶段' or '中场休息'
+    if type(CurrentTime) ~= 'number' then Timer:Set('回合时间未知'); return end
+     
+    Timer:Set(TimerPrefix:format(State,Stats:GetAttribute('Timer')))
+end)
 Tab:AddSlider({
     Name = "缩放",
     Min = 0,
@@ -61,57 +95,95 @@ Tab:AddSlider({
     Callback = function(value) Zoom.Value = value end
 })
 Tab:AddToggle({
-    Name = "自动收集活动货币",
-    Default = false,
-    Callback = function(value)
-        AutoCollectCurrency = value
-        if AutoCollectCurrency then
-            for _,bread in pairs(Tickets:GetChildren()) do CollectBread(bread) continue end
-            AddConnection(Tickets.ChildAdded,function(bread) 
-                if AutoCollectCurrency then CollectBread(bread) end
-            end,AutoCollectCurrency)
-        end
-    end
-})
-Tab:AddToggle({
-    Name = "躲避实体(固定传送)",
-    Default = false,
-    Flag = 'AvoidEntityByAnchor',
-    Callback = function(value)
-        if value and char then AvoidEntityAnchorFunction() else BackToSpawn() end
+    Name = "特殊回合提醒",
+    Default = true,
+    Flag = "SpecialRoundNotify",
+    Callback = function(Value)
+        if not Value then return end
+        AddConnection(Stats:GetAttributeChangedSignal('SpecialRound'),function() -- 其他
+            OrionLib:MakeNotification({
+                Name = '特殊回合',
+                Content = ('特殊回合为: %s'):format(Stats:GetAttribute('SpecialRound')),
+                Image = 'rbxassetid://7733658504',
+                Time = 5
+            })
+        end,OrionLib.Flags['SpecialRoundNotify'])
     end
 })
 Esp:AddToggle({
     Name = "实体透视",
     Default = true,
     Flag = "EntitiesEsp",
-    Callback = function()
-        Players:GetPlayerFromCharacter()
+    Callback = function(Value)
+        if not Value then return end
+
+        for _,char in pairs(MainGame.Players:GetChildren()) do
+            if GetPlayerByChar(char) then continue end
+            AddESP({
+                inst = char,
+                Color = Color3.new(1, 0, 0),
+                value = OrionLib.Flags['EntitiesEsp'],
+                Type = 'Highlight'
+            })
+            if char:FindFirstChild('Hitbox') then char.Hitbox.Transparency = 0 end
+        end 
+
+        AddConnection(MainGame.Players.ChildAdded,function(char) -- 其他
+            if GetPlayerByChar(char) or not OrionLib.Flags['EntitiesEsp'].Value then return end --GetPlayerFromCharacter has some problems bruh
+            AddESP({
+                inst = char,
+                Color = Color3.new(1, 0, 0),
+                value = OrionLib.Flags['EntitiesEsp'],
+                Type = 'Highlight'
+            })
+            if char:WaitForChild('Hitbox',1) then char.Hitbox.Transparency = 0 end
+        end,OrionLib.Flags['EntitiesEsp'])
     end
 })
 Esp:AddToggle({
     Name = "活动货币透视",
     Default = true,
     Flag = "VisualEsp",
-    Callback = function()
-        if not OrionLib.Flags['VisualEsp'].Value then return end
+    Callback = function(Value)
+        if not Value then return end
+
         for _,visual in pairs(Tickets:GetChildren()) do 
             if visual.Name == 'Visual' then AddESP({
+                Name = '活动货币',
+                Color = Color3.new(1, 1, 0),
                 inst = visual,
                 value = OrionLib.Flags['VisualEsp']
-            })end 
+            }) end 
         end
+
+        AddConnection(Tickets.ChildAdded,function(inst) -- 其他
+            if inst.Name ~= 'Visual' then return end
+            if OrionLib.Flags['VisualEsp'].Value then AddESP({
+                Name = '活动货币',
+                Color = Color3.new(1, 1, 0),
+                inst = inst,
+                value = OrionLib.Flags['VisualEsp']
+            }) end
+        end,OrionLib.Flags['VisualEsp'])
+    end
+})
+Esp:AddToggle({
+    Name = "倒地玩家透视",
+    Default = true,
+    Flag = "DownedPlayerEsp",
+    Callback = function(Value)
+        if not Value then onDetector = {}; return end
+        for _,plr in pairs(Players:GetPlayers()) do PlayerDownedDetector(plr) end
     end
 })
 
-AddConnection(Tickets.ChildAdded,function(inst) -- 其他
-    if inst.Name ~= 'Visual' then return end
-    if OrionLib.Flags['VisualEsp'].Value then esp(inst,OrionLib.Flags['VisualEsp']) end
-end)
+AddConnection(Zoom.Changed,function() Zoom.Value = OrionLib.Flags['AutoZoom'].Value end)
 
-AddConnection(Zoom.Changed,function() Zoom.Value = OrionLib.Flags['AutoZoom'] end)
+AddConnection(Players.PlayerAdded,function(plr)
+    if OrionLib.Flags['DownedPlayerEsp'] then PlayerDownedDetector(plr) end
+end)
 
 task.spawn(function()
     repeat task.wait() until not OrionLib:IsRunning()
-    ESPLibrary:Destroy()
+    ESPLibrary:Clear()
 end)

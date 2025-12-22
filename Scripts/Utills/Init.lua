@@ -52,7 +52,24 @@ VoiceChatService = Services.VoiceChatService
 LocalPlayer = Players.LocalPlayer
 Character = LocalPlayer.Character
 LocalPlayer.CharacterAdded:Connect(function(newchar) Character = newchar end)
-Humanoid = Character:FindFirstChild("Humanoid")
+
+if not Character then--Wait for character
+    OrionLib:MakeNotification({
+        Name = 'Character',
+        Content = '等待Character中',
+        Image = 'rbxassetid://7733658504',
+        Time = 5
+    })
+    Character = LocalPlayer.CharacterAdded:Wait()
+    OrionLib:MakeNotification({
+        Name = 'Character',
+        Content = 'Character已加载',
+        Image = 'rbxassetid://7733715400',
+        Time = 2
+    })
+end
+
+Humanoid = Character:WaitForChild("Humanoid")
 HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 exec_name = identifyexecutor and identifyexecutor() or 'L_exec'
 --------------------------------------------------ESP
@@ -63,20 +80,24 @@ function AddESP(ESPConfig)
     if not ESPConfig.inst then return end
     ESPConfig.value = ESPConfig.value or {['Value'] = true}
     ESPConfig.Type = ESPConfig.Type or "Highlight"
+    ESPConfig.Color = ESPConfig.Color or CurrentEspSetting['Color']
     ESPConfig.Name = ESPConfig.Name or ESPConfig.inst.Name
 
     local ESPElement = ESPLibrary:Add({
         Name = ESPConfig.Name,
         Model = ESPConfig.inst,
-        Color = CurrentEspSetting['Color'],
+        Color = ESPConfig.Color,
         MaxDistance = inf,
         TextSize = CurrentEspSetting['TextSize'],
         ESPType = ESPConfig.Type
     })
     table.insert(ESPElements,ESPElement)
-    repeat task.wait() until not ESPConfig.value.Value or not OrionLib:IsRunning()
-    table.remove(ESPElements,table.find(ESPElements,ESPElement))
-    ESPElement:Destroy()
+    task.spawn(function()
+        repeat task.wait() until not ESPConfig.value.Value or not ESPElement or not OrionLib:IsRunning()
+        table.remove(ESPElements,table.find(ESPElements,ESPElement))
+        if ESPElement then ESPElement:Destroy() end
+    end)
+    return ESPElement
 end
 
 function RefreshESP()
@@ -90,8 +111,8 @@ end
 function AddConnection(signal,func,Value)
     Value = Value or {['Value'] = true}
     local event;event = signal:Connect(func)
-    task.spawn(function() repeat task.wait() until not OrionLib:IsRunning() or not Value.Value;event:Disconnect() end)
-    return
+    task.spawn(function() repeat task.wait() until not OrionLib:IsRunning() or not Value.Value; if event then event:Disconnect() end end)
+    return event
 end
 
 if not ExecutorChecker['fireproximityprompt'] then
