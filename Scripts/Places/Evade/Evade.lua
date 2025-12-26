@@ -15,25 +15,14 @@ end
 --------------------------------------------------功能专属
 local function PlayerDownedDetector(plr)
     if plr == LocalPlayer or table.find(onDetector,plr) then return end
-    local Character = plr.Character or plr.CharacterAdded:Wait()
+    local Character = plr.Character
     local DownedEsp--esp
     local DownedName,CarriedName = '倒地玩家','倒地玩家(被抬起)'
-    local onDowned,onCarried --event
-    warn('detecting',Character.Name)
-
-    if Character:GetAttribute('Downed') then
-        warn(Character.Name,'downed!')
-        DownedEsp = AddESP({
-            Name = DownedName,
-            inst = Character,
-            Color = Color3.new(0, 1, 0),
-            value = OrionLib.Flags['DownedPlayerEsp']
-        })
-        warn(Character.Name,'got esp!')
-    end
+    local onDownedEvent,onCarriedEvent --events
+    warn('detecting',plr.Name)
 
     local function onCharacterAdded(Character)
-        onDowned = AddConnection(Character:GetAttributeChangedSignal('Downed'),function()
+        local function onDowned()
             local downed = Character:GetAttribute('Downed')
             if downed then
                 warn(Character.Name,'downed!')
@@ -48,9 +37,9 @@ local function PlayerDownedDetector(plr)
                 DownedEsp:Destroy() 
                 warn(Character.Name,'destroyed esp!')
             end
-        end,OrionLib.Flags['DownedPlayerEsp'])
+        end
 
-        onCarried = AddConnection(Character:GetAttributeChangedSignal('Carried'),function()
+        local function onCarried()
             local carried = Character:GetAttribute('Carried')
             if not DownedEsp then return end
             if carried then
@@ -61,8 +50,15 @@ local function PlayerDownedDetector(plr)
                 DownedEsp.CurrentSettings.Name = DownedName
                 warn(Character.Name,'changed esp back!')
             end
-        end,OrionLib.Flags['DownedPlayerEsp'])
+        end
+
+        if not OrionLib.Flags['DownedPlayerEsp'].Value then return end
+        onDowned(); onCarried()
+        onDownedEvent = AddConnection(Character:GetAttributeChangedSignal('Downed'),onDowned,OrionLib.Flags['DownedPlayerEsp'])
+        onCarriedEvent = AddConnection(Character:GetAttributeChangedSignal('Carried'),onCarried,OrionLib.Flags['DownedPlayerEsp'])
     end
+
+    if Character and not table.find(onDetector,plr) then onCharacterAdded(Character) end
 
     AddConnection(plr.CharacterAdded,onCharacterAdded,OrionLib.Flags['DownedPlayerEsp'])
 end
@@ -100,6 +96,15 @@ Tab:AddToggle({
     Flag = "SpecialRoundNotify",
     Callback = function(Value)
         if not Value then return end
+        if Stats:GetAttribute('SpecialRound') then
+            OrionLib:MakeNotification({
+                Name = '特殊回合',
+                Content = ('特殊回合为: %s'):format(Stats:GetAttribute('SpecialRound')),
+                Image = 'rbxassetid://7733658504',
+                Time = 5
+            })
+        end
+
         AddConnection(Stats:GetAttributeChangedSignal('SpecialRound'),function() -- 其他
             OrionLib:MakeNotification({
                 Name = '特殊回合',
@@ -185,5 +190,6 @@ end)
 
 task.spawn(function()
     repeat task.wait() until not OrionLib:IsRunning()
+    Zoom.Value = 1
     ESPLibrary:Clear()
 end)
