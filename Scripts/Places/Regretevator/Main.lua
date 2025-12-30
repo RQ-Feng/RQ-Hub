@@ -103,9 +103,19 @@ Tab:AddSlider({
         Character.SetPlayerRotation:FireServer(OrionLib.Flags['HeadRotationY'].Value,OrionLib.Flags['HeadRotationX'].Value)
     end
 })
+local ReviveManuallyCD = false
 Tab:AddButton({
     Name = "手动复活(强制)",
-    Callback = function() RE.Respawn:FireServer() end
+    Callback = function() 
+        if not ReviveManuallyCD then
+            ReviveManuallyCD = true
+            task.spawn(function() task.wait(5); ReviveManuallyCD = false end)
+            return OrionLib:MakeNotification({
+                Name = '手动复活',
+                Content = '3s内再次点击以确认'
+            })
+        else RE.Respawn:FireServer() end
+    end
 })
 Tab:AddToggle({
     Name = "死亡时自动复活",
@@ -128,6 +138,7 @@ AutoChallengeToggle = Tab:AddToggle({
     Callback = function(value)
         if not value then return end
         local state,taskTable = DailyChallenge.TryStartChallenge:InvokeServer()
+        local Task,Type,Amount
 
         local function TaskNotify(Content,setTogglefalse,ToggleName)
             OrionLib:MakeNotification({
@@ -138,11 +149,12 @@ AutoChallengeToggle = Tab:AddToggle({
         end
         
         if finishChallenge then return TaskNotify('你已完成任务',true,true) end
+        if not IsPlaying() then return TaskNotify('请在进入游戏后使用',true,true) end
         if state ~= 'Ongoing' then return TaskNotify('请在任务加载后使用',true,true) end
 
-        local Task = taskTable['Task']
-        local Type = Task['Type']
-        local Amount = Task['Amount']
+        Task = taskTable['Task']
+        Type = Task['Type']
+        Amount = Task['Amount']
 
         if not table.find(canAutoChallenges,Type) then return TaskNotify('当前任务无法自动完成',true) end
 
