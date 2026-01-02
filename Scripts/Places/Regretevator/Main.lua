@@ -10,6 +10,23 @@ local canAutoChallenges = {'Jump','KnockYourself','Walk','SurviveFloors'}
 
 local function GetCurrentFloor() return workspace.Values.CurrentRoom.Value end
 
+local function CheckCurrentFloor(floorName,button)
+    local function SpecNotify(content)
+        OrionLib:MakeNotification({
+            Name = '检查楼层',
+            Content = content,
+            Time = 3
+        })
+    end
+    if not GetCurrentFloor() then SpecNotify('请等待楼层开始.'); return false end
+    local IsCorrectFloor = GetCurrentFloor().Name == floorName
+    if button then 
+        button:Set(false)
+        SpecNotify('请在正确楼层使用.')
+    end
+    return IsCorrectFloor
+end
+
 local function IsPlaying()
   return ExecutorChecker['require'] and require(Common).IsPlaying(LocalPlayer) or LocalPlayer:GetAttribute('InElevator')
 end
@@ -25,10 +42,9 @@ local function EspFloorItems(floorName,instName,flag)
     })
 end
 
+
 --workspace.PizzaDelivery.Build.PizzaDoors
 --workspace.PizzaDelivery.Build.PizzaBoxes
---workspace.SuperDropper.RespawnCenter
---workspace.SuperDropper.Build.EndHatch
 
 local function TeleportTo(toPositionVector3) -- 传送玩家-Vector3.new(x,y,z)
     if not HumanoidRootPart or not toPositionVector3 then return end   
@@ -316,6 +332,20 @@ TP:AddToggle({
         for _,part in pairs(GetCurrentFloor():GetDescendants()) do
             if part.Name == 'WinPart' then Character:PivotTo(part.CFrame) end
         end
+    end
+})
+local AutoCoinsBySuperDropper; AutoCoinsBySuperDropper = Floor:AddToggle({
+    Name = "SuperDropper刷金币",
+    Default = false,
+    Flag = 'AutoCoinsBySuperDropper',
+    Callback = function(value)
+        if not value or then return end
+        CheckCurrentFloor('SuperDropper',AutoCoinsBySuperDropper)
+
+        --workspace.SuperDropper.RespawnCenter
+        --workspace.SuperDropper.Build.EndHatch
+        --workspace.SuperDropper.ResetMap(RemoteEvent)
+        --workspace.ColorTheTiles.Tiles
     end
 })
 AddConnection(workspace.Values.CurrentRoom.Changed,function()
