@@ -9,9 +9,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService('TextChatService')
 local Players = game:GetService("Players")
 --// Function
-local function Notify(text,duration)
+function Notify(text,duration)
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = Title or "Revive Dupe Helper",
+        Title = "Revive Dupe Helper",
         Text = text,
         Duration = duration or 5
     })
@@ -29,6 +29,9 @@ local RevivesVal = LocalPlayer.PlayerGui.TopbarUI.Topbar.StatsTopbarHandler.Stat
 --// Communication
 local Communication = TextChatService.TextChannels.RBXGeneral
 local PacketPrefix = 'Doors_Dupe_Revive_Command'
+local function SendPacket(packet)
+    Communication:SendAsync("", PacketPrefix..tostring(packet))
+end
 
 --// Remote
 local RemotesFolder = ReplicatedStorage.RemotesFolder
@@ -60,9 +63,10 @@ if IsMainAccount then
     end)    
     Notify("Init finish."); return 
 end
-
+SendPacket('Notify(\'Get alt account.\nName:' ..LocalPlayer.Name.. '\',10)')
 if RevivesVal.Value <= 0 then
-    Communication:SendAsync("", PacketPrefix..'game:GetService(\'ReplicatedStorage\').RemotesFolder.ReviveFriend:FireServer(\''..LocalPlayer.Name..'\')')
+    SendPacket('game:GetService(\'ReplicatedStorage\').RemotesFolder.ReviveFriend:FireServer(\''..LocalPlayer.Name..'\')')
+    setclipboard("game:GetService('ReplicatedStorage').RemotesFolder.ReviveFriend:FireServer('" .. LocalPlayer.Name .. "')")
     Notify('Waiting for a Revive...',30)
     repeat task.wait() until RevivesVal.Value > 0
 end
