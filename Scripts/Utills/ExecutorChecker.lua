@@ -23,8 +23,8 @@ function test(name: string, func,shouldCallback: boolean)
 end
 
 test("getrenv", getrenv, false)
-
 test("queue_on_teleport", queue_on_teleport, false)
+test("replicatesignal", replicatesignal, false)
 test("getcallingscript", getcallingscript, false)
 
 test("require", function()
