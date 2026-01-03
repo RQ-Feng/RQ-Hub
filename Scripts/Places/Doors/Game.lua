@@ -143,13 +143,19 @@ Tab:AddSlider({
     end
 })
 Tab:AddSection({Name = "其他"})
-Tab:AddToggle({
-    Name = "自杀",
-    Flag = 'Suicide',
-    Default = true,
-    Callback = function(Value)
-        if ExecutorChecker['replicatesignal']
-        game:GetService("ReplicatedStorage").RemotesFolder.Underwater
+Tab:AddButton({
+    Name = "紫砂",
+    ClickTwice = true,
+    Callback = function()
+        local UnderwaterClient = Character:GetAttribute('UnderwaterClient')
+        if ExecutorChecker['replicatesignal'] then replicatesignal(LocalPlayer.Kill) else 
+            RemotesFolder.Underwater:FireServer(not UnderwaterClient) end
+        local NotifyContent = ExecutorChecker['replicatesignal'] and "已成功紫砂." or (not UnderwaterClient and "紫砂中..." or '已停止紫砂.')
+        OrionLib:MakeNotification({
+            Name = "紫砂",
+            Content = NotifyContent,
+            Time = 5
+        })
     end
 })
 Tab:AddToggle({
