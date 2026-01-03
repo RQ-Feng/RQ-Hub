@@ -1,12 +1,20 @@
 ESPLibrary.GlobalConfig['Rainbow'] = true
-local RemotesFolder = game:GetService("ReplicatedStorage").RemotesFolder
-
+local RemotesFolder = ReplicatedStorage.RemotesFolder
+local GameData = ReplicatedStorage.GameData
+local Floors = {
+    ['Garden'] = 'Outdoors',
+    ['Ripple'] = {
+        ['CringlesWorkshop'] = 'Cringle\'s Workshop',
+        ['Daily_Default'] = 'Daily Runs'
+    }
+} 
 local function CurrentRoom()
-    return workspace.CurrentRooms[game:GetService("ReplicatedStorage").GameData.LatestRoom.Value]
+    return workspace.CurrentRooms[GameData.LatestRoom.Value]
 end
 
 local function CurrentFloor()
-    return game:GetService("ReplicatedStorage").GameData.Floor.Value
+    local floor,floorSpecific = GameData.Floor.Value,GameData.FloorSpecific.Value
+    return typeof(Floors[floor]) == 'table' and Floors[floor][floorSpecific] or Floors[floor] or floor
 end
 
 local function SetClipFunction(char,value)
@@ -83,6 +91,10 @@ Feature = Window:MakeTab({
     Name = "功能",
     Icon = "rbxassetid://4483345998"
 })
+Floor = Window:MakeTab({
+    Name = "楼层",
+    Icon = "rbxassetid://4483345998"
+})
 Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
@@ -91,13 +103,62 @@ Anti = Window:MakeTab({
     Name = "防实体",
     Icon = "rbxassetid://4483345998"
 })
+Tab:AddSection({Name = "速度"})
+local SpeedWays = {"SpeedBoost", "SpeedBoostBehind"}
+local function CheckSpeed(way)
+    Character:SetAttribute(way,OrionLib.Flags['Speed'].Value)
+    local event = AddConnection(Character:GetAttributeChangedSignal(way),function()
+        Character:SetAttribute(way,OrionLib.Flags['Speed'].Value)
+    end,OrionLib.Flags['EnableSpeed'])
+    repeat task.wait() until OrionLib.Flags['SpeedWay'].Value ~= way or not OrionLib.Flags['EnableSpeed'].Value or not OrionLib:IsRunning()
+    if event then event:Disconnect() end
+    Character:SetAttribute(way,0)
+end
+Tab:AddDropdown({
+    Name = "加速方式",
+    Flag = 'SpeedWay',
+    Default = "SpeedBoost",
+    Options = SpeedWays,
+    Callback = CheckSpeed
+})
+Tab:AddToggle({
+    Name = "启动加速",
+    Default = false,
+    Flag = 'EnableSpeed',
+    Callback = function(Value)
+        if not Value then return end
+        CheckSpeed(OrionLib.Flags['SpeedWay'].Value)
+    end
+})
+Tab:AddSlider({
+    Name = "速度",
+    Min = 0,
+    Max = 50,
+    Default = 0,
+    Increment = 1,
+    Flag = 'Speed',
+    Callback = function(spd)
+        if not OrionLib.Flags['EnableSpeed'].Value then return end
+        Character:SetAttribute(OrionLib.Flags['SpeedWay'].Value, spd)
+    end
+})
+Tab:AddSection({Name = "其他"})
+Tab:AddToggle({
+    Name = "自杀",
+    Flag = 'Suicide',
+    Default = true,
+    Callback = function(Value)
+        if ExecutorChecker['replicatesignal']
+        game:GetService("ReplicatedStorage").RemotesFolder.Underwater
+    end
+})
 Tab:AddToggle({
     Name = "轻松交互",
     Flag = 'BetterPrompt',
     Default = true,
     Callback = function(Value)
         if not Value then return end
-        BetterPrompt(12,OrionLib.Flags['BetterPrompt'])
+        BetterPrompt(16,OrionLib.Flags['BetterPrompt'])
     end
 })
 Tab:AddToggle({
@@ -106,18 +167,11 @@ Tab:AddToggle({
     Default = false,
     Callback = function(Value)
         if not Value then return end
-        local thr = coroutine.create(function()
-            while OrionLib.Flags['AutoPrompt'].Value and OrionLib:IsRunning() do
-                for _, descendant in ipairs(workspace:GetDescendants()) do
-                    if not descendant:IsA('ProximityPrompt') or (descendant.Parent:GetPivot().Position - HumanoidRootPart.Position).Magnitude > 12 then continue end
-                    if descendant.Parent.Parent.Name == 'DrawerContainer' and not descendant.Parent.Parent:FindFirstChild('LootHolder') then
-                       fireproximityprompt(descendant) continue
-                    elseif table.find(Prompts,descendant.Name) then fireproximityprompt(descendant) continue end
-                end
-                task.wait()
-            end
-        end)
-        coroutine.resume(thr)
+        AddConnection(game:GetService('ProximityPromptService').PromptShown,function(prompt :ProximityPrompt)
+            if not table.find(Prompts,prompt.Name) then return end
+            prompt.MaxActivationDistance = 16
+            while prompt and not prompt:FindFirstAncestorOfClass('Model'):FindFirstChild('LootHolder') do fireproximityprompt(prompt); task.wait() end
+        end,OrionLib.Flags['AutoPrompt'])
     end
 })
 Tab:AddToggle({
@@ -145,7 +199,15 @@ Tab:AddToggle({
 --         FullBrightLite(OrionLib.Flags['FullBrightLite'])
 --     end
 -- })
---Feature:AddSection({Name = "绕过"})
+Feature:AddSection({Name = "绕过"})
+Feature:AddSlider({
+    Name = "绕过速度",
+    Min = 0.2,
+    Max = 0.3,
+    Default = 0.22,
+    Increment = 0.01,
+    Flag = 'BypassACSpeed'
+})
 Feature:AddToggle({
     Name = "绕过拉回",
     Default = false,
@@ -158,15 +220,15 @@ Feature:AddToggle({
             CloneCollisionPart.Parent = char
             CloneCollisionPart.CanCollide = false
             CloneCollisionPart.Name = '_CollisionPart'
+            return CloneCollisionPart
         end
         
-        if not Character:FindFirstChild('_CollisionPart') then clone(Character) end
-        CloneCollisionPart = Character:FindFirstChild('_CollisionPart')
+        CloneCollisionPart = Character:FindFirstChild('_CollisionPart') or clone(Character)
 
         local function BypassAC()
             while OrionLib.Flags['BypassAC'].Value and OrionLib:IsRunning() do
                 if CloneCollisionPart then CloneCollisionPart.Massless = not CloneCollisionPart.Massless end
-                task.wait(0.2)                
+                task.wait(OrionLib.Flags['BypassACSpeed'].Value) 
             end
         end
 
@@ -175,17 +237,6 @@ Feature:AddToggle({
         repeat task.wait() until not OrionLib.Flags['BypassAC'].Value or not OrionLib:IsRunning()
 
         CloneCollisionPart:Destroy()
-    end
-})
-Feature:AddToggle({
-    Name = "远处开门",
-    Flag = 'OpenDoorFarer',
-    Default = false,
-    Callback = function(Value)
-        if not Value then return end
-        task.spawn(function()
-            repeat CurrentRoom().Door.ClientOpen:FireServer() task.wait() until not OrionLib.Flags['OpenDoorFarer'].Value or not OrionLib:IsRunning()
-        end)
     end
 })
 Feature:AddSection({Name = "玩家"})
@@ -239,6 +290,17 @@ Feature:AddToggle({
     end
 })
 Feature:AddToggle({
+    Name = "远处开门",
+    Flag = 'OpenDoorFarer',
+    Default = false,
+    Callback = function(Value)
+        if not Value then return end
+        task.spawn(function()
+            repeat CurrentRoom().Door.ClientOpen:FireServer() task.wait() until not OrionLib.Flags['OpenDoorFarer'].Value or not OrionLib:IsRunning()
+        end)
+    end
+})
+Feature:AddToggle({
     Name = "更小碰撞箱",
     Flag = 'SmallHitbox',
     Default = false,
@@ -251,7 +313,6 @@ Feature:AddToggle({
         SetClipFunction(Character,true)
     end
 })
-
 Feature:AddToggle({
     Name = "开启跳跃",
     Flag = 'CanJump',
@@ -337,3 +398,4 @@ Esp:AddToggle({
         end
     end
 })
+Floor:AddLabel('您当前位于 '..CurrentFloor()..' 楼层.')

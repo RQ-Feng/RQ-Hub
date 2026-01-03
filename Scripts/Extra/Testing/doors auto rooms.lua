@@ -3,6 +3,7 @@ local Players = game:GetService('Players')
 local StarterGui = game:GetService("StarterGui")
 local PathfindingService = game:GetService("PathfindingService")
 local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService('UserInputService')
 
 local RemotesFolder = ReplicatedStorage:FindFirstChild('RemotesFolder')
 if not RemotesFolder then
@@ -62,6 +63,7 @@ local executor_BlackList = {
 local MainUI = LocalPlayer.PlayerGui:WaitForChild('MainUI')
 local Main_Game = MainUI.Initiator.Main_Game
 local LatestRoom = ReplicatedStorage.GameData.LatestRoom
+
 local Key_BlackList = {Enum.KeyCode.A,Enum.KeyCode.W,Enum.KeyCode.S,Enum.KeyCode.D}
 local loots = {'GoldPile','StardustPickup'}
 local Stardusts,GoldPiles = {},{}
@@ -118,16 +120,9 @@ local function AddConnection(signal,func)
     table.insert(Connections,con)
 end
 
-local function SetCamera(bool)
-    if not Main_Game or not Main_Game.Camera then return end
-    local currentState = Main_Game.Camera.Enabled
-    Main_Game.Camera.Enabled = bool
-    if bool == true and currentState == false and Character:FindFirstChild('Head') and Character.Head:WaitForChild('PointLight',1) then Character.Head.PointLight:Destroy() end
-end
-
 local function TeleportPlayer(pos)
     local posType = typeof(pos)
-    if posType ~= 'Vector3' and posType ~= Vector3 then return end
+    if posType ~= 'Vector3' and posType ~= 'CFrame' then return end
 
     repeat task.wait() until not workspace:FindFirstChild('A60')
 
@@ -166,6 +161,14 @@ local function GetEntity()
     return workspace:FindFirstChild("A120")
 end
 
+local function SetPrompt(prompt)
+    if typeof(prompt) ~= 'Instance' or not prompt:IsA("ProximityPrompt") then warn("[InteractPrompt]:ProximityPrompt expected, got " .. typeof(prompt)); return end
+    prompt.Enabled = true
+    prompt.RequiresLineOfSight = false
+    prompt.HoldDuration = 0
+    prompt.MaxActivationDistance = 16
+end
+
 local function InteractPrompt(Path,prompt)
     if typeof(Path) ~= 'Instance' or not Path:IsA("BasePart") then warn("[InteractPrompt]:BasePart expected, got " .. typeof(Path)); return end
     if typeof(prompt) ~= 'Instance' or not prompt:IsA("ProximityPrompt") then warn("[InteractPrompt]:ProximityPrompt expected, got " .. typeof(prompt)); return end
@@ -176,14 +179,7 @@ local function InteractPrompt(Path,prompt)
         fireproximityprompt(prompt); return 
     end
 
-    SetCamera(false)
-    workspace.CurrentCamera.FieldOfView = 120
-    workspace.CurrentCamera.CFrame = CFrame.lookAt(HumanoidRootPart.Position,Path.Position)
-    prompt.Enabled = true
-    prompt.RequiresLineOfSight = false
-    prompt.HoldDuration = 0
-    prompt.MaxActivationDistance = 12
-
+    SetPrompt(prompt)
     prompt:InputHoldBegin(); task.wait(0.05); prompt:InputHoldEnd()
 end
 
@@ -196,7 +192,6 @@ local function GetLoot(Loot)--Need to teleport manually
     local path = Loot:FindFirstChild('Hitbox') or Loot:FindFirstChild('Main')
     local prompt = Loot:FindFirstChild('LootPrompt') or Loot:FindFirstChild('ModulePrompt')
     local LootTable = Loot.Name == 'StardustPickup' and Stardusts or GoldPiles
-    SetCamera(false)
 
     repeat task.wait() until
     Loot:FindFirstAncestor('Assets') and tonumber(Loot:FindFirstAncestor('Assets').Parent.Name) <= LatestRoom.Value
@@ -205,13 +200,9 @@ local function GetLoot(Loot)--Need to teleport manually
     not Loot or not Loot.Parent or not path or not prompt
     
     if table.find(LootTable,Loot) then table.remove(LootTable,table.find(LootTable,Loot)) end
-
-    SetCamera(true)
 end
 
-local function IsHiding()
-    return Character:GetAttribute('Hiding')
-end
+local function IsHiding() return Character:GetAttribute('Hiding') end
 
 local function getLocker()
     local Closest
@@ -326,27 +317,25 @@ local function gotoPath()
     
     for _, Waypoint in ipairs(Waypoints) do
         if GetEntity() and Destination ~= getLocker() then break end
-        repeat task.wait() until not IsHiding()
         if not IsRunning then break end
         
-        if Waypoint.Action == Enum.PathWaypointAction.Jump then Jump() end
+        if Waypoint.Action == Enum.PathWaypointAction.Jump or IsStuck then Jump() end
         Humanoid:MoveTo(Waypoint.Position); local MoveSuccess = Humanoid.MoveToFinished:Wait()
 
-        if not MoveSuccess and not IsHiding() and Destination == getPath() then 
+        if not MoveSuccess and not IsHiding() then 
             PrefixWarn('Maybe you\'re stuck,trying again...')
             TeleportPlayer(Destination.CFrame)
             IsStuck = true
             task.wait(1); break 
         end
         IsStuck = false
+        repeat task.wait() until not IsHiding()
     end
     if highlight then highlight:Destroy() end
 end
 
 local function ExitFromLocker()
-    RemotesFolder.CamLock:FireServer()
-    SetCamera(true)
-    repeat task.wait() until not IsHiding()
+    repeat RemotesFolder.CamLock:FireServer(); task.wait() until not IsHiding()
     gotoPath()
 end
 
@@ -368,9 +357,15 @@ end
 local function Stop(GoLobby)
     PrefixWarn('Stop running now.')
     IsRunning = false
-    SetCamera(true)
     for _,con in pairs(Connections) do con:Disconnect() end
     for _,hl in pairs(Highlights) do hl:Destroy() end
+
+    Main_Game.Camera.Enabled = true
+    if Character:FindFirstChild('Head') then
+        local light = Character.Head:WaitForChild('PointLight') 
+        if light then light:Destroy() end
+    end
+
     ScreenGui:Destroy()
     Folder:Destroy()
     if Humanoid then Humanoid.WalkSpeed = 21 end
@@ -427,6 +422,7 @@ end)
 AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst)
     if inst.Name == 'GoldPile' and inst:GetAttribute('GoldValue') >= 100 and GoldPicked() < 10000 then table.insert(GoldPiles,inst)
     elseif inst.Name == 'StardustPickup' then table.insert(Stardusts,inst)
+    elseif inst:IsA('ProximityPrompt') then SetPrompt(inst)
     end
 end)
 AddConnection(game:GetService("GuiService").ErrorMessageChanged,function(info)--Reconnecter 
@@ -463,14 +459,6 @@ task.spawn(function() --Fuck u USELESS COLLISION
     AddConnection(Collision:GetPropertyChangedSignal("CanCollide"),NoClip)
 end)
 
-task.spawn(function() --anti a60/god mode
-    while IsRunning do
-        Humanoid.HipHeight = 0.1
-        RemotesFolder.Crouch:FireServer(true)
-        task.wait()
-    end
-end)
-
 task.spawn(function() --Auto rejoin when the awful stuck wastes 2m
     repeat FinalCD = FinalCD + 1
         if math.fmod(FinalCD,30) == 0 and FinalCD ~= 0 then task.spawn(gotoPath) end
@@ -480,39 +468,57 @@ task.spawn(function() --Auto rejoin when the awful stuck wastes 2m
     Stop(true)
 end)
 
-task.spawn(function() --Other repeat do things
+task.spawn(function() --Where's my HumanoidRootPart?
+    repeat task.wait() until not HumanoidRootPart or not Character:FindFirstChild('HumanoidRootPart')
+    Stop(true)
+end)
+
+task.spawn(function() --Other while do things
     while IsRunning do 
         task.wait() --Avoid lag crash
-        if not IsRunning then break end
         local Path = getPath()
 
+        if GetEntity() then
+            if not Path or not Path:FindFirstAncestor('Rooms_Locker') then continue end
+            if (HumanoidRootPart.Position - Path.Position).Magnitude < 16 and not IsHiding() then
+                InteractPrompt(Path,Path.Parent.HidePrompt)
+            elseif GetEntity().Main.Position.Y < - 4 and IsHiding() then ExitFromLocker() end
+        else
+            if IsHiding() then ExitFromLocker() end
+            CurrentDoor():WaitForChild('ClientOpen'):FireServer()
+        end
+        
+        if Path and (HumanoidRootPart.Position - Path.Position).Magnitude <= 16 then GetLoot(Path) end
+
+        if LatestRoom.Value == 1000 then 
+            local door = CurrentRoom():WaitForChild('RoomsDoor_Exit'):WaitForChild('Door')
+            InteractPrompt(door,door:WaitForChild('EnterPrompt'))
+        end
+    end
+end)
+
+task.spawn(function() --Player setter
+    while IsRunning do
+        Humanoid.HipHeight = 0.1
+        RemotesFolder.Crouch:FireServer(true)
+
         Main_Game.Movement.Enabled = false
+        Main_Game.Camera.Enabled = false
+
         Humanoid.AutoRotate = true
         Humanoid.WalkSpeed = 21.5
         Humanoid.UseJumpPower = false
         Humanoid.JumpHeight = 10
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,true)
 
-        
+        local Camera = workspace.CurrentCamera
+        Camera.FieldOfView = 120
+        Camera.CameraType = Enum.CameraType.Scriptable
+        Camera.CFrame = CFrame.lookAt(HumanoidRootPart.CFrame.Position + Vector3.new(0, 12, 0),HumanoidRootPart.CFrame.Position - Vector3.new(0, 1, 0))
 
-        if GetEntity() then
-            if not Path or not Path:FindFirstAncestor('Rooms_Locker') or GetEntity().Main.Position.Y <= -4 then continue end
-    
-            if (HumanoidRootPart.Position - Path.Position).Magnitude < 15 and not IsHiding() then
-                InteractPrompt(Path,Path.Parent.HidePrompt)
-            elseif GetEntity().Main.Position.Y < - 4 and IsHiding() then ExitFromLocker() end
-            
-        else
-            if IsHiding() then ExitFromLocker() end
-            CurrentDoor():WaitForChild('ClientOpen'):FireServer()
-        end
-        
-        if Path and (HumanoidRootPart.Position - Path.Position).Magnitude <= 12 then GetLoot(Path) end
-
-        if LatestRoom.Value == 1000 then 
-            local door = CurrentRoom():WaitForChild('RoomsDoor_Exit'):WaitForChild('Door')
-            InteractPrompt(door,door:WaitForChild('EnterPrompt'))
-        end
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        UserInputService.MouseIconEnabled = true
+        task.wait()
     end
 end)
 
