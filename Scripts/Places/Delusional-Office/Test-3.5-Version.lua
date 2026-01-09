@@ -121,8 +121,8 @@ task.spawn(function() repeat wait() until not OrionLib:IsRunning() for _,connect
 --其他结束->加载完成信息
 print("--------------------------加载完成--------------------------")
     print("--欢迎使用!" .. game.Players.LocalPlayer.Name)
-    print("--此服务器游戏ID为:" .. game.GameId)
-    print("--此服务器位置ID为:" .. game.PlaceId)
+    print("--此服务器游戏ID为:" .. GameId)
+    print("--此服务器位置ID为:" .. PlaceId)
     print("--此服务器UUID为:" .. game.JobId)
     print("--此服务器上的游戏版本为:version_" .. game.PlaceVersion)
     print("--------------------------欢迎使用--------------------------")

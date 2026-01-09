@@ -49,28 +49,52 @@ TextChatService = Services.TextChatService
 CaptureService = Services.CaptureService
 VoiceChatService = Services.VoiceChatService
 --------------------------------------------------Other important things
-LocalPlayer = Players.LocalPlayer
-Character = LocalPlayer.Character
-LocalPlayer.CharacterAdded:Connect(function(newchar) Character = newchar end)
+--[[ --PlaceInfo important table
+{
+	["Created"] = "Create time",
+	["Updated"] = "Update time",
+	["Name"] = "place name",
+	["Description"] = "place description",
+	["Creator"] =  {
+		["CreatorTargetId"] = Creator id,
+		["CreatorType"] = "User or Group",
+		["HasVerifiedBadge"] = false,
+		["Name"] = "creator name"
+	},
+	["ContentRatingTypeId"] = <is this game 13+?>,
+	["IconImageAssetId"] = place icon ig,
+}
+]]
+GameId,PlaceId = game.GameId,game.PlaceId
+PlaceInfo = MarketplaceService:GetProductInfoAsync(PlaceId,Enum.InfoType.Asset)
+PlaceName,PlaceDescription = PlaceInfo.Name,PlaceInfo.Description
+PlaceIcon,PlaceCreator = PlaceInfo.IconImageAssetId,PlaceInfo.Creator['Name']
 
-if not Character then--Wait for character
+local function SetCharVars(char)
+    Character = char
+    Humanoid = Character:WaitForChild("Humanoid")
+    HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+end
+
+LocalPlayer = Players.LocalPlayer
+LocalPlayer.CharacterAdded:Connect(SetCharVars)
+
+if not LocalPlayer.Character then--Get character
     OrionLib:MakeNotification({
         Name = 'Character',
         Content = '等待Character中',
         Image = 'rbxassetid://7733658504',
         Time = 5
     })
-    Character = LocalPlayer.CharacterAdded:Wait()
+    SetCharVars(LocalPlayer.CharacterAdded:Wait())
     OrionLib:MakeNotification({
         Name = 'Character',
         Content = 'Character已加载',
         Image = 'rbxassetid://7733715400',
         Time = 2
     })
-end
+else SetCharVars(LocalPlayer.Character) end
 
-Humanoid = Character:WaitForChild("Humanoid")
-HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 exec_name = identifyexecutor and identifyexecutor() or 'L_exec'
 --------------------------------------------------ESP
 local CurrentEspSetting = RQHub['ESPSetting']
@@ -91,6 +115,7 @@ function AddESP(ESPConfig)
         TextSize = CurrentEspSetting['TextSize'],
         ESPType = ESPConfig.Type
     })
+
     table.insert(ESPElements,ESPElement)
     task.spawn(function()
         repeat task.wait() until not ESPConfig.value.Value or not ESPElement or not OrionLib:IsRunning()
