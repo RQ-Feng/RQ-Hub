@@ -34,14 +34,15 @@ local function CurrentFloor()
 end
 
 local function SetClipFunction(char,value)
-    local value = value or false
+    local CanCollide = value or false
     char.Collision.CollisionGroup = "PlayerCrouching"
     char.Collision.CollisionCrouch.CollisionGroup = "PlayerCrouching"
+    char.CollisionPart.CollisionGroup = "PlayerCrouching"
 
-    char.Collision.CanCollide = value
-    char.Collision.CollisionCrouch.CanCollide = value
+    char.Collision.CanCollide = CanCollide
+    char.Collision.CollisionCrouch.CanCollide = CanCollide
 
-    if Character:FindFirstChild('_CollisionPart') then Character:FindFirstChild('_CollisionPart').CanCollide = value end
+    if Character:FindFirstChild('_CollisionPart') then Character:FindFirstChild('_CollisionPart').CanCollide = CanCollide end
 end
 
 local AntiItems = {}
