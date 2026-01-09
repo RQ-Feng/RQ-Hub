@@ -215,12 +215,12 @@ Tab:AddToggle({ -- 轻松交互
         for _,prompt in pairs(workspace:GetDescendants()) do 
             if not prompt:IsA('ProximityPrompt') then return end
             if table.find(promptBlacklist,prompt:FindFirstAncestorWhichIsA('Model').Name) then return end
-            CheckPrompt(prompt,16)
+            SetPrompt(prompt,16)
         end
         AddConnection(workspace.DescendantAdded,function(prompt)
             if not prompt:IsA('ProximityPrompt') then return end
             if table.find(promptBlacklist,prompt:FindFirstAncestorWhichIsA('Model').Name) then return end
-            CheckPrompt(prompt,16)
+            SetPrompt(prompt,16)
         end,OrionLib.Flags['BetterPrompt'])
     end
 })

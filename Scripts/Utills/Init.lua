@@ -163,7 +163,7 @@ if not ExecutorChecker['fireproximityprompt'] then
     end
 end
 
-function CheckPrompt(prompt,Distance)
+function SetPrompt(prompt,Distance)
     if prompt and prompt:IsA("ProximityPrompt") then
         prompt.HoldDuration = 0
         prompt.RequiresLineOfSight = false
@@ -172,9 +172,9 @@ function CheckPrompt(prompt,Distance)
 end
 
 function BetterPrompt(Distance,value)
-    for _,prompt in pairs(workspace:GetDescendants()) do CheckPrompt(prompt) end
+    for _,prompt in pairs(workspace:GetDescendants()) do SetPrompt(prompt) end
     AddConnection(workspace.DescendantAdded,function(prompt)
-        CheckPrompt(prompt,Distance)
+        SetPrompt(prompt,Distance)
     end,value)
 end
 

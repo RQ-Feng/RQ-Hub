@@ -47,6 +47,8 @@ local function SetClipFunction(char,value)
     if char:FindFirstChild('_CollisionPart') then char._CollisionPart.CanCollide = CanCollide end
 end
 
+local function PromptIsChecked(prompt) return prompt.MaxActivationDistance < 10 end
+
 local AntiItems = {}
 local RealEvents,RealRemoteModules = {},{}
 
@@ -246,19 +248,13 @@ Tab:AddToggle({
     Flag = 'BetterPrompt',
     Default = true,
     Callback = function(Value)
-        if not Value then 
-            for _,prompt in pairs(workspace:GetDescendants()) do 
-                if not prompt:IsA('ProximityPrompt') or prompt.MaxActivationDistance < 10 then continue end
-                prompt.MaxActivationDistance = prompt.MaxActivationDistance / 2
-            end; return 
-        end
         for _,prompt in pairs(workspace:GetDescendants()) do 
             if not prompt:IsA('ProximityPrompt') then continue end
-            CheckPrompt(prompt,prompt.MaxActivationDistance * 2) 
-        end
+            SetPrompt(prompt,(not Value and PromptIsChecked(prompt)) and prompt.MaxActivationDistance / 2 or prompt.MaxActivationDistance * 2)
+        end; if not Value then return end
         AddConnection(workspace.DescendantAdded,function(prompt)
             if not prompt:IsA('ProximityPrompt') then return end
-            CheckPrompt(prompt,prompt.MaxActivationDistance * 2)
+            SetPrompt(prompt,prompt.MaxActivationDistance * 2)
         end,OrionLib.Flags['BetterPrompt'])
     end
 })
@@ -270,7 +266,6 @@ Tab:AddToggle({
         if not Value then return end
         AddConnection(game:GetService('ProximityPromptService').PromptShown,function(prompt)
             if not table.find(Prompts,prompt.Name) then return end
-
             while prompt and prompt:FindFirstAncestorOfClass('Model') and not prompt:FindFirstAncestorOfClass('Model'):FindFirstChild('LootHolder') do 
                 fireproximityprompt(prompt); task.wait() 
             end
@@ -554,18 +549,15 @@ Anti:AddToggle({
         FakeEvent(Value,'SpiderJumpscare')
     end
 })
+Anti:AddToggle({
+    Name = "防过场",
+    Default = false,
+    Callback = function(Value) 
+        FakeRemoteModule(Value,'Cutscenes')
+        FakeEvent(Value,'Cutscene')
+    end
+})
 Anti:AddSection({Name = "防实体"})
--- Anti:AddDropdown({
---     	Name = "防实体",
---     	Default = "1",
---     	Options = localEntities,
---     	Callback = function(...)
---     		-- for _,entityName in pairs(...) do
---             --     if table.find(entityName,AntiItems) then continue end
---             --     AntiItems()
---             -- end
---     	end 
---     })
 Anti:AddToggle({
     Name = "防A90",
     Default = false,
@@ -581,6 +573,20 @@ Anti:AddToggle({
     Default = false,
     Callback = function(Value) AntiClientEntity(Value,'ShadeResult') end
 })
+Anti:AddToggle({
+    Name = "防Eyes/Lookman",
+    Flag = 'Anti_Eyes_Lookman',
+    Default = false,
+    Callback = function(Value) 
+        if not Value then return end
+        local MotorReplication = RemotesFolder.MotorReplication
+        for i = 1,10 do MotorReplication:FireServer(-1000) end
+        MotorReplication.Parent = nil
+        repeat task.wait() until not OrionLib.Flags['Anti_Eyes_Lookman'].Value or not OrionLib:IsRunning()
+        MotorReplication.Parent = RemotesFolder
+    end
+})
+RemotesFolder.MotorReplication:FireServer(-750)
 Anti:AddToggle({
     Name = "防Dread",
     Default = false,
@@ -617,7 +623,6 @@ task.spawn(function()
         RealRemoteModules,
         AntiItems
     }
-
     for _,NeedclearTable in pairs(NeedclearTables) do
         for _, RealObjectName in pairs(RealEvents) do
             local _ = AntiItems and AntiClientEntity(false,RealObjectName)
@@ -627,5 +632,9 @@ task.spawn(function()
             RealObjectName.Name = string.sub(RealObjectName.Name,2)
             table.remove(NeedclearTable,table.find(NeedclearTable,RealObjectName))
         end
+    end
+    for _,prompt in pairs(workspace:GetDescendants()) do 
+        if not prompt:IsA('ProximityPrompt') or not PromptIsChecked(prompt) then continue end
+        SetPrompt(prompt,prompt.MaxActivationDistance / 2 )
     end
 end)
