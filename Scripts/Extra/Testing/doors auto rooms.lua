@@ -29,8 +29,9 @@ local function Notify(Text,Duration,ButtonsCfg)
     until suc
 end
 
-local LobbyPlaceId,DoorsGameId = 6516141723,2440500124
-if game.GameId ~= DoorsGameId then Notify('Incorrect game'); return end
+local LobbyPlaceId = 6516141723
+repeat task.wait() until game:IsLoaded()
+if game.GameId ~= 2440500124 then Notify('Incorrect game'); return end
 
 local RemotesFolder = ReplicatedStorage:WaitForChild('RemotesFolder')
 
