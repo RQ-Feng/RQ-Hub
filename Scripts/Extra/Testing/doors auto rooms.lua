@@ -5,11 +5,6 @@ local PathfindingService = game:GetService("PathfindingService")
 local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService('UserInputService')
 
-local RemotesFolder = ReplicatedStorage:FindFirstChild('RemotesFolder')
-if not RemotesFolder then
-    repeat RemotesFolder = ReplicatedStorage:FindFirstChild('RemotesFolder'); task.wait() until RemotesFolder
-end
-
 local function Notify(Text,Duration,ButtonsCfg)
     local cfgTable = {
         Title = 'Doors auto rooms',
@@ -26,15 +21,25 @@ local function Notify(Text,Duration,ButtonsCfg)
 		cfgTable['Callback'].OnInvoke = (ButtonsCfg['Callback'])
     end
 			
-    StarterGui:SetCore('SendNotification',cfgTable)
+    local suc,_err
+    repeat
+        suc,_err = pcall(function()
+            StarterGui:SetCore('SendNotification',cfgTable)
+        end); task.wait(0.1)
+    until suc
 end
+
+local LobbyPlaceId,DoorsGameId = 6516141723,2440500124
+if game.GameId ~= DoorsGameId then Notify('Incorrect game'); return end
+
+local RemotesFolder = ReplicatedStorage:WaitForChild('RemotesFolder')
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild('HumanoidRootPart')
 local Humanoid = Character:WaitForChild('Humanoid')
 
-if game.PlaceId == 6516141723 then
+if game.PlaceId == LobbyPlaceId then
     local suc,StardustCostOff; repeat
         suc,StardustCostOff = pcall(function() 
             return LocalPlayer.PlayerGui:WaitForChild('MainUI').LobbyFrame.ChooseFloor.List.Rooms.StardustCostOff.Text 
@@ -53,7 +58,8 @@ if game.PlaceId == 6516141723 then
     }); return
 end
 
-if game.PlaceId ~= 6839171747 then Notify('Incorrect Place'); return end
+local CurrentFloor = ReplicatedStorage:WaitForChild('GameData'):WaitForChild('Floor').Value
+if CurrentFloor ~= 'Rooms' then Notify('Incorrect floor'); return end
 
 local executor = identifyexecutor and tostring(identifyexecutor())
 local executor_BlackList = {
@@ -68,7 +74,7 @@ local Key_BlackList = {Enum.KeyCode.A,Enum.KeyCode.W,Enum.KeyCode.S,Enum.KeyCode
 local loots = {'GoldPile','StardustPickup'}
 local Stardusts,GoldPiles = {},{}
 local Connections,Highlights = {},{}
-local Waypoints
+local WalkPathTask,ExitDoor
 local IsStuck = false
 local IsRunning = true
 local FinalCD = 0
@@ -140,21 +146,6 @@ end
 
 local function GoldPicked()
     return ReplicatedStorage.GameStats:FindFirstChild('Player_'..LocalPlayer.Name).Total.GoldPicked.Value
-end
-
-local function DistanceFromFloor(Part)
-    if not Part or not Part:IsA('BasePart') then 
-        warn('[DistanceFromFloor] Expert BasePart,got',Part and Part.ClassName or 'nil.Using fallback to avoid error...')
-        if Part:IsA('Model') then Part = Part.PrimaryPart else return HumanoidRootPart.Position end
-    end
-
-    local NoCharRaycastParam = RaycastParams.new()
-    NoCharRaycastParam.FilterType = Enum.RaycastFilterType.Exclude
-    NoCharRaycastParam.FilterDescendantsInstances = {Character}
-    
-    local raycast = workspace:Raycast(Part.Position,Vector3.new(Part.Position.X,-1000,Part.Position.Z), NoCharRaycastParam)
-    if not raycast then return Part.Position end
-    return Part.Position - Vector3.new(0,raycast.Distance,0) or Part.Position
 end
 
 local function GetEntity()
@@ -234,6 +225,7 @@ local function getPath(ForceToDoor)
     local Path
     if GetEntity() and GetEntity().Main.Position.Y > -4 then Path = getLocker()
     elseif Stardusts[1] and not IsStuck then Path = Stardusts[1].PrimaryPart
+    elseif ExitDoor then
     elseif GoldPiles[1] and not IsStuck then Path = GoldPiles[1].PrimaryPart
     elseif LatestRoom.Value == 1000 then Path = CurrentRoom():WaitForChild('RoomsDoor_Exit'):WaitForChild('Door')
     else Path = CurrentDoor():WaitForChild('Door') end
@@ -291,15 +283,14 @@ local function Jump()
     task.wait(0.2)
 end
 
-local function gotoPath()
-    Waypoints = nil
-
-    local Destination = getPath() or getPath(true)
-    if not Destination then return PrefixWarn('No Destination!') end
-
+local function gotoPath(ForceDestination)
+    local Waypoints
     Folder:ClearAllChildren()
 
     repeat task.wait() until not IsHiding()
+
+    local Destination = ForceDestination or getPath() or getPath(true)
+    if not Destination then return PrefixWarn('No Destination!') end
 
     if not Destination:FindFirstChild('PathfindingModifier') then
         Instance.new('PathfindingModifier',Destination).PassThrough = true
@@ -307,21 +298,22 @@ local function gotoPath()
 
     local highlight = Destination:FindFirstChild('Highlight') or AddHighlight(Destination,Color3.fromRGB(85, 255, 127))
 
-    path:ComputeAsync(DistanceFromFloor(HumanoidRootPart),DistanceFromFloor(Destination))
+    path:ComputeAsync(HumanoidRootPart.Position,Destination.Position)
     Waypoints = path:GetWaypoints()
     
     if path.Status == Enum.PathStatus.NoPath then Waypoints = pathFallback(path,Destination) end
     if not Waypoints then return PrefixWarn('No waypoints!') end
 
     DisPlayWaypoints(Waypoints)
-    
-    for _, Waypoint in ipairs(Waypoints) do
-        if GetEntity() and Destination ~= getLocker() then break end
-        if not IsRunning then break end
-        
+
+    for _, Waypoint in ipairs(Waypoints) do--Walk
+        if not IsRunning or not Destination or not Destination.Parent then break end
+        if ExitDoor and Destination ~= ExitDoor then break end
+        if GetEntity() and (IsHiding() or Destination ~= getLocker()) then break end
+        repeat task.wait() until not IsHiding()
         if Waypoint.Action == Enum.PathWaypointAction.Jump or IsStuck then Jump() end
         Humanoid:MoveTo(Waypoint.Position); local MoveSuccess = Humanoid.MoveToFinished:Wait()
-
+    
         if not MoveSuccess and not IsHiding() then 
             PrefixWarn('Maybe you\'re stuck,trying again...')
             TeleportPlayer(Destination.CFrame)
@@ -329,8 +321,8 @@ local function gotoPath()
             task.wait(1); break 
         end
         IsStuck = false
-        repeat task.wait() until not IsHiding()
     end
+    
     if highlight then highlight:Destroy() end
 end
 
@@ -440,7 +432,6 @@ AddConnection(game:GetService('UserInputService').InputBegan,function(InputObjec
     if not table.find(Key_BlackList,InputObject.KeyCode) then return end
     Stop()
 end)
-
 task.spawn(function() --Fuck u A90
     local A90_RemoteEvent = ReplicatedStorage.RemotesFolder:FindFirstChild("A90")
     if not A90_RemoteEvent then return end
@@ -468,11 +459,6 @@ task.spawn(function() --Auto rejoin when the awful stuck wastes 2m
     Stop(true)
 end)
 
-task.spawn(function() --Where's my HumanoidRootPart?
-    repeat task.wait() until not HumanoidRootPart or not Character:FindFirstChild('HumanoidRootPart')
-    Stop(true)
-end)
-
 task.spawn(function() --Other while do things
     while IsRunning do 
         task.wait() --Avoid lag crash
@@ -490,10 +476,14 @@ task.spawn(function() --Other while do things
         
         if Path and (HumanoidRootPart.Position - Path.Position).Magnitude <= 16 then GetLoot(Path) end
 
-        if LatestRoom.Value == 1000 then 
-            local door = CurrentRoom():WaitForChild('RoomsDoor_Exit'):WaitForChild('Door')
-            InteractPrompt(door,door:WaitForChild('EnterPrompt'))
-        end
+        task.spawn(function()
+            if GoldPicked() < 10000 then return end
+            local RoomsDoor_Exit = CurrentRoom():WaitForChild('RoomsDoor_Exit',3)
+            if not RoomsDoor_Exit then return end
+            ExitDoor = RoomsDoor_Exit:WaitForChild('Door',3)
+            if not ExitDoor then return end
+            InteractPrompt(ExitDoor,ExitDoor:WaitForChild('EnterPrompt'))
+        end)
     end
 end)
 
@@ -514,7 +504,7 @@ task.spawn(function() --Player setter
         local Camera = workspace.CurrentCamera
         Camera.FieldOfView = 120
         Camera.CameraType = Enum.CameraType.Scriptable
-        Camera.CFrame = CFrame.lookAt(HumanoidRootPart.CFrame.Position + Vector3.new(0, 12, 0),HumanoidRootPart.CFrame.Position - Vector3.new(0, 1, 0))
+        Camera.CFrame = CFrame.lookAt(HumanoidRootPart.CFrame.Position + Vector3.new(0, 12, 0),HumanoidRootPart.CFrame.Position)
 
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
         UserInputService.MouseIconEnabled = true

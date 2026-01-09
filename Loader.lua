@@ -1,12 +1,13 @@
 print("--------------------成功注入，正在加载中--------------------")
-
 local baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/"
+local PlaceTable = loadstring(game:HttpGet(baseUrl .. "PlaceTable.lua"))()
 
-local PlaceTable,Game,Place = loadstring(game:HttpGet(baseUrl .. "PlaceTable.lua"))()
-Game = PlaceTable[game.GameId]
-if Game then Place = Game.PlaceId[game.PlaceId] end
+local GameId,PlaceId = game.GameId,game.PlaceId
+
+local Game = PlaceTable[GameId]
+local Place = Game and Game.PlaceId[PlaceId]
 --检查Place
-if not Game or not Place then game:GetService("StarterGui"):SetCore("SendNotification",{Title = "不支持此地点",Text = "请使用其他中心",Duration = 5}) return end
+if not Game or not Place then game:GetService("StarterGui"):SetCore("SendNotification",{Title = "不支持此地点",Text = "请使用其他中心",Duration = 5}); return end
 
 OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))()
 ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
@@ -37,3 +38,4 @@ loadstring(game:HttpGet(baseUrl .. 'Utills/Init.lua'))() --init
 loadstring(game:HttpGet(baseUrl .. "Places/" .. Game.Folder .. '/' .. Place .. ".lua"))() -- 加载链接 
 loadstring(game:HttpGet(baseUrl .. 'Utills/EspSetting.lua'))()-- Esp设置
 loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-scripts/Setting.lua'))()-- UI设置
+OrionLib:LoadConfig('RQHub-Default')

@@ -119,18 +119,11 @@ Tab:AddSlider({
         Character.SetPlayerRotation:FireServer(OrionLib.Flags['HeadRotationY'].Value,OrionLib.Flags['HeadRotationX'].Value)
     end
 })
-local ReviveManuallyCD = false
 Tab:AddButton({
     Name = "手动复活(强制)",
+    ClickTwice = true,
     Callback = function() 
-        if not ReviveManuallyCD then
-            ReviveManuallyCD = true
-            task.spawn(function() task.wait(5); ReviveManuallyCD = false end)
-            return OrionLib:MakeNotification({
-                Name = '手动复活',
-                Content = '3s内再次点击以确认'
-            })
-        else RE.Respawn:FireServer() end
+        RE.Respawn:FireServer()
     end
 })
 Tab:AddToggle({
@@ -339,7 +332,7 @@ local AutoCoinsBySuperDropper; AutoCoinsBySuperDropper = Floor:AddToggle({
     Default = false,
     Flag = 'AutoCoinsBySuperDropper',
     Callback = function(value)
-        if not value or then return end
+        --if not value or then return end
         CheckCurrentFloor('SuperDropper',AutoCoinsBySuperDropper)
 
         --workspace.SuperDropper.RespawnCenter
