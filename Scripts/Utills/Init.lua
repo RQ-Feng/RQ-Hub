@@ -143,12 +143,11 @@ end
 if not ExecutorChecker['fireproximityprompt'] then
     function fireproximityprompt(prompt: ProximityPrompt)
         if not prompt:IsA("ProximityPrompt") then return error("ProximityPrompt expected, got " .. typeof(prompt)) end
+        if not prompt.Enabled then return end
     
-        local originalEnabled = prompt.Enabled
         local originalHold = prompt.HoldDuration
         local originalLineOfSight = prompt.RequiresLineOfSight
         
-        prompt.Enabled = true
         prompt.RequiresLineOfSight = false
         prompt.HoldDuration = 0
 
@@ -157,7 +156,6 @@ if not ExecutorChecker['fireproximityprompt'] then
         task.wait(prompt.HoldDuration + 0.05)
         prompt:InputHoldEnd()
 
-        prompt.Enabled = originalEnabled
         prompt.HoldDuration = originalHold
         prompt.RequiresLineOfSight = originalLineOfSight
     end
