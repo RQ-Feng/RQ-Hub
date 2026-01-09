@@ -35,14 +35,16 @@ end
 
 local function SetClipFunction(char,value)
     local CanCollide = value or false
-    char.Collision.CollisionGroup = "PlayerCrouching"
-    char.Collision.CollisionCrouch.CollisionGroup = "PlayerCrouching"
+
+    local Collision = char:FindFirstChild('Collision')
+    if Collision then
+        Collision.CollisionGroup = "PlayerCrouching"
+        Collision.CollisionCrouch.CollisionGroup = "PlayerCrouching"
+        char.Collision.CanCollide = CanCollide
+        char.Collision.CollisionCrouch.CanCollide = CanCollide
+    end
     char.CollisionPart.CollisionGroup = "PlayerCrouching"
-
-    char.Collision.CanCollide = CanCollide
-    char.Collision.CollisionCrouch.CanCollide = CanCollide
-
-    if Character:FindFirstChild('_CollisionPart') then Character:FindFirstChild('_CollisionPart').CanCollide = CanCollide end
+    if char:FindFirstChild('_CollisionPart') then char._CollisionPart.CanCollide = CanCollide end
 end
 
 local AntiItems = {}
