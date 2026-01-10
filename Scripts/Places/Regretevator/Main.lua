@@ -97,6 +97,7 @@ RotateHeadManuallyToggle = Tab:AddToggle({
 })
 Tab:AddSlider({
 	Name = "头部X轴",
+    Save = true,
 	Min = 0,
 	Max = 6.3,
 	Default = 0,
@@ -109,6 +110,7 @@ Tab:AddSlider({
 })
 Tab:AddSlider({
 	Name = "头部Y轴",
+    Save = true,
 	Min = 0,
 	Max = 6.3,
 	Default = 0,
@@ -311,6 +313,7 @@ Esp:AddToggle({
 -- workspace.PetCaptureDeluxe.Build.ActiveMonsters
 -- workspace.ButtonCompetition.Build.Buttons.Active
 --workspace.bugbo.Build.Rocks
+--workspace.ColorTheTiles.Tiles
 TP:AddToggle({
     Name = "自动传送至通关区",
     Default = false,
@@ -332,13 +335,15 @@ local AutoCoinsBySuperDropper; AutoCoinsBySuperDropper = Floor:AddToggle({
     Default = false,
     Flag = 'AutoCoinsBySuperDropper',
     Callback = function(value)
-        --if not value or then return end
-        CheckCurrentFloor('SuperDropper',AutoCoinsBySuperDropper)
-
-        --workspace.SuperDropper.RespawnCenter
-        --workspace.SuperDropper.Build.EndHatch
+        local correctFloor = CheckCurrentFloor('SuperDropper',AutoCoinsBySuperDropper)
+        if not value or not correctFloor then return end
+        repeat
+            HumanoidRootPart.CFrame = CFrame.new(GetCurrentFloor().Build.EndHatch)
+            task.wait()
+            HumanoidRootPart.CFrame = CFrame.new(GetCurrentFloor().RespawnCenter)
+            task.wait()
+        until not OrionLib.Flags['AutoCoinsBySuperDropper'].Value or not OrionLib:IsRunning()
         --workspace.SuperDropper.ResetMap(RemoteEvent)
-        --workspace.ColorTheTiles.Tiles
     end
 })
 AddConnection(workspace.Values.CurrentRoom.Changed,function()

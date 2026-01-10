@@ -149,13 +149,11 @@ Tab:AddToggle({
     Name = "实体提醒",
     Default = true,
     Flag = "NotifyEntities",
-    Save = true
 })
 Tab:AddToggle({
     Name = "实体播报",
     Default = false,
     Flag = "chatNotifyEntities",
-    Save = true
 })
 Section = Tab:AddSection({
     Name = "交互"
@@ -163,6 +161,7 @@ Section = Tab:AddSection({
 Tab:AddLabel("交互距离超过40可能会导致交互bug")
 Tab:AddSlider({
     Name = "交互距离",
+    Save = true,
     Min = 12,
     Max = 100,
     Default = 12,
@@ -171,6 +170,7 @@ Tab:AddSlider({
 })
 Tab:AddSlider({
     Name = "自动拉杆距离",
+    Save = true,
     Min = 5,
     Max = 100,
     Default = 20,
@@ -179,6 +179,7 @@ Tab:AddSlider({
 })
 Tab:AddSlider({
     Name = "自动开门距离",
+    Save = true,
     Min = 5,
     Max = 100,
     Default = 20,
@@ -311,6 +312,7 @@ Tab:AddButton({
 })
 Tab:AddSlider({
 	Name = "视场角",
+    Save = true,
 	Min = 0,
 	Max = 20,
 	Default = 0,

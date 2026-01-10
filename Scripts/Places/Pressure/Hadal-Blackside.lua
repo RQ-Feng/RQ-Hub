@@ -171,21 +171,21 @@ Section = Tab:AddSection({
 })
 Tab:AddToggle({
     Name = "实体提醒",
+    Save = true,
     Default = true,
     Flag = "NotifyEntities",
-    Save = true
 })
 Tab:AddToggle({
     Name = "实体播报",
+    Save = true,
     Default = false,
     Flag = "chatNotifyEntities",
-    Save = true
 })
 Tab:AddToggle({
     Name = "自动躲避",
+    Save = true,
     Default = false,
     Flag = "avoid",
-    Save = true
 })
 Tab:AddButton({ -- 手动返回
     Name = "手动返回",
@@ -198,6 +198,7 @@ Section = Tab:AddSection({
 })
 Tab:AddToggle({ -- 轻松交互
     Name = "轻松交互",
+    Save = true,
     Default = true,
     Callback = function(Value)  
         if Value == true then          
@@ -221,6 +222,7 @@ Tab:AddToggle({ -- 轻松交互
 })
 Tab:AddToggle({ -- 轻松修复
     Name = "轻松修复",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value == false then
@@ -239,6 +241,7 @@ Tab:AddToggle({ -- 轻松修复
 })
 Tab:AddToggle({ -- 自动修复
     Name = "自动修复",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value == false then
@@ -264,6 +267,7 @@ Tab:AddToggle({ -- 自动修复
 })
 Tab:AddToggle({ -- 轻松交互
     Name = "自动过367小游戏",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value == false then
@@ -282,6 +286,7 @@ Tab:AddToggle({ -- 轻松交互
 })
 Tab:AddToggle({ -- 轻松交互
     Name = "自动交互",
+    Save = true,
     Default = false,
     Callback = function(Value)
         if Value == false then
@@ -307,6 +312,7 @@ Section = Tab:AddSection({
 })
 Tab:AddToggle({ -- 保持广角
     Name = "保持广角",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -324,6 +330,7 @@ Tab:AddToggle({ -- 保持广角
 })
 Tab:AddToggle({ -- 高亮
     Name = "高亮(低质量)",
+    Save = true,
     Default = true,
     Callback = function(Value)
         Light = game:GetService("Lighting")
@@ -347,6 +354,7 @@ Tab:AddToggle({ -- 高亮
 })
 --[[Tab:AddToggle({--第三人称
     Name = "第三人称(测试)",
+    Save = true,
     Default = false,
     Callback = function(Value)
         if Value then
@@ -376,6 +384,7 @@ Tab:AddButton({ --传送门
 })
 Tab:AddToggle({ 
     Name = "自动过关(测试)",
+    Save = true,
     Callback = function(Value)
         if Value then
             autoplay = true
@@ -406,6 +415,7 @@ Tab:AddButton({
 })
 Tab:AddSlider({
     Name = "玩家透明度",
+    Save = true,
     Min = 0,
     Max = 1,
     Default = 0,
@@ -420,6 +430,7 @@ Tab:AddSlider({
 })
 Tab:AddToggle({ -- 玩家提醒
     Name = "玩家提醒",
+    Save = true,
     Default = false,
     Flag = "PlayerNotifications"
 })
@@ -530,60 +541,61 @@ Item:AddButton({
 })
 Del:AddToggle({
     Name = "删除z317",
+    Save = true,
     Default = true,
     Flag = "noeyefestation",
-    Save = true
 })
 Del:AddToggle({
     Name = "删除z367",
+    Save = true,
     Default = true,
     Flag = "nopandemonium",
-    Save = true
 })
 Del:AddToggle({
     Name = "删除Searchlights(待增强)",
+    Save = true,
     Default = true,
     Flag = "nosearchlights",
-    Save = true
 })
 Del:AddToggle({
     Name = "删除S-Q",
+    Save = true,
     Default = true,
     Flag = "nosq",
-    Save = true
 })
 Del:AddToggle({
     Name = "删除炮台",
+    Save = true,
     Default = true,
     Flag = "noturret",
-    Save = true
 })
 Del:AddToggle({
     Name = "删除自然伤害(大部分)",
+    Save = true,
     Default = true,
     Flag = "nodamage",
-    Save = true
 })
 Del:AddToggle({
     Name = "删除z432",
+    Save = true,
     Default = true,
     Flag = "noFriendPart",
-    Save = true
 })
 Del:AddToggle({
     Name = "删除水区",
+    Save = true,
     Default = true,
     Flag = "nowatertoswim",
-    Save = true
 })
 Del:AddToggle({
     Name = "删除假柜",
+    Save = true,
     Default = true,
     Flag = "noMonsterLocker",
-    Save = true
 })
 Esp:AddToggle({ -- door
     Name = "门透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -624,6 +636,7 @@ Esp:AddToggle({ -- door
 })
 Esp:AddToggle({ -- locker
     Name = "柜子透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -652,6 +665,7 @@ Esp:AddToggle({ -- locker
 })
 Esp:AddToggle({ -- keycard
     Name = "钥匙卡透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -691,6 +705,7 @@ Esp:AddToggle({ -- keycard
 })
 Esp:AddToggle({ -- fake door
     Name = "假门透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -728,6 +743,7 @@ Esp:AddToggle({ -- fake door
 })
 Esp:AddToggle({ -- fake locker
     Name = "假柜透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -756,6 +772,7 @@ Esp:AddToggle({ -- fake locker
 })
 Esp:AddToggle({ -- 发电机
     Name = "修复设备透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -787,6 +804,7 @@ Esp:AddToggle({ -- 发电机
 })
 Esp:AddToggle({ -- 物品
     Name = "物品透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -850,6 +868,7 @@ Esp:AddToggle({ -- 物品
 })
 Esp:AddToggle({ -- 钱
     Name = "研究(钱)透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
         if Value then
@@ -907,11 +926,13 @@ Esp:AddToggle({ -- 钱
 })
 Esp:AddToggle({ -- 实体
     Name = "实体透视",
+    Save = true,
     Default = true,
     Flag = "EntityEsp"
 })
 Esp:AddToggle({ -- 玩家
     Name = "玩家透视",
+    Save = true,
     Default = false,
     Callback = function(Value)
         for _, player in pairs(game.Players:GetPlayers()) do

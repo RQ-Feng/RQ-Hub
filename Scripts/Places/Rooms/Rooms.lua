@@ -75,6 +75,7 @@ Section = Tab:AddSection({
 local NotifyEntities
 Tab:AddToggle({
     Name = "实体移动提醒",
+    Save = true,
     Default = true,
     Callback = function(value)
         NotifyEntities = value
@@ -106,16 +107,15 @@ Tab:AddToggle({
             end
         end
     end,
-    Save = true
 })
 Section = Tab:AddSection({
     Name = "交互"
 })
 Tab:AddToggle({ -- 轻松交互
     Name = "无限交互距离",
+    Save = true,
     Default = true,
     Flag = "InfInteract",
-    Save = true
 })
 Section = Tab:AddSection({
     Name = "其他"
@@ -132,24 +132,25 @@ Tab:AddButton({ --传送门
 })
 Esp:AddToggle({ -- door
     Name = "门透视",
+    Save = true,
     Default = true,
     Flag = "DoorsEsp",
-    Save = true
 })
 Esp:AddToggle({ -- locker
     Name = "柜子透视",
+    Save = true,
     Default = true,
     Flag = "LockerEsp",
-    Save = true
 })
 Esp:AddToggle({ -- 物品
     Name = "电池透视",
+    Save = true,
     Default = true,
     Flag = "BatteryEsp",
-    Save = true
 })
 Esp:AddToggle({ -- 实体
     Name = "实体透视",
+    Save = true,
     Default = true,
     Callback = function(Value)
 

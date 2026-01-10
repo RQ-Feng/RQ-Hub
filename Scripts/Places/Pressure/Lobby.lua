@@ -190,6 +190,7 @@ Section = Tab:AddSection({
 })
 Tab:AddSlider({
     Name = "玩家透明度",
+    Save = true,
     Min = 0,
     Max = 1,
     Default = 0,

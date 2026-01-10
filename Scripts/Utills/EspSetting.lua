@@ -17,29 +17,36 @@ task.spawn(function()
 		})
 		ESPSetting:AddToggle({
 			Name = "忽略角色",
+			Flag = 'ESPIgnoreCharacter',
 			Default = false,
 			Save = true,
 			Callback = function(value) GlobalESPSetting['IgnoreCharacter'] = value end
 		})
 		ESPSetting:AddToggle({
 			Name = "彩虹特效",
+			Flag = 'ESPRainbow',
 			Default = true,
 			Save = true,
 			Callback = function(value) GlobalESPSetting['Rainbow'] = value end
 		})
 		ESPSetting:AddColorpicker({
 			Name = "颜色",
+			Flag = 'ESPColor',
+			Save = true,
 			Default = Color3.fromRGB(255, 0, 0),
 			Callback = function(Value) CurrentEspSetting['Color'] = Value if RefreshESP then RefreshESP() end end	  
 		})
 		ESPSetting:AddToggle({
 			Name = "距离显示",
 			Default = true,
+			Flag = 'ESPDistance',
 			Save = true,
 			Callback = function(value) GlobalESPSetting['Distance'] = value end
 		})
 		ESPSetting:AddDropdown({
 			Name = "字体",
+			Save = true,
+			Flag = 'Font',
 			Default = "RobotoCondensed",
 			Options = {
 				'RobotoCondensed',
@@ -52,6 +59,8 @@ task.spawn(function()
 		})		
 		ESPSetting:AddSlider({
 			Name = "文字大小",
+    		Save = true,
+			Flag = 'FontSize',
 			Min = 15,
 			Max = 50,
 			Default = 17,
@@ -62,12 +71,14 @@ task.spawn(function()
 		})
 		ESPSetting:AddToggle({
 			Name = "箭头显示",
+			Flag = 'ESPArrows',
 			Default = false,
 			Save = true,
 			Callback = function(value) GlobalESPSetting['Arrows'] = value end
 		})
 		ESPSetting:AddToggle({
 			Name = "追踪线",
+			Flag = 'ESPTracers',
 			Default = false,
 			Save = true,
 			Callback = function(value) GlobalESPSetting['Tracers'] = value end

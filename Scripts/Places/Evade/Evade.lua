@@ -83,6 +83,7 @@ AddConnection(Stats:GetAttributeChangedSignal('Timer'),function()
 end)
 Tab:AddSlider({
     Name = "缩放",
+    Save = true,
     Min = 0,
     Max = 1.4,
     Default = 1,

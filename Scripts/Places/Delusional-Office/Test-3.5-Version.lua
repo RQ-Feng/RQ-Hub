@@ -208,6 +208,7 @@ Tab:AddToggle({
 })
 Tab:AddSlider({
     Name = "传送间隔(秒)",
+    Save = true,
     Min = 0.05,
     Max = 1,
     Default = 0.5,
