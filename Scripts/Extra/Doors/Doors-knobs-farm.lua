@@ -261,7 +261,7 @@ local function antiafk()
     end
 end
 
-local function notityRejoin()
+local function NotifyRejoin()
     if StatisticsEvent then StatisticsEvent:Disconnect() end
     for i = 1,3 do
         Notify(i ~= 1 and '再次尝试重开...' or '重开中...',10)
@@ -329,7 +329,7 @@ StatisticsEvent = RemotesFolder.Statistics.OnClientEvent:Connect(function(table)
     
     if GotKnobs == 0 and FastMode then 
         Notify('无法获取knobs.\n自动重开.'); StopFarming = true
-        if not ByAutoRejoin then notityRejoin(); return end
+        if not ByAutoRejoin then NotifyRejoin(); return end
         return
      end
 
@@ -450,7 +450,7 @@ if FastMode then
         Notify('请在开局前执行',60,{
             Button1 = '重开',
             Button2 = '取消',
-            Callback = function(choice) if choice == '重开' then notityRejoin(); return else StatisticsEvent:Disconnect() end end
+            Callback = function(choice) if choice == '重开' then NotifyRejoin(); return else StatisticsEvent:Disconnect() end end
         }); return
     end
 
@@ -460,7 +460,7 @@ if FastMode then
     --     if item.Name == 'Toolbox_Locked' then Tnum = addnum(item,Tnum) end
     --     if item.Name == 'Locker_Small_Locked' then Lnum = addnum(item,Lnum) end
     -- end
-    -- if Tnum + Lnum <= 1 then warn('L seed,replaying...'); notityRejoin(); return end
+    -- if Tnum + Lnum <= 1 then warn('L seed,replaying...'); NotifyRejoin(); return end
 
 
     --ActivateEventPrompt
@@ -509,7 +509,7 @@ if not GameData.PreRun.Value then
     Notify('请在开局前执行',math.huge,{
         Button1 = '重开',
         Button2 = '取消',
-        Callback = function(choice) if choice == '重开' then notityRejoin(); return else StatisticsEvent:Disconnect() end end
+        Callback = function(choice) if choice == '重开' then NotifyRejoin(); return else StatisticsEvent:Disconnect() end end
     }); return
 end
 MovementScript.Enabled = false
