@@ -70,6 +70,8 @@ PlaceInfo = MarketplaceService:GetProductInfoAsync(PlaceId,Enum.InfoType.Asset)
 PlaceName,PlaceDescription = PlaceInfo.Name,PlaceInfo.Description
 PlaceIcon,PlaceCreator = PlaceInfo.IconImageAssetId,PlaceInfo.Creator['Name']
 
+IsOnMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
 local function SetCharVars(char)
     Character = char
     Humanoid = Character:WaitForChild("Humanoid")
@@ -132,6 +134,116 @@ function RefreshESP()
         end
     end
 end
+--------------------------------------------------Notify
+local ScreenGui,MainWindow
+local NotifyShowPosition
+local NotifyHidePosition
+local Title,Content
+
+local function MakeNotifyScreenGui()
+    local GuiName = 'RQHub_NotifyScreenGui'
+    local CurrentNotifyGui = game.CoreGui:FindFirstChild(GuiName)
+    if not CurrentNotifyGui then 
+        ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        ScreenGui.Parent = game.CoreGui
+        ScreenGui.Name = GuiName
+    
+        MainWindow = Instance.new("CanvasGroup")
+        MainWindow.GroupTransparency = 1
+        MainWindow.AnchorPoint = Vector2.new(0.5, 0.5)
+        MainWindow.Size = UDim2.new(0.15, 30, 0.1, 20)
+        MainWindow.BorderColor3 = Color3.fromRGB(27, 42, 53)
+        MainWindow.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        MainWindow.Name = "MainWindow"
+        MainWindow.Parent = ScreenGui
+        Instance.new("UICorner",MainWindow).CornerRadius = UDim.new(0, 15)
+    
+        local Frame = Instance.new("Frame")
+        Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+        Frame.Size = UDim2.new(1, -15, 1, -15)
+        Frame.BorderColor3 = Color3.fromRGB(27, 42, 53)
+        Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+        Frame.Name = "Frame"
+        Frame.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+        Frame.Parent = MainWindow
+        Instance.new("UICorner",Frame).CornerRadius = UDim.new(0, 15)
+    
+        Title = Instance.new("TextLabel")
+        Title.LayoutOrder = 0
+        Title.RichText = true
+        Title.TextScaled = true
+        Title.Selectable = false
+        Title.Font = Enum.Font.Nunito
+        Title.AnchorPoint = Vector2.new(0.5, 0.5)
+        Title.Size = UDim2.new(1, 0, 0.35, 0)
+        Title.BackgroundTransparency = 1
+        Title.Position = UDim2.new(0.5, 0, 0.75, 0)
+        Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Title.Name = "Title"
+        Title.Parent = Frame
+        local UIListLayout = Instance.new("UIListLayout")
+        UIListLayout.Parent = Frame
+        UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        UIListLayout.Padding = UDim.new(0, 5)
+            
+        Content = Instance.new("TextLabel")
+        Content.Name = "Content"
+        Content.Size = UDim2.new(0.85, 0, 0.65, 0)
+        Content.LayoutOrder = 1
+        Content.AnchorPoint = Vector2.new(0.5, 0.5)
+        Content.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Content.Font = Enum.Font.Nunito
+        Content.RichText = true
+        Content.TextScaled = true
+        Content.BackgroundTransparency = 1
+        Content.Parent = Frame
+    else
+        ScreenGui = CurrentNotifyGui
+        MainWindow = ScreenGui.MainWindow
+        local Frame = MainWindow.Frame
+        Title,Content = Frame.Title,Frame.Content
+    end
+
+    MainWindow.Position = UDim2.new(0.5, 0, 0.8, (IsOnMobile and -50 or -100))
+    NotifyShowPosition = MainWindow.Position 
+    NotifyHidePosition = NotifyShowPosition - UDim2.new(0,0,0,15)
+    MainWindow.Position = NotifyHidePosition
+
+    ScreenGui:GetAttributeChangedSignal('Showing'):Connect(function()
+        local Showing = ScreenGui:GetAttribute('Showing')
+        TweenService:Create(MainWindow,TweenInfo.new(0.2,Enum.EasingStyle.Sine),{
+            Position = Showing and NotifyShowPosition or NotifyHidePosition,
+            GroupTransparency = Showing and 0 or 1
+        }):Play()
+    end); ScreenGui:SetAttribute('Showing',true)
+
+    return ScreenGui
+end
+
+function Notify(NotifyCfg)
+    local ControlNotify = {}
+    if not ScreenGui or not ScreenGui.Parent then MakeNotifyScreenGui() end
+    if not NotifyCfg then return end
+
+    function ControlNotify:Set(newCfg)
+        ScreenGui:SetAttribute('Showing',true)
+        Title.Text = tostring(newCfg['Text'])
+        Content.Text = tostring(newCfg['Content'])
+    end
+
+    function ControlNotify:Close()
+        ScreenGui:SetAttribute('Showing',false)
+    end
+
+    NotifyCfg = {
+        Text = NotifyCfg['Text'] or 'Text',
+        Content = NotifyCfg['Content'] or 'Content'
+    }; ControlNotify:Set(NotifyCfg)
+
+    return ControlNotify
+end
 --------------------------------------------------Other functions
 function AddConnection(signal,func,Value)
     Value = Value or {['Value'] = true}
@@ -183,3 +295,12 @@ function FullBrightLite(Value)
     if Value.Value then for _,item in pairs(list) do item = white;AddConnection(Lighting.Changed,function() item = white end,Value) end
     else for _,item in pairs(list) do item = black end end
 end
+--------------------------------------------------The behavior when OrionLib stop running.
+task.spawn(function()
+    repeat task.wait() until not OrionLib:IsRunning()
+    if ScreenGui then
+        ScreenGui:SetAttribute('Showing',false)
+        task.wait(0.2)
+        ScreenGui:Destroy() 
+    end
+end)
