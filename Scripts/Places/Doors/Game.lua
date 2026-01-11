@@ -102,6 +102,7 @@ end
 
 local GameItems = {
     ['KeyObtain'] = '钥匙',
+    ['ElectricalKeyObtain'] = '电气室钥匙',
     ['FuseObtain'] = '保险丝',
     ['LiveBreakerPolePickup'] = '开关',
     ['LeverForGate'] = '拉杆',
@@ -155,7 +156,9 @@ local InteractPrompts = {
 }
 
 local Interact_Blacklist = {
-    'Padlock'
+    'Padlock',
+    'JeffShop_Hotel',
+    'ElevatorBreaker'
 }
 
 local function EspItem(ItemName,DisplayTable,Value)
@@ -356,14 +359,12 @@ Tab:AddButton({
         })
     end
 })
--- Tab:AddToggle({ -- 高亮
---     Name = "高亮(低质量)",
-    Save = true,
---     Flag = 'FullBrightLite',
+-- Tab:AddToggle({
+--     Name = "高亮",
+--     Flag = '',
 --     Default = true,
 --     Callback = function(Value)
 --         if not Value then return end
---         FullBrightLite(OrionLib.Flags['FullBrightLite'])
 --     end
 -- })
 Feature:AddSection({Name = "绕过"})
@@ -390,6 +391,7 @@ Feature:AddToggle({
             CloneCollisionPart = char:FindFirstChild('CollisionPart'):Clone()
             CloneCollisionPart.Parent = char
             CloneCollisionPart.CanCollide = false
+            CloneCollisionPart.Anchored = false
             CloneCollisionPart.Name = '_CollisionPart'
             return CloneCollisionPart
         end
@@ -407,10 +409,20 @@ Feature:AddToggle({
 
         AddConnection(LocalPlayer.CharacterAdded,clone,OrionLib.Flags['BypassSpeedAC'])
         AddConnection(CollisionPart:GetPropertyChangedSignal('Anchored'),function()
+            if not CollisionPart.Anchored then return end
             OrionLib.Flags['BypassSpeedAC']:Set(false)
-            OrionLib:MakeNotification({
+            local Notify = OrionLib:MakeNotification({
                 Name = "速度绕过",
                 Content = "检测到滞后,已自动关闭.",
+                Time = 2
+            })
+            repeat task.wait() until not CollisionPart.Anchored or not OrionLib:IsRunning()
+            if not OrionLib:IsRunning() then return end
+            if Notify then OrionLib:CloseNotification(Notify) end
+            OrionLib.Flags['BypassSpeedAC']:Set(true)
+            local Notify = OrionLib:MakeNotification({
+                Name = "速度绕过",
+                Content = "已自动重启.",
                 Time = 2
             })
         end,OrionLib.Flags['BypassSpeedAC'])
@@ -418,17 +430,6 @@ Feature:AddToggle({
         repeat task.wait() until not OrionLib.Flags['BypassSpeedAC'].Value or not OrionLib:IsRunning()
 
         CloneCollisionPart:Destroy()
-    end
-})
-Feature:AddSection({Name = "自动"})
-Feature:AddToggle({
-    Name = "",
-    Save = true,
-    Default = false,
-    Flag = '',
-    Callback = function(Value)
-        if not Value then return end
-        
     end
 })
 Feature:AddSection({Name = "玩家"})
@@ -470,12 +471,11 @@ Feature:AddToggle({
     Flag = 'SilentCrouch',
     Default = false,
     Callback = function(Value)
-        if not Value then RemotesFolder.Crouch:FireServer(false); return end
-        RemotesFolder.Crouch:FireServer(true)
-        AddConnection(Character:GetAttributeChangedSignal('Crouching'), function(Crouch)
-            if Crouch then return end
-            RemotesFolder.Crouch:FireServer(true)
-        end, OrionLib.Flags['SilentCrouch'])
+        if not Value then return end
+        task.spawn(function()
+            repeat RemotesFolder.Crouch:FireServer(true); task.wait() until not OrionLib.Flags['SilentCrouch'].Value or not OrionLib:IsRunning()
+            RemotesFolder.Crouch:FireServer(false)
+        end)
     end
 })
 Feature:AddToggle({
@@ -514,6 +514,54 @@ Feature:AddToggle({
         AddConnection(Character:GetAttributeChangedSignal('CanSlide'),function() Character:SetAttribute("CanSlide", Value) end,OrionLib.Flags['CanSlide'])
     end
 })
+Feature:AddSection({Name = "提醒"})
+local OxygenNotify,WaitToCloseTask,CheckOxygenEvent
+Feature:AddToggle({
+    Name = "氧气提醒",
+    Save = true,
+    Default = false,
+    Flag = 'OxygenNotify',
+    Callback = function(Value)
+        if not Value then 
+            if OxygenNotify then OxygenNotify:Close() end
+            if WaitToCloseTask then task.cancel(WaitToCloseTask) end
+            if CheckOxygenEvent then CheckOxygenEvent:Disconnect() end
+            return
+        end
+
+        local function SetCloseTask(char)
+            WaitToCloseTask = task.spawn(function()
+                task.wait(3)
+                if (char and OxygenNotify) and char:GetAttribute('Oxygen') == 100 then OxygenNotify:Close() end
+            end)
+        end
+
+        OxygenNotify = Notify({
+            Text = '剩余氧气',
+            Content = Character:GetAttribute('Oxygen')
+        }); SetCloseTask(Character)
+
+        local function CheckOxygen(char)
+            if CheckOxygenEvent then CheckOxygenEvent:Disconnect() end
+            CheckOxygenEvent = AddConnection(char:GetAttributeChangedSignal('Oxygen'),function()
+                local currentOxygen = char:GetAttribute('Oxygen')
+
+                if not OxygenNotify then OxygenNotify = Notify({
+                    Text = '剩余氧气',
+                    Content = currentOxygen
+                }) end
+    
+                if currentOxygen == 100 then SetCloseTask(char)
+                elseif WaitToCloseTask then task.cancel(WaitToCloseTask) end
+    
+                if OxygenNotify then OxygenNotify:Set({Text = '剩余氧气',Content = currentOxygen}) end
+            end,OrionLib.Flags['OxygenNotify'])
+        end
+
+        CheckOxygen(Character)
+        AddConnection(LocalPlayer.CharacterAdded,CheckOxygen)
+    end
+})
 Feature:AddSection({Name = "其他"})
 Feature:AddToggle({
     Name = "远处开门",
@@ -523,118 +571,12 @@ Feature:AddToggle({
     Callback = function(Value)
         if not Value then return end
         task.spawn(function()
-            repeat CurrentRoom().Door.ClientOpen:FireServer() task.wait() until not OrionLib.Flags['OpenDoorFarer'].Value or not OrionLib:IsRunning()
+            repeat CurrentRoom().Door.ClientOpen:FireServer(); task.wait() until not OrionLib.Flags['OpenDoorFarer'].Value or not OrionLib:IsRunning()
         end)
-    end
-})
-Feature:AddSlider({
-    Name = "开锁距离",
-    Save = true,
-    Min = 10,
-    Max = 100,
-    Default = 20,
-    Increment = 1,
-    Flag = 'AutoLibraryUnlockDistance'
-})
-Feature:AddToggle({
-    Name = "自动图书馆开锁",
-    Save = true,
-    Default = false,
-    Flag = 'AutoLibraryUnlock',
-    Callback = function(Value)
-
-
-
-
-        local AutoPadlockConnection = game["Run Service"].Heartbeat:Connect(function()
-            if not workspace.CurrentRooms:FindFirstChild("50") then
-                return
-            end
-            local room = game.Workspace.CurrentRooms:FindFirstChild("50")
-            if room and room:FindFirstChild("Door") and room.Door:FindFirstChild("Padlock") then
-                local child = Character:FindFirstChild("LibraryHintPaper") or
-                                  Player.Backpack:FindFirstChild("LibraryHintPaper") or
-                                  Character:FindFirstChild("LibraryHintPaperHard") or
-                                  game.Players.LocalPlayer.Backpack:FindFirstChild("LibraryHintPaperHard")
-                if child ~= nil then
-                    local code = GetPadlockCode(child)
-                    local output, count = string.gsub(code, "_", "_")
-                    local padlock = workspace:FindFirstChild("Padlock", true)
-                    local part
-                    for i, e in pairs(padlock:GetDescendants()) do
-                        if e:IsA("BasePart") then
-                            part = e
-                        end
-                    end
-
-                    if tonumber(code) and Player:DistanceFromCharacter(part.Position) <= AutoLibraryUnlockDistance and
-                        Toggles.AutoUnlockPadlock.Value then
-
-                        RemotesFolder.PL:FireServer(code)
-
-                    end
-
-                    if Toggles.NotifyLibraryCode.Value and tonumber(code) and string.len(output) == 5 and solved ==
-                        false and Floor ~= "Fools" or tonumber(code) and string.len(output) == 10 and Floor == "Fools" and
-                        solved == false then
-
-                        solved = true
-                        Notify({
-                            Title = "Padlock Code Found",
-                            Description = "The code for the padlock is '" .. output .. "'.",
-                            Time = room.Door.Padlock
-                        })
-                        Sound()
-
-                    end
-                end
-
-            end
-
-        end)
-
-
-        if not Value then return end
-        local CollisionPart = Character:FindFirstChild('CollisionPart')
-        local CloneCollisionPart
-
-        local function clone(char)
-            CloneCollisionPart = char:FindFirstChild('CollisionPart'):Clone()
-            CloneCollisionPart.Parent = char
-            CloneCollisionPart.CanCollide = false
-            CloneCollisionPart.Name = '_CollisionPart'
-            return CloneCollisionPart
-        end
-        
-        CloneCollisionPart = Character:FindFirstChild('_CollisionPart') or clone(Character)
-
-        local function BypassSpeedAC()
-            task.spawn(function()
-                while OrionLib.Flags['BypassSpeedAC'].Value and OrionLib:IsRunning() do
-                    if CloneCollisionPart then CloneCollisionPart.Massless = not CloneCollisionPart.Massless end
-                    task.wait(OrionLib.Flags['BypassSpeedACRate'].Value) 
-                end
-            end)
-        end; BypassSpeedAC()
-
-        AddConnection(LocalPlayer.CharacterAdded,clone,OrionLib.Flags['BypassSpeedAC'])
-        AddConnection(CollisionPart:GetPropertyChangedSignal('Anchored'),function()
-            OrionLib.Flags['BypassSpeedAC']:Set(false)
-            OrionLib:MakeNotification({
-                Name = "速度绕过",
-                Content = "检测到滞后,已自动关闭.",
-                Time = 2
-            })
-        end,OrionLib.Flags['BypassSpeedAC'])
-
-        repeat task.wait() until not OrionLib.Flags['BypassSpeedAC'].Value or not OrionLib:IsRunning()
-
-        CloneCollisionPart:Destroy()
     end
 })
 -- Feature:AddDropdown({
 -- 	Name = "Dropdown",
-    Save = true,
 --     Flag = 'Dropdown',
 -- 	Default = "1",
 -- 	Options = {"1", "2"},
@@ -749,7 +691,87 @@ Esp:AddToggle({
         end
     end
 })
+local function CheckFloor(floorName,flag)
+    if not floorName then return warn('[CheckFloor] Got nil floor name.') end
+    local correctFloor = CurrentFloor() == floorName
+    if correctFloor then return true end
+    OrionLib:MakeNotification({
+        Name = '楼层检测',
+        Content = '此楼层不支持该功能.',
+        Time = 5
+    }); if flag then flag:Set(false) end
+    return false
+end
 Floor:AddLabel('您当前位于 '..CurrentFloor()..' 楼层.')
+Floor:AddSection({Name = "酒店"})
+Floor:AddSlider({
+    Name = "开锁距离",
+    Save = true,
+    Min = 10,
+    Max = 150,
+    Default = 20,
+    Increment = 1,
+    Flag = 'AutoLibraryUnlockDistance'
+})
+Floor:AddToggle({
+    Name = "自动图书馆开锁",
+    Save = true,
+    Default = false,
+    Flag = 'AutoLibraryUnlock',
+    Callback = function(Value)
+        if not Value or not CheckFloor('Hotel',OrionLib.Flags['AutoLibraryUnlock']) then return end
+        if LatestRoom.Value > 50 then 
+            OrionLib:MakeNotification({
+                Name = "自动图书馆开锁",
+                Content = '你已通过图书馆.',
+                Time = 5
+            }); OrionLib.Flags['AutoLibraryUnlock']:Set(false)
+            return
+        end
+        local Room; repeat 
+            Room = workspace.CurrentRooms:FindFirstChild("50"); task.wait() 
+        until Room or not OrionLib.Flags['AutoLibraryUnlock'].Value or not OrionLib:IsRunning()
+        if not OrionLib.Flags['AutoLibraryUnlock'].Value then return end
+
+        task.spawn(function()
+            local TriedToSolve = false
+            local CodeNotify
+            local PadlockPosition = CurrentDoor():WaitForChild('Padlock').PrimaryPart.Position
+            repeat task.wait()
+                local paper = Character:FindFirstChild("LibraryHintPaper")
+                if not paper then continue end
+                local code = GetPadlockCode(paper)
+                if tonumber(code) and LocalPlayer:DistanceFromCharacter(PadlockPosition) <= OrionLib.Flags['AutoLibraryUnlockDistance'].Value then
+                    RemotesFolder.PL:FireServer(code)
+                    TriedToSolve = true
+                end
+                if TriedToSolve and not tonumber(code) then break end
+                if CodeNotify then task.spawn(function() OrionLib:CloseNotification(CodeNotify) end) end
+                CodeNotify = OrionLib:MakeNotification({
+                    Name = "图书馆提示纸",
+                    Content = '代码为 '..code..(TriedToSolve and ',已尝试解锁' or '').. '.',
+                    Time = 3
+                })
+                repeat task.wait() until not Character:FindFirstChild("LibraryHintPaper")
+            until LatestRoom.Value ~= 50 or not OrionLib.Flags['AutoLibraryUnlock'].Value or not OrionLib:IsRunning()
+            OrionLib:MakeNotification({
+                Name = "自动图书馆开锁",
+                Content = '已成功开锁.',
+                Time = 5
+            }); OrionLib.Flags['AutoLibraryUnlock']:Set(false)
+        end)
+    end
+})
+Floor:AddToggle({
+    Name = "自动电箱",
+    Save = true,
+    Default = false,
+    Flag = 'AutoBreaker',
+    Callback = function(Value)
+        if not Value then return end
+        repeat RemotesFolder.EBF:FireServer(); task.wait() until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
+    end
+})
 Anti:AddToggle({
     Name = "防相机抖动",
     Save = true,
@@ -803,9 +825,9 @@ Anti:AddToggle({
         local MotorReplication = RemotesFolder.MotorReplication
         for i = 1,10 do MotorReplication:FireServer(-1000) end
         MotorReplication.Parent = nil
-        repeat task.wait() until not OrionLib.Flags['Anti_Eyes_Lookman'].Value or not OrionLib:IsRunning() or not Character:GetAttribute('Alive')
+        RemotesFolder.PlayerDied.OnClientEvent:Once(function() OrionLib.Flags['Anti_Eyes_Lookman']:Set(false) end)
+        repeat task.wait() until not OrionLib.Flags['Anti_Eyes_Lookman'].Value or not OrionLib:IsRunning()
         MotorReplication.Parent = RemotesFolder
-        if not Character:GetAttribute('Alive') then OrionLib.Flags['Anti_Eyes_Lookman']:Set(false) end
     end
 })
 RemotesFolder.MotorReplication:FireServer(-750)
