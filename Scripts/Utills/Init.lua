@@ -105,7 +105,7 @@ local ESPElements = {}
 function AddESP(ESPConfig)
     if not ESPConfig.inst then return end
     ESPConfig.value = ESPConfig.value or {['Value'] = true}
-    ESPConfig.Type = ESPConfig.Type or "Highlight"
+    ESPConfig.Type = ESPConfig.Type or "Adornment"
     ESPConfig.Color = ESPConfig.Color or CurrentEspSetting['Color']
     ESPConfig.Name = ESPConfig.Name or ESPConfig.inst.Name
 
