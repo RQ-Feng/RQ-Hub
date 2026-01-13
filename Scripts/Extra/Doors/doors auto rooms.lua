@@ -263,10 +263,10 @@ local function pathFallback(path,Destination,times)
         if times < 5 then
             Humanoid:MoveTo(Destination.Position); task.wait(2)
             TeleportPlayer(Destination.CFrame); task.wait(0.5)
-            times = 0
         else
             Stardusts,GoldPiles = {},{} 
             TeleportPlayer(getPath().CFrame)
+            times = 0
         end
         repeat task.wait() until not IsHiding()
         return (Destination and Destination.Parent) and pathFallback(path,Destination,times) or pathFallback(path,getPath(),times)
@@ -306,6 +306,9 @@ local function gotoPath(ForceDestination)
     local Destination = ForceDestination or getPath() or getPath(true)
     if not Destination then return PrefixWarn('No Destination!') end
 
+    if not CurrentDoor():FindFirstChild('PathfindingModifier') then
+        Instance.new('PathfindingModifier',CurrentDoor()).PassThrough = true
+    end
     if not Destination:FindFirstChild('PathfindingModifier') then
         Instance.new('PathfindingModifier',Destination).PassThrough = true
     end
@@ -436,7 +439,7 @@ AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst)
     end
 end)
 AddConnection(game:GetService("GuiService").ErrorMessageChanged,function(info)--Reconnecter 
-    if info ~= 'Lost connection to the game server, please reconnect' then return PrefixWarn(info) end--Yeah hard code idc
+    Stop(); InsertInfo('Got error: '..info..',trying reconnecting.')
 	warn('Seems like u got a disconnect,reconnecting...')
     for tried = 1,5 do 
         warn('Trying reconnect,attempt(s):'..tried)
