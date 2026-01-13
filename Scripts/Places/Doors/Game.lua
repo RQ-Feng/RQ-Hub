@@ -277,11 +277,11 @@ Tab:AddToggle({
         for _,prompt in pairs(workspace:GetDescendants()) do 
             if not prompt:IsA('ProximityPrompt') then continue end
             SetPrompt(prompt,(not Value and PromptIsChecked(prompt)) and 
-            prompt.MaxActivationDistance / 2 or InteractPrompts[prompt.Name] or prompt.MaxActivationDistance * 2)
+            prompt.MaxActivationDistance / 2 or not PromptIsChecked(prompt) and (InteractPrompts[prompt.Name] or prompt.MaxActivationDistance * 2))
         end; if not Value then return end
         AddConnection(workspace.DescendantAdded,function(prompt)
             if not prompt:IsA('ProximityPrompt') then return end
-            SetPrompt(prompt,InteractPrompts[prompt.Name] or prompt.MaxActivationDistance * 2)
+            SetPrompt(prompt,not PromptIsChecked(prompt) and (InteractPrompts[prompt.Name] or prompt.MaxActivationDistance * 2))
         end,OrionLib.Flags['BetterPrompt'])
     end
 })
