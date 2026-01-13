@@ -17,7 +17,7 @@ local GameId,PlaceId = game.GameId,game.PlaceId
 local Game = PlaceTable[GameId]
 local Place = Game and Game.PlaceId[PlaceId]
 --检查Place
-if not Game or not Place then VanillaNotify(); return end
+if not Game or not Place then VanillaNotify('不支持此地点.'); return end
 
 OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua'))()
 ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
@@ -31,6 +31,18 @@ VanillaNotify('正在加载,请稍等...',3,'rbxassetid://7733715400')
 local GameFolder = 'RQHub\\'..Game.Folder
 if not isfolder(GameFolder) then makefolder(GameFolder) end
 
+local ScriptURLs = {
+    baseUrl .. 'Utills/Init.lua',
+    baseUrl .. "Places/" .. Game.Folder .. '/' .. Place .. ".lua",
+    baseUrl .. 'Utills/EspSetting.lua',
+    'https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-scripts/Setting.lua'
+}
+local Scripts = {}
+
+task.spawn(function()
+    for _,url in ipairs(ScriptURLs) do table.insert(Scripts,game:HttpGet(url)) end --Load scripts from urls
+end)
+
 Window = OrionLib:MakeWindow({
     IntroText = "RQHub-WIP",
     Name = 'RQHub | '..Game.Folder..' - '..Place,
@@ -38,8 +50,8 @@ Window = OrionLib:MakeWindow({
     ConfigFolder = GameFolder..'\\'..Place
 })
 
-loadstring(game:HttpGet(baseUrl .. 'Utills/Init.lua'))() --init
-loadstring(game:HttpGet(baseUrl .. "Places/" .. Game.Folder .. '/' .. Place .. ".lua"))() -- 加载链接 
-loadstring(game:HttpGet(baseUrl .. 'Utills/EspSetting.lua'))()-- Esp设置
-loadstring(game:HttpGet('https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-scripts/Setting.lua'))()-- UI设置
+repeat task.wait() until #Scripts == 4 --Waiting for scripts
+
+for _,script in pairs(Scripts) do loadstring(script)() end
+
 OrionLib:LoadConfig('RQHub-Default')
