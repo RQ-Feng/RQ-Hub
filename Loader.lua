@@ -28,11 +28,14 @@ local checklist = {OrionLib,ESPLibrary,RQHub,ExecutorChecker}
 if not checklist[4] then VanillaNotify('加载资源时遇到问题',10,'rbxassetid://7733658271'); return end
 VanillaNotify('正在加载,请稍等...',3,'rbxassetid://7733715400')
 
+local GameFolder = 'RQHub\\'..Game.Folder
+if not isfolder(GameFolder) then makefolder(GameFolder) end
+
 Window = OrionLib:MakeWindow({
     IntroText = "RQHub-WIP",
     Name = 'RQHub | '..Game.Folder..' - '..Place,
     SaveConfig = true,
-    ConfigFolder = 'RQHub\\'..Game.Folder..'\\'..Place
+    ConfigFolder = GameFolder..'\\'..Place
 })
 
 loadstring(game:HttpGet(baseUrl .. 'Utills/Init.lua'))() --init
