@@ -161,20 +161,10 @@ local Interact_Blacklist = {
     'ElevatorBreaker'
 }
 
-local function EspItem(ItemName,DisplayTable,Value)
-    local thr = coroutine.create(function()
-        for _,item in pairs(workspace:GetDescendants()) do
-            if item.Name == ItemName and item:IsA('Model') and not Players:GetPlayerFromCharacter(item.Parent) and item.Parent.Name ~= 'SallyMoving' then 
-                AddESP({inst = item,Name = DisplayTable[ItemName] or GameItems[ItemName],value = Value}) 
-            end
-        end
-        AddConnection(workspace.DescendantAdded,function(descendant)
-            if descendant.Name == ItemName and descendant:IsA('Model') and not Players:GetPlayerFromCharacter(descendant.Parent) and descendant.Parent.Name ~= 'SallyMoving' then 
-                AddESP({inst = descendant,Name = DisplayTable[ItemName] or GameItems[ItemName],value = Value}) 
-            end
-        end,Value)
-    end)
-    coroutine.resume(thr)
+local function CheckEspItem(inst,instName,DisplayTable,Flag)
+    if inst.Name == instName and inst:IsA('Model') and not Players:GetPlayerFromCharacter(inst.Parent) and inst.Parent.Name ~= 'SallyMoving' then 
+        AddESP({inst = inst, Name = DisplayTable[instName] or inst.Name, value = Flag}) 
+    end
 end
 --Feature Function
 local function GetPadlockCode(paper)
@@ -309,15 +299,16 @@ Tab:AddToggle({
     Flag = 'EntityNotify',
     Default = false,
     Callback = function(Value)
-        AddConnection(workspace.DescendantAdded,function(descendant)
-            if table.find(Entities,descendant.Name) and descendant:IsA('Model') then
-                Notify({
-                    Title = "实体提示",
-                    Text = Entities[descendant.Name].." 已出现！",
-                    Duration = 5
+        if not Value then return end
+        for _,entity in pairs(workspace:GetChildren()) do
+            if Entities[entity.Name] and entity:IsA('Model') then
+                OrionLib:MakeNotification({
+                    Name = "实体提示",
+                    Content = (Entities[entity.Name] or entity.Name) .. " 已出现！",
+                    Time = 5
                 })
             end
-        end,OrionLib.Flags['EntityNotify'])
+        end
     end
 })
 Tab:AddButton({
@@ -384,8 +375,19 @@ Feature:AddToggle({
     Flag = 'BypassSpeedAC',
     Callback = function(Value)
         if not Value then return end
+
         local CollisionPart = Character:FindFirstChild('CollisionPart')
         local CloneCollisionPart
+
+        if CollisionPart.Anchored then 
+            OrionLib.Flags['BypassSpeedAC']:Set(false)
+            OrionLib:MakeNotification({
+                Name = "速度绕过",
+                Content = "检测到被锚定,已自动关闭.",
+                Time = 2
+            }); return
+        end
+
 
         local function clone(char)
             CloneCollisionPart = char:FindFirstChild('CollisionPart'):Clone()
@@ -413,23 +415,24 @@ Feature:AddToggle({
             OrionLib.Flags['BypassSpeedAC']:Set(false)
             local Notify = OrionLib:MakeNotification({
                 Name = "速度绕过",
-                Content = "检测到滞后,已自动关闭.",
+                Content = "检测到被锚定,已自动关闭.",
                 Time = 2
             })
             repeat task.wait() until not CollisionPart.Anchored or not OrionLib:IsRunning()
             if not OrionLib:IsRunning() then return end
             if Notify then OrionLib:CloseNotification(Notify) end
             OrionLib.Flags['BypassSpeedAC']:Set(true)
-            local Notify = OrionLib:MakeNotification({
+            OrionLib:MakeNotification({
                 Name = "速度绕过",
                 Content = "已自动重启.",
                 Time = 2
             })
         end,OrionLib.Flags['BypassSpeedAC'])
 
-        repeat task.wait() until not OrionLib.Flags['BypassSpeedAC'].Value or not OrionLib:IsRunning()
-
-        CloneCollisionPart:Destroy()
+        task.spawn(function()
+            repeat task.wait() until not OrionLib.Flags['BypassSpeedAC'].Value or not OrionLib:IsRunning()
+        if CloneCollisionPart then CloneCollisionPart:Destroy() end
+        end)
     end
 })
 Feature:AddSection({Name = "玩家"})
@@ -631,7 +634,9 @@ Esp:AddToggle({
     Flag = 'KeyEsp',
     Callback = function(Value)
         if not Value then return end
-        EspItem('KeyObtain',GameItems,OrionLib.Flags['KeyEsp'])
+        for _, item in pairs(CurrentRoom():GetDescendants()) do
+            CheckEspItem(item,'KeyObtain',GameItems,OrionLib.Flags['KeyEsp'])
+        end
     end
 })
 Esp:AddToggle({
@@ -641,7 +646,9 @@ Esp:AddToggle({
     Flag = 'FuseEsp',
     Callback = function(Value)
         if not Value then return end
-        EspItem('FuseObtain',GameItems,OrionLib.Flags['FuseEsp'])
+        for _, item in pairs(CurrentRoom():GetDescendants()) do
+            CheckEspItem(item,'FuseObtain',GameItems,OrionLib.Flags['FuseEsp'])
+        end
     end
 })
 Esp:AddToggle({
@@ -651,10 +658,11 @@ Esp:AddToggle({
     Flag = 'LeverEsp',
     Callback = function(Value)
         if not Value then return end
-        EspItem('LeverForGate',GameItems,OrionLib.Flags['LeverEsp'])
+        for _, item in pairs(workspace.CurrentRooms:GetDescendants()) do
+            CheckEspItem(item,'LeverForGate',GameItems,OrionLib.Flags['LeverEsp'])
+        end
     end
 })
-
 Esp:AddToggle({
     Name = "物品透视",
     Save = true,
@@ -662,35 +670,25 @@ Esp:AddToggle({
     Flag = 'ItemsEsp',
     Callback = function(Value)
         if not Value then return end
-        for item,name in pairs(Items) do EspItem(item,Items,OrionLib.Flags['ItemsEsp']) end
-    end
-})
-
-Esp:AddToggle({
-    Name = "实体透视",
-    Save = true,
-    Default = false,
-    Flag = 'EntitiesEsp',
-    Callback = function(Value)
-        if not Value then return end
-        for name,_ in pairs(Entities) do
+        for item, name in pairs(Items) do 
             task.spawn(function()
-                for _,monster in pairs(workspace:GetDescendants()) do
-                    if monster.Name == name and item:IsA('Model') and not Players:GetPlayerFromCharacter(item.Parent) and item.Parent.Name ~= 'SallyMoving' then 
-                        local Mode = monster.Name == 'Eyes' and 'SphereAdornment' or 'CylinderAdornment'
-                        AddESP({inst = item,Name = Entities[name],value = OrionLib.Flags['EntitiesEsp'],Type = Mode}) 
-                    end
+                for _, inst in pairs(workspace.CurrentRooms:GetDescendants()) do
+                    CheckEspItem(inst,name,Items,OrionLib.Flags['ItemsEsp'])
                 end
-                AddConnection(workspace.DescendantAdded,function(descendant)
-                    if descendant.Name == name and descendant:IsA('Model') and not Players:GetPlayerFromCharacter(descendant.Parent) and descendant.Parent.Name ~= 'SallyMoving' then 
-                        local Mode = monster.Name == 'Eyes' and 'SphereAdornment' or 'CylinderAdornment'
-                        AddESP({inst = item,Name = Entities[name],value = OrionLib.Flags['EntitiesEsp'],Type = Mode}) 
-                    end
-                end,OrionLib.Flags['EntitiesEsp'])
             end)
         end
     end
 })
+-- Esp:AddToggle({
+--     Name = "实体透视(Not work)",
+--     Save = true,
+--     Default = false,
+--     Flag = 'EntitiesEsp',
+--     Callback = function(Value)
+--         if not Value then return end
+
+--     end
+-- })
 local function CheckFloor(floorName,flag)
     if not floorName then return warn('[CheckFloor] Got nil floor name.') end
     local correctFloor = CurrentFloor() == floorName
@@ -772,6 +770,25 @@ Floor:AddToggle({
         repeat RemotesFolder.EBF:FireServer(); task.wait() until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
     end
 })
+Floor:AddSection({Name = "Daily Run"})
+Floor:AddToggle({
+    Name = "自动检测通关门",
+    Save = true,
+    Default = false,
+    Flag = 'AutoDailyRunDoor',
+    Callback = function(Value)
+        if not Value then return end
+        if CurrentRoom().RippleExitDoor.Hidden then return end
+        local Statisticed = false
+        local Event = RemotesFolder.Statistics.Once:Connect(function() Statisticed = true end)
+        task.spawn(function()
+            repeat task.wait()
+                CurrentRoom().RippleExitDoor.Hidden.CFrame = HumanoidRootPart.CFrame
+            until Statisticed or not OrionLib.Flags['AutoDailyRunDoor'] or not OrionLib:IsRunning()
+            if Event then Event:Disconnect() end
+        end)
+    end
+})
 Anti:AddToggle({
     Name = "防相机抖动",
     Save = true,
@@ -783,7 +800,8 @@ Anti:AddToggle({
     Save = true,
     Default = false,
     Callback = function(Value) 
-        FakeRemoteModule(Value,'jumpscares')
+        FakeRemoteModule(Value,'Jumpscares')
+        FakeEvent(Value,'Jumpscare')
         FakeEvent(Value,'SpiderJumpscare')
     end
 })
@@ -830,7 +848,6 @@ Anti:AddToggle({
         MotorReplication.Parent = RemotesFolder
     end
 })
-RemotesFolder.MotorReplication:FireServer(-750)
 Anti:AddToggle({
     Name = "防Dread",
     Save = true,
@@ -849,6 +866,36 @@ Anti:AddToggle({
     Default = false,
     Callback = function(Value) AntiClientEntity(Value,'Dread') end
 })
+
+AddConnection(workspace.ChildAdded,function(entity) -- Entity
+    if Entities[entity.Name] and OrionLib.Flags['EntityNotify'].Value and entity:IsA('Model') then
+        OrionLib:MakeNotification({
+            Name = "实体提示",
+            Content = (Entities[entity.Name] or entity.Name) .. " 已出现！",
+            Time = 5
+        })
+    end
+end)
+
+AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Check descendant
+    if inst.Name == 'Hidden' and inst.Parent.Name == 'RippleExitDoor' and OrionLib.Flags['AutoDailyRunDoor'] then
+        local Statisticed = false
+        local Event = RemotesFolder.Statistics.Once:Connect(function() Statisticed = true end)
+        task.spawn(function()
+            repeat task.wait()
+                CurrentRoom().RippleExitDoor.Hidden.CFrame = HumanoidRootPart.CFrame
+            until Statisticed or not OrionLib.Flags['AutoDailyRunDoor'] or not OrionLib:IsRunning()
+            if Event then Event:Disconnect() end
+        end)
+    end
+    CheckEspItem(inst,'KeyObtain',GameItems,OrionLib.Flags['KeyEsp'])
+    CheckEspItem(inst,'FuseObtain',GameItems,OrionLib.Flags['FuseEsp'])
+    CheckEspItem(inst,'LeverForGate',GameItems,OrionLib.Flags['LeverEsp'])
+    for item, name in pairs(Items) do 
+        CheckEspItem(inst,name,Items,OrionLib.Flags['ItemsEsp'])
+    end
+end)
+
 AddConnection(LatestRoom.Changed,function(value)
     if OrionLib.Flags['RealDoorEsp'].Value then --RealDoorEsp
         local RealDoorEsp = AddESP({
