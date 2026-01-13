@@ -205,7 +205,7 @@ local function MakeNotifyScreenGui()
         local Frame = MainWindow.Frame
         Title,Content = Frame.Title,Frame.Content
     end
-
+    
     MainWindow.Position = UDim2.new(0.5, 0, 0.8, (IsOnMobile and -50 or -100))
     NotifyShowPosition = MainWindow.Position 
     NotifyHidePosition = NotifyShowPosition - UDim2.new(0,0,0,15)
@@ -215,7 +215,7 @@ local function MakeNotifyScreenGui()
         local Showing = ScreenGui:GetAttribute('Showing')
         TweenService:Create(MainWindow,TweenInfo.new(0.2,Enum.EasingStyle.Sine),{
             Position = Showing and NotifyShowPosition or NotifyHidePosition,
-            GroupTransparency = Showing and 0 or 1
+            GroupTransparency = Showing and 0.1 or 1
         }):Play()
     end); ScreenGui:SetAttribute('Showing',true)
 
@@ -224,7 +224,7 @@ end
 
 function Notify(NotifyCfg)
     local ControlNotify = {}
-    if not ScreenGui or not ScreenGui.Parent then MakeNotifyScreenGui() end
+    MakeNotifyScreenGui()
     if not NotifyCfg then return end
 
     function ControlNotify:Set(newCfg)
