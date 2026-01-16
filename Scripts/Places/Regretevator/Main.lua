@@ -232,7 +232,7 @@ Tab:AddToggle({ -- 高亮
     Default = true,
     Callback = function(Value)
         if not Value then return end
-        FullBrightLite(OrionLib.Flags['FullBrightLite'])
+        FullBright(OrionLib.Flags['FullBrightLite'])
     end
 })
 Esp:AddToggle({

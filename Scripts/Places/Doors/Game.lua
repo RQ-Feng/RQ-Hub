@@ -106,7 +106,8 @@ local GameItems = {
     ['LiveBreakerPolePickup'] = '开关',
     ['LeverForGate'] = '拉杆',
     ['LibraryHintPaper'] = '纸',
-    ['LiveHintBook'] = '书本'
+    ['LiveHintBook'] = '书本',
+    ['VineGuillotine'] = ''
 }
 
 local Items = {
@@ -119,7 +120,8 @@ local Items = {
     ['Flashlight'] = '手电筒',
     ['SkeletonKey'] = '骷髅钥匙',
     ['Crucifix'] = '十字架',
-    ['LotusHolder'] = '花瓣'
+    ['LotusHolder'] = '花瓣',
+    ['LotusPetalPickup'] = '花瓣'
 }
 
 local Entities = {
@@ -136,6 +138,7 @@ local Entities = {
     ['JeffTheKiller'] = 'Jeff',
     ['MonumentEntity'] = 'Monument',
     ['Dread'] = 'Dread',
+    ['Bramble'] = 'Bramble',
     ['OnlyLocalization'] = {
         ['FigureRig'] = 'Figure'
         --['HaltMoving'] = 'Halt'
@@ -585,15 +588,6 @@ Feature:AddToggle({
         end)
     end
 })
--- Feature:AddDropdown({
--- 	Name = "Dropdown",
---     Flag = 'Dropdown',
--- 	Default = "1",
--- 	Options = {"1", "2"},
--- 	Callback = function(Value)
--- 		print(Value)
--- 	end    
--- })
 Esp:AddToggle({
     Name = "真门透视",
     Save = true,

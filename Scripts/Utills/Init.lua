@@ -288,12 +288,27 @@ function BetterPrompt(Distance,value)
     end,value)
 end
 
-function FullBrightLite(Value)
-    if not Value then return end
-    local list = {Lighting.Ambient,Lighting.ColorShift_Bottom,Lighting.ColorShift_Top}
-    local white,black = Color3.new(1, 1, 1),Color3.new(0, 0, 0)
-    if Value.Value then for _,item in pairs(list) do item = white;AddConnection(Lighting.Changed,function() item = white end,Value) end
-    else for _,item in pairs(list) do item = black end end
+local FullBrightEvent
+local OldFBProps = {
+    ['Brightness'] = 0,
+    ['ClockTime'] = 14,
+    ['FogEnd'] = 100000,
+    ['GlobalShadows'] = true,
+    ['OutdoorAmbient'] = Color3.new(0, 0, 0),
+}
+
+local function SetBright(value)
+    Lighting.Brightness = value and 2 or OldFBProps['Brightness']
+    Lighting.ClockTime = value and 14 or OldFBProps['ClockTime']
+    Lighting.FogEnd = value and 100000 or OldFBProps['FogEnd']
+    Lighting.GlobalShadows = if value then false else OldFBProps['GlobalShadows']
+    Lighting.OutdoorAmbient = value and Color3.new(1, 1, 1) or OldFBProps['OutdoorAmbient'] 
+end
+
+function FullBright(Value)
+    if not Value then if FullBrightEvent then FullBrightEvent:Disconnect() end; SetBright(false); return end
+    for prop,value in pairs(OldFBProps) do Lighting[prop] = value end
+    FullBrightEvent = AddConnection(Lighting.Changed,SetBright); SetBright(true)
 end
 --------------------------------------------------The behavior when OrionLib stop running.
 task.spawn(function()
@@ -303,4 +318,5 @@ task.spawn(function()
         task.wait(0.2)
         ScreenGui:Destroy() 
     end
+    SetBright(false)
 end)
