@@ -77,17 +77,17 @@ local function FakeRemoteModule(value,Name)
     local cacheModule = RemoteModules:FindFirstChild(Name)
     if not cacheModule then return end
 
-    local RealEvent = cacheRealModule or cacheModule
-    local FakeEvent = cacheRealModule and cacheModule or cacheModule:Clone()
+    local RealRemoteModule = cacheRealModule or cacheModule
+    local FakeRemoteModule = cacheRealModule and cacheModule or Instance.new('ModuleScript')
 
-    RealEvent.Name = value and RealModuleName or Name
+    RealRemoteModule.Name = value and RealModuleName or Name
 
     if value then
-        table.insert(RealRemoteModules,RealEvent)
-        FakeEvent.Parent = RemoteModules        
+        table.insert(RealRemoteModules,RealRemoteModule)
+        FakeRemoteModule.Parent = RemoteModules        
     else 
-        table.remove(RealRemoteModules,table.find(RealRemoteModules,RealEvent))
-        FakeEvent:Destroy()
+        table.remove(RealRemoteModules,table.find(RealRemoteModules,RealRemoteModule))
+        FakeRemoteModule:Destroy()
     end
 end
 
@@ -107,7 +107,7 @@ local GameItems = {
     ['LeverForGate'] = '拉杆',
     ['LibraryHintPaper'] = '纸',
     ['LiveHintBook'] = '书本',
-    ['VineGuillotine'] = ''
+    ['VineGuillotine'] = '拉杆'
 }
 
 local Items = {
@@ -159,9 +159,10 @@ local Interact_Blacklist = {
 }
 
 local function CheckEspItem(inst,instName,DisplayTable,Flag)
-    if inst.Name == instName and inst:IsA('Model') and not Players:GetPlayerFromCharacter(inst.Parent) and inst.Parent.Name ~= 'SallyMoving' then 
-        AddESP({inst = (inst.PrimaryPart or inst), Name = DisplayTable[instName] or inst.Name, value = Flag}) 
-    end
+    if inst.Name ~= instName or not inst:IsA('Model') then return false end -- Check inst
+    if not Players:GetPlayerFromCharacter(inst.Parent) or inst.Parent.Name == 'SallyMoving' then return false end -- Check parent
+    AddESP({inst = (inst.PrimaryPart or inst), Name = DisplayTable[instName] or inst.Name, value = Flag})
+    return true
 end
 --Feature Function
 local function GetPadlockCode(paper)
@@ -308,6 +309,12 @@ Tab:AddToggle({
         end
     end
 })
+Tab:AddToggle({
+    Name = "高亮",
+    Flag = 'FullBright',
+    Default = false,
+    Callback = FullBright
+})
 Tab:AddButton({
     Name = "紫砂",
     ClickTwice = true,
@@ -347,14 +354,6 @@ Tab:AddButton({
         })
     end
 })
--- Tab:AddToggle({
---     Name = "高亮",
---     Flag = '',
---     Default = true,
---     Callback = function(Value)
---         if not Value then return end
---     end
--- })
 Feature:AddSection({Name = "绕过"})
 Feature:AddSlider({
     Name = "绕过速率",
@@ -680,16 +679,19 @@ Esp:AddToggle({
         end
     end
 })
--- Esp:AddToggle({
---     Name = "实体透视(Not work)",
---     Save = true,
---     Default = false,
---     Flag = 'EntitiesEsp',
---     Callback = function(Value)
---         if not Value then return end
-
---     end
--- })
+Esp:AddToggle({
+    Name = "实体透视",
+    Save = true,
+    Default = false,
+    Flag = 'EntitiesEsp',
+    Callback = function(Value)
+        if not Value then return end
+        for _, entity in pairs(workspace:GetChildren()) do
+            if not Entities[entity.Name] then continue end
+            CheckEspItem(entity,Entities[entity.Name],Entities,OrionLib.Flags['EntitiesEsp'])
+        end
+    end
+})
 local function CheckFloor(floorName,flag)
     if not floorName then return warn('[CheckFloor] Got nil floor name.') end
     local correctFloor = CurrentFloor() == floorName
@@ -792,44 +794,62 @@ Floor:AddToggle({
 })
 Anti:AddToggle({
     Name = "防相机抖动",
-    Save = true,
-    Default = false,
-    Callback = function(Value) AntiClientEntity(Value,'CamShake') end
-})
-Anti:AddToggle({
-    Name = "防跳杀",
+    Flag = 'AntiCameraShake',
     Save = true,
     Default = false,
     Callback = function(Value) 
-        FakeRemoteModule(Value,'Jumpscares')
+        AntiClientEntity(Value,'CamShake') 
+        FakeEvent(Value,'CamShakeRelative')
+    end
+})
+Anti:AddToggle({
+    Name = "防跳杀",
+    Flag = 'AntiJumpscare',
+    Save = true,
+    Default = false,
+    Callback = function(Value) 
         FakeEvent(Value,'Jumpscare')
         FakeEvent(Value,'SpiderJumpscare')
+        if not Value then return end
+        local JumpscaresFolder = RemoteListener:FindFirstChild('Jumpscares') or RemoteListener:FindFirstChild('_Jumpscares')
+        JumpscaresFolder.Name = '_Jumpscares'; task.spawn(function()
+            repeat task.wait() until not OrionLib.Flags['AntiJumpscare'].Value or not OrionLib:IsRunning()
+            JumpscaresFolder.Name = 'Jumpscares'
+        end)
     end
 })
 Anti:AddToggle({
     Name = "防过场",
+    Flag = 'AntiCutscene',
     Save = true,
     Default = false,
     Callback = function(Value) 
-        FakeRemoteModule(Value,'Cutscenes')
         FakeEvent(Value,'Cutscene')
+        local CutscenesFolder = RemoteListener:FindFirstChild('Cutscenes') or RemoteListener:FindFirstChild('_Cutscenes')
+        CutscenesFolder.Name = '_Cutscenes'; task.spawn(function()
+            repeat task.wait() until not OrionLib.Flags['AntiCutscene'].Value or not OrionLib:IsRunning()
+            CutscenesFolder.Name = 'Cutscenes'
+        end)
     end
 })
 Anti:AddSection({Name = "防实体"})
 Anti:AddToggle({
     Name = "防A90",
+    Flag = 'AntiA90',
     Save = true,
     Default = false,
     Callback = function(Value) AntiClientEntity(Value,'A90') end
 })
 Anti:AddToggle({
     Name = "防Screech",
+    Flag = 'AntiScreech',
     Save = true,
     Default = false,
     Callback = function(Value) AntiClientEntity(Value,'Screech') end
 })
 Anti:AddToggle({
     Name = "防Halt",
+    Flag = 'AntiHalt',
     Save = true,
     Default = false,
     Callback = function(Value) AntiClientEntity(Value,'ShadeResult') end
@@ -851,30 +871,30 @@ Anti:AddToggle({
 })
 Anti:AddToggle({
     Name = "防Dread",
+    Flag = 'AntiDread',
     Save = true,
     Default = false,
     Callback = function(Value) AntiClientEntity(Value,'Dread') end
 })
 Anti:AddToggle({
     Name = "防Surge",
+    Flag = 'AntiSurge',
     Save = true,
     Default = false,
     Callback = function(Value) AntiClientEntity(Value,'SurgeRemote') end
 })
-Anti:AddToggle({
-    Name = "防Dread",
-    Save = true,
-    Default = false,
-    Callback = function(Value) AntiClientEntity(Value,'Dread') end
-})
 
 AddConnection(workspace.ChildAdded,function(entity) -- Entity
-    if Entities[entity.Name] and OrionLib.Flags['EntityNotify'].Value and entity:IsA('Model') then
+    if not Entities[entity.Name] or not entity:IsA('Model') then return end
+    if OrionLib.Flags['EntityNotify'].Value then
         OrionLib:MakeNotification({
             Name = "实体提示",
             Content = (Entities[entity.Name] or entity.Name) .. " 已出现！",
             Time = 5
         })
+    end
+    if OrionLib.Flags['EntitiesEsp'].Value then
+        CheckEspItem(entity,Entities[entity.Name],Entities,OrionLib.Flags['EntitiesEsp'])
     end
 end)
 
@@ -887,14 +907,12 @@ AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Check des
                 CurrentRoom().RippleExitDoor.Hidden.CFrame = HumanoidRootPart.CFrame
             until Statisticed or not OrionLib.Flags['AutoDailyRunDoor'] or not OrionLib:IsRunning()
             if Event then Event:Disconnect() end
-        end)
+        end); return
     end
-    CheckEspItem(inst,'KeyObtain',GameItems,OrionLib.Flags['KeyEsp'])
-    CheckEspItem(inst,'FuseObtain',GameItems,OrionLib.Flags['FuseEsp'])
-    CheckEspItem(inst,'LeverForGate',GameItems,OrionLib.Flags['LeverEsp'])
-    for item, name in pairs(Items) do 
-        CheckEspItem(inst,name,Items,OrionLib.Flags['ItemsEsp'])
-    end
+    if CheckEspItem(inst,'KeyObtain',GameItems,OrionLib.Flags['KeyEsp']) then return end
+    if CheckEspItem(inst,'FuseObtain',GameItems,OrionLib.Flags['FuseEsp']) then return end
+    if CheckEspItem(inst,'LeverForGate',GameItems,OrionLib.Flags['LeverEsp']) then return end
+    for item, name in pairs(Items) do if CheckEspItem(inst,name,Items,OrionLib.Flags['ItemsEsp']) then return end end
 end)
 
 AddConnection(LatestRoom.Changed,function(value)

@@ -298,6 +298,8 @@ local OldFBProps = {
 }
 
 local function SetBright(value)
+    local suc,prop = pcall(function() return Lighting[tostring(value)] end)
+    if suc then OldFBProps[tostring(value)] = prop end
     Lighting.Brightness = value and 2 or OldFBProps['Brightness']
     Lighting.ClockTime = value and 14 or OldFBProps['ClockTime']
     Lighting.FogEnd = value and 100000 or OldFBProps['FogEnd']
@@ -308,7 +310,7 @@ end
 function FullBright(Value)
     if not Value then if FullBrightEvent then FullBrightEvent:Disconnect() end; SetBright(false); return end
     for prop,value in pairs(OldFBProps) do Lighting[prop] = value end
-    FullBrightEvent = AddConnection(Lighting.Changed,SetBright); SetBright(true)
+    SetBright(true); FullBrightEvent = AddConnection(Lighting.Changed,SetBright)
 end
 --------------------------------------------------The behavior when OrionLib stop running.
 task.spawn(function()
