@@ -16,7 +16,6 @@ local RemoteModules = RemoteListener.Modules
 local Floors = {
     ['Garden'] = 'Outdoors',
     ['Ripple'] = {
-        ['CringlesWorkshop'] = 'Cringle\'s Workshop',
         ['Daily_Default'] = 'Daily Runs'
     }
 } 
@@ -120,12 +119,7 @@ local Items = {
     ['Flashlight'] = '手电筒',
     ['SkeletonKey'] = '骷髅钥匙',
     ['Crucifix'] = '十字架',
-    ['LiveHintBook'] = '书本',
-    ['LiveBreakerPolePickup'] = '开关'
-}
-
-local localEntities = {
-
+    ['LotusHolder'] = '花瓣'
 }
 
 local Entities = {
@@ -133,7 +127,7 @@ local Entities = {
     ['AmbushMoving'] = 'Ambush',
     ['Eyes'] = 'Eyes',
     ['GloombatSwarm'] = 'Gloombats',
-    ['BackdoorRush'] = 'Rush',
+    ['BackdoorRush'] = 'Blitz',
     ['BackdoorLookman'] = 'Lookman',
     ['A60'] = 'A60',
     ['A120'] = 'A120',
@@ -163,7 +157,7 @@ local Interact_Blacklist = {
 
 local function CheckEspItem(inst,instName,DisplayTable,Flag)
     if inst.Name == instName and inst:IsA('Model') and not Players:GetPlayerFromCharacter(inst.Parent) and inst.Parent.Name ~= 'SallyMoving' then 
-        AddESP({inst = inst, Name = DisplayTable[instName] or inst.Name, value = Flag}) 
+        AddESP({inst = (inst.PrimaryPart or inst), Name = DisplayTable[instName] or inst.Name, value = Flag}) 
     end
 end
 --Feature Function
@@ -248,7 +242,7 @@ Tab:AddSlider({
     Name = "速度",
     Save = true,
     Min = 0,
-    Max = 75,
+    Max = 100,
     Default = 0,
     Increment = 1,
     Flag = 'Speed',
@@ -377,7 +371,7 @@ Feature:AddToggle({
         if not Value then return end
 
         local CollisionPart = Character:FindFirstChild('CollisionPart')
-        local CloneCollisionPart
+        local CloneCollisionPart,AntiAnchorLagNotify
 
         if CollisionPart.Anchored then 
             OrionLib.Flags['BypassSpeedAC']:Set(false)
@@ -388,8 +382,7 @@ Feature:AddToggle({
             }); return
         end
 
-
-        local function clone(char)
+        local function CloneBypassPart(char)
             CloneCollisionPart = char:FindFirstChild('CollisionPart'):Clone()
             CloneCollisionPart.Parent = char
             CloneCollisionPart.CanCollide = false
@@ -398,7 +391,7 @@ Feature:AddToggle({
             return CloneCollisionPart
         end
         
-        CloneCollisionPart = Character:FindFirstChild('_CollisionPart') or clone(Character)
+        CloneCollisionPart = Character:FindFirstChild('_CollisionPart') or CloneBypassPart(Character)
 
         local function BypassSpeedAC()
             task.spawn(function()
@@ -409,30 +402,44 @@ Feature:AddToggle({
             end)
         end; BypassSpeedAC()
 
-        AddConnection(LocalPlayer.CharacterAdded,clone,OrionLib.Flags['BypassSpeedAC'])
+        local function SetWhenAnchor(value,content)
+            if AntiAnchorLagNotify then OrionLib:CloseNotification(AntiAnchorLagNotify) end
+            OrionLib.Flags['BypassSpeedAC']:Set(value)
+            AntiAnchorLagNotify = OrionLib:MakeNotification({
+                Name = "速度绕过",
+                Content = content,
+                Time = 2
+            })
+        end
+
+        AddConnection(LocalPlayer.CharacterAdded,CloneBypassPart,OrionLib.Flags['BypassSpeedAC'])
         AddConnection(CollisionPart:GetPropertyChangedSignal('Anchored'),function()
             if not CollisionPart.Anchored then return end
-            OrionLib.Flags['BypassSpeedAC']:Set(false)
-            local Notify = OrionLib:MakeNotification({
-                Name = "速度绕过",
-                Content = "检测到被锚定,已自动关闭.",
-                Time = 2
-            })
+            SetWhenAnchor(false,"检测到被锚定,已自动关闭.")
+            if OrionLib.Flags['ClipByACBind'].Holding then repeat task.wait() until not OrionLib.Flags['ClipByACBind'].Holding end
             repeat task.wait() until not CollisionPart.Anchored or not OrionLib:IsRunning()
             if not OrionLib:IsRunning() then return end
-            if Notify then OrionLib:CloseNotification(Notify) end
-            OrionLib.Flags['BypassSpeedAC']:Set(true)
-            OrionLib:MakeNotification({
-                Name = "速度绕过",
-                Content = "已自动重启.",
-                Time = 2
-            })
+            task.wait(0.2)
+            SetWhenAnchor(true,"已自动重启.")
         end,OrionLib.Flags['BypassSpeedAC'])
 
         task.spawn(function()
             repeat task.wait() until not OrionLib.Flags['BypassSpeedAC'].Value or not OrionLib:IsRunning()
         if CloneCollisionPart then CloneCollisionPart:Destroy() end
         end)
+    end
+})
+Feature:AddBind({
+	Name = "反作弊穿墙",
+	Default = Enum.KeyCode.V,
+    Flag = 'ClipByACBind',
+	Hold = true,
+    Callback = function(Value)
+        if not Value then return end
+        repeat task.wait()
+            if not Character then break end
+            Character:PivotTo(Character:GetPivot() * CFrame.new(0, 0, 1000))
+        until not OrionLib.Flags['ClipByACBind'].Holding or not OrionLib:IsRunning()
     end
 })
 Feature:AddSection({Name = "玩家"})
@@ -535,7 +542,7 @@ Feature:AddToggle({
         local function SetCloseTask(char)
             WaitToCloseTask = task.spawn(function()
                 task.wait(3)
-                if (char and OxygenNotify) and char:GetAttribute('Oxygen') == 100 then OxygenNotify:Close() end
+                if (char and OxygenNotify) and char:GetAttribute('Oxygen') and math.floor(char:GetAttribute('Oxygen')) == 100 then OxygenNotify:Close() end
             end)
         end
 
@@ -547,7 +554,7 @@ Feature:AddToggle({
         local function CheckOxygen(char)
             if CheckOxygenEvent then CheckOxygenEvent:Disconnect() end
             CheckOxygenEvent = AddConnection(char:GetAttributeChangedSignal('Oxygen'),function()
-                local currentOxygen = char:GetAttribute('Oxygen')
+                local currentOxygen = char:GetAttribute('Oxygen') and math.floor(char:GetAttribute('Oxygen'))
 
                 if not OxygenNotify then OxygenNotify = Notify({
                     Text = '剩余氧气',
@@ -778,9 +785,9 @@ Floor:AddToggle({
     Flag = 'AutoDailyRunDoor',
     Callback = function(Value)
         if not Value then return end
-        if CurrentRoom().RippleExitDoor.Hidden then return end
+        if not CurrentRoom():FindFirstChild('RippleExitDoor') then return end
         local Statisticed = false
-        local Event = RemotesFolder.Statistics.Once:Connect(function() Statisticed = true end)
+        local Event = RemotesFolder.Statistics.OnClientEvent:Once(function() Statisticed = true end)
         task.spawn(function()
             repeat task.wait()
                 CurrentRoom().RippleExitDoor.Hidden.CFrame = HumanoidRootPart.CFrame
@@ -880,7 +887,7 @@ end)
 AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Check descendant
     if inst.Name == 'Hidden' and inst.Parent.Name == 'RippleExitDoor' and OrionLib.Flags['AutoDailyRunDoor'] then
         local Statisticed = false
-        local Event = RemotesFolder.Statistics.Once:Connect(function() Statisticed = true end)
+        local Event = RemotesFolder.Statistics.OnClientEvent:Once(function() Statisticed = true end)
         task.spawn(function()
             repeat task.wait()
                 CurrentRoom().RippleExitDoor.Hidden.CFrame = HumanoidRootPart.CFrame
