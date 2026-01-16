@@ -52,6 +52,24 @@ local function InsertInfo(info)
     appendfile(logName,GetDate() .. ' ' .. tostring(info)..'\n')
 end
 
+local Connections = {}
+local function AddConnection(signal,func)
+    local con = signal:Connect(func)
+    table.insert(Connections,con)
+    return con
+end
+
+AddConnection(game:GetService("GuiService").ErrorMessageChanged,function(info)--Reconnecter 
+    Stop(); InsertInfo('Got error: '..info..',trying reconnecting.')
+	warn('Seems like u got a disconnect,reconnecting...')
+    for tried = 1,5 do 
+        warn('Trying reconnect,attempt(s):'..tried)
+        TeleportService:Teleport(6516141723,LocalPlayer)
+        task.wait(5)--timeout
+    end
+    warn('gone😢')
+end)
+
 if game.PlaceId == LobbyPlaceId then
     local suc,StardustCostOff; repeat
         suc,StardustCostOff = pcall(function() 
@@ -85,8 +103,8 @@ local StardustVal = LocalPlayer.PlayerGui.TopbarUI.Topbar.StatsTopbarHandler.Sta
 local Key_BlackList = {Enum.KeyCode.A,Enum.KeyCode.W,Enum.KeyCode.S,Enum.KeyCode.D}
 local loots = {'GoldPile','StardustPickup'}
 local Stardusts,GoldPiles = {},{}
-local Connections,Highlights = {},{}
-local WalkPathTask,ExitDoor
+local Highlights = {}
+local ExitDoor
 local IsRunning = true
 local FinalCD = 0
 
@@ -130,11 +148,6 @@ local function AddHighlight(inst,color3)
     highlight.Parent = inst
     table.insert(Highlights,highlight)
     return highlight
-end
-
-local function AddConnection(signal,func)
-    local con = signal:Connect(func)
-    table.insert(Connections,con)
 end
 
 local function TeleportPlayer(pos)
@@ -437,16 +450,6 @@ AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst)
     elseif inst.Name == 'StardustPickup' then table.insert(Stardusts,inst)
     elseif inst:IsA('ProximityPrompt') then SetPrompt(inst)
     end
-end)
-AddConnection(game:GetService("GuiService").ErrorMessageChanged,function(info)--Reconnecter 
-    Stop(); InsertInfo('Got error: '..info..',trying reconnecting.')
-	warn('Seems like u got a disconnect,reconnecting...')
-    for tried = 1,5 do 
-        warn('Trying reconnect,attempt(s):'..tried)
-        TeleportService:Teleport(6516141723,LocalPlayer)
-        task.wait(5)--timeout
-    end
-    warn('gone😢')
 end)
 AddConnection(game:GetService('UserInputService').InputBegan,function(InputObject,state)
     if InputObject.UserInputType ~= Enum.UserInputType.Keyboard or state == true then return end
