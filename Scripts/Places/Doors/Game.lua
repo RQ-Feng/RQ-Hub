@@ -312,6 +312,7 @@ Tab:AddToggle({
 Tab:AddToggle({
     Name = "高亮",
     Flag = 'FullBright',
+    Save = true,
     Default = false,
     Callback = FullBright
 })
