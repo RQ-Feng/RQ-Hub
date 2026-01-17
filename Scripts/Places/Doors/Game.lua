@@ -91,6 +91,16 @@ local function FakeRemoteModule(value,Name)
     end
 end
 
+local function HideObject(Object,flag)
+    if not Object then return end
+    flag = flag or {Value = true}
+    local cacheObject = Object
+    local OriginalParent = cacheObject.Parent
+    cacheObject.Parent = nil
+    repeat task.wait() until not flag.Value or not OrionLib:IsRunning()
+    cacheObject.Parent = OriginalParent
+end
+
 local function AntiClientEntity(value,Name)
     if typeof(Name) ~= 'string' then return end
     FakeRemoteModule(value,Name)
@@ -105,12 +115,15 @@ local GameItems = {
     ['FuseObtain'] = '保险丝',
     ['LiveBreakerPolePickup'] = '开关',
     ['LeverForGate'] = '拉杆',
+    ['VineGuillotine'] = '拉杆',
     ['LibraryHintPaper'] = '纸',
     ['LiveHintBook'] = '书本',
-    ['VineGuillotine'] = '拉杆'
+    ['TimerLever'] = '时间拉杆',
+    ['GoldPile'] = '金币',
+    ['StardustPickup'] = '星尘'
 }
 
-local Items = {
+local Items = { --Have auto esp
     ['Lighter'] = '打火机',
     ['Lockpick'] = '撬锁器',
     ['Vitamins'] = '维他命',
@@ -120,8 +133,40 @@ local Items = {
     ['Flashlight'] = '手电筒',
     ['SkeletonKey'] = '骷髅钥匙',
     ['Crucifix'] = '十字架',
+    ['Straplight'] = '头灯',
     ['LotusHolder'] = '花瓣',
-    ['LotusPetalPickup'] = '花瓣'
+    ['LotusPetalPickup'] = '花瓣',
+    ['BandagePack'] = '绷带包',
+    ['Compass'] = '指南针',
+    ['Shakelight'] = '软糖',
+    ['Glowsticks'] = '光棒',
+    ['Bread'] = '面包',
+    ['StarBottle'] = '星光瓶',
+    ['LaserPointer'] = '激光笔',
+    ['Cheese'] = '芝士',
+    ['Lantern'] = '灯笼',
+    ['BatteryPack'] = '电池包',
+    ['AlarmClock'] = '闹钟',
+    ['StarVial'] = '小星光瓶',
+    ['AloeVera'] = '芦荟',
+    ['TipJar'] = '小费罐',
+    ['GweenSoda'] = '',
+    ['Donut'] = '甜甜圈',
+    ['Shears'] = '剪刀',
+    ['GoldGun'] = '金枪',
+    ['StarJug'] = '星光桶',
+    ['RiftSmoothie'] = '蓝光奶昔',
+
+    ['LiveBreakerPolePickup'] = '开关',
+    ['LibraryHintPaper'] = '纸',
+    ['LiveHintBook'] = '书本'
+}
+
+local EspItems = {
+    ['KeyObtain'] = function(item)
+        local hitbox = item:WaitForChild('Hitbox',3)
+        if hitbox then return hitbox:WaitForChild('KeyHitbox',3) end
+    end
 }
 
 local Entities = {
@@ -158,11 +203,42 @@ local Interact_Blacklist = {
     'ElevatorBreaker'
 }
 
-local function CheckEspItem(inst,instName,DisplayTable,Flag)
+local function CheckEspItem(config)
+    local inst = config['inst']
+    if not inst then return false end 
+    local instName = config['instName'] or inst.Name
+    local DisplayTable = config['DisplayTable'] or GameItems
+    local Flag = config['Flag'] or true
+    local EspType = config['EspType']
+
     if inst.Name ~= instName or not inst:IsA('Model') then return false end -- Check inst
-    if not Players:GetPlayerFromCharacter(inst.Parent) or inst.Parent.Name == 'SallyMoving' then return false end -- Check parent
-    AddESP({inst = (inst.PrimaryPart or inst), Name = DisplayTable[instName] or inst.Name, value = Flag})
+    if Players:GetPlayerFromCharacter(inst.Parent) or inst.Parent.Name == 'SallyMoving' then return false end -- Check parent
+    
+    AddESP({inst = EspItems[instName] and EspItems[instName](inst) or inst, Name = DisplayTable[instName] or inst.Name, Type = EspType, value = Flag})
     return true
+end
+
+local function CheckAllEspItems(ItemInst)
+    if not ItemInst:IsA('Model') then return end
+    if CheckEspItem({inst = ItemInst,instName = 'KeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'FuseObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['FuseEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'LeverForGate',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'VineGuillotine',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'TimerLever',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'ElectricalKeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'LiveHintBook',DisplayTable = GameItems,Flag = OrionLib.Flags['LiveHintBookEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'FigureRig',DisplayTable = Entities['OnlyLocalization'],Flag = OrionLib.Flags['EntitiesEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'StardustPickup',DisplayTable = GameItems,Flag = OrionLib.Flags['CurrencyEsp']}) then return end
+    if ItemInst.Name == 'GoldPile' then AddESP({
+        inst = ItemInst,
+        Name = tostring(ItemInst:GetAttribute('GoldValue'))..GameItems['GoldPile'],
+        Type = 'Highlight',
+        value = OrionLib.Flags['CurrencyEsp']
+    }); return end
+
+    for item, name in pairs(Items) do if CheckEspItem({
+        inst = ItemInst,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']
+    }) then return end end
 end
 --Feature Function
 local function GetPadlockCode(paper)
@@ -191,6 +267,16 @@ local function GetPadlockCode(paper)
     end
 
     return table.concat(normalizedCode)
+end
+
+local function GoldPileEsp(GoldPile)
+    if GoldPile.Name ~= 'GoldPile' or not GoldPile:IsA('Model') then return end
+    AddESP({
+        inst = GoldPile,
+        Name = tostring(GoldPile:GetAttribute('GoldValue'))..GameItems['GoldPile'],
+        Type = 'Highlight',
+        value = OrionLib.Flags['CurrencyEsp']
+    })
 end
 
 Tab = Window:MakeTab({
@@ -283,8 +369,13 @@ Tab:AddToggle({
         AddConnection(game:GetService('ProximityPromptService').PromptShown,function(prompt)
             if not table.find(InteractPrompts,prompt.Name) then return end
             local ModelParent = prompt:FindFirstAncestorOfClass('Model')
-            while prompt and ModelParent and not table.find(Interact_Blacklist,ModelParent.Name) and not ModelParent:FindFirstChild('LootHolder') 
-            and OrionLib:IsRunning() and OrionLib.Flags['AutoPrompt'].Value do 
+            
+            local HasBlackedPrompt; for _,BlackObjectName in pairs(Interact_Blacklist) do
+                if ModelParent:FindFirstAncestor(BlackObjectName) then HasBlackedPrompt = true end
+            end; if HasBlackedPrompt then return end
+
+            while prompt and ModelParent and OrionLib:IsRunning() and OrionLib.Flags['AutoPrompt'].Value do     
+                if ModelParent:FindFirstChild('LootHolder') and not ModelParent:FindFirstChild('KeyObtain') then break end
                 fireproximityprompt(prompt); task.wait() 
             end
         end,OrionLib.Flags['AutoPrompt'])
@@ -359,8 +450,8 @@ Feature:AddSection({Name = "绕过"})
 Feature:AddSlider({
     Name = "绕过速率",
     Save = true,
-    Min = 0.2,
-    Max = 0.3,
+    Min = 0.1,
+    Max = 0.28,
     Default = 0.23,
     Increment = 0.01,
     Flag = 'BypassSpeedACRate'
@@ -618,7 +709,7 @@ Esp:AddToggle({
         local SideRoomDupe = CurrentRoom():FindFirstChild('SideroomDupe')
         if not SideRoomDupe then return end
         local DupeDoorEsp = AddESP({
-            inst = SideRoomDupe:WaitForChild('DoorFake'),
+            inst = SideRoomDupe:WaitForChild('Start'),
             Name = 'Dupe门',
             value = OrionLib.Flags['DupeDoorEsp'],
             Color = Color3.new(1,0,0)
@@ -636,7 +727,8 @@ Esp:AddToggle({
     Callback = function(Value)
         if not Value then return end
         for _, item in pairs(CurrentRoom():GetDescendants()) do
-            CheckEspItem(item,'KeyObtain',GameItems,OrionLib.Flags['KeyEsp'])
+            CheckEspItem({inst = item,instName = 'KeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']})
+            CheckEspItem({inst = item,instName = 'ElectricalKeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']})
         end
     end
 })
@@ -648,7 +740,7 @@ Esp:AddToggle({
     Callback = function(Value)
         if not Value then return end
         for _, item in pairs(CurrentRoom():GetDescendants()) do
-            CheckEspItem(item,'FuseObtain',GameItems,OrionLib.Flags['FuseEsp'])
+            CheckEspItem({inst = item,instName = 'FuseObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['FuseEsp']})
         end
     end
 })
@@ -660,7 +752,34 @@ Esp:AddToggle({
     Callback = function(Value)
         if not Value then return end
         for _, item in pairs(workspace.CurrentRooms:GetDescendants()) do
-            CheckEspItem(item,'LeverForGate',GameItems,OrionLib.Flags['LeverEsp'])
+            CheckEspItem({inst = item,instName = 'LeverForGate',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
+            CheckEspItem({inst = item,instName = 'VineGuillotine',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
+            CheckEspItem({inst = item,instName = 'TimerLever',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
+        end
+    end
+})
+Esp:AddToggle({
+    Name = "书本透视",
+    Save = true,
+    Default = false,
+    Flag = 'LiveHintBookEsp',
+    Callback = function(Value)
+        if not Value then return end
+        for _, item in pairs(CurrentRoom():GetDescendants()) do
+            CheckEspItem({inst = item,instName = 'LiveHintBook',DisplayTable = GameItems,Flag = OrionLib.Flags['LiveHintBookEsp']})
+        end
+    end
+})
+Esp:AddToggle({
+    Name = "货币透视",
+    Save = true,
+    Default = false,
+    Flag = 'CurrencyEsp',
+    Callback = function(Value)
+        if not Value then return end
+        for _, item in pairs(workspace.CurrentRooms:GetDescendants()) do
+            CheckEspItem({inst = item,instName = 'StardustPickup',DisplayTable = GameItems,Flag = OrionLib.Flags['CurrencyEsp']})
+            GoldPileEsp(item)
         end
     end
 })
@@ -674,7 +793,12 @@ Esp:AddToggle({
         for item, name in pairs(Items) do 
             task.spawn(function()
                 for _, inst in pairs(workspace.CurrentRooms:GetDescendants()) do
-                    CheckEspItem(inst,name,Items,OrionLib.Flags['ItemsEsp'])
+                    CheckEspItem({inst = inst,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']})
+                end
+            end)
+            task.spawn(function()
+                for _, inst in pairs(workspace.Drops:GetDescendants()) do
+                    CheckEspItem({inst = inst,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']})
                 end
             end)
         end
@@ -689,8 +813,10 @@ Esp:AddToggle({
         if not Value then return end
         for _, entity in pairs(workspace:GetChildren()) do
             if not Entities[entity.Name] then continue end
-            CheckEspItem(entity,Entities[entity.Name],Entities,OrionLib.Flags['EntitiesEsp'])
-        end
+            CheckEspItem({inst = entity,instName = Entities[entity.Name],DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
+        end; local FigureSetup = CurrentRoom():FindFirstChild('FigureSetup')
+        if not FigureSetup then return end
+        CheckEspItem({inst = FigureSetup:WaitForChild('FigureRig',5),instName = 'FigureRig',DisplayTable = Entities['OnlyLocalization'],Flag = OrionLib.Flags['EntitiesEsp']})
     end
 })
 local function CheckFloor(floorName,flag)
@@ -710,8 +836,8 @@ Floor:AddSlider({
     Name = "开锁距离",
     Save = true,
     Min = 10,
-    Max = 150,
-    Default = 20,
+    Max = 250,
+    Default = 40,
     Increment = 1,
     Flag = 'AutoLibraryUnlockDistance'
 })
@@ -799,8 +925,8 @@ Anti:AddToggle({
     Save = true,
     Default = false,
     Callback = function(Value) 
-        AntiClientEntity(Value,'CamShake') 
-        FakeEvent(Value,'CamShakeRelative')
+        AntiClientEntity(Value,'CamShake') -- Yeah weird function name 
+        HideObject(RemotesFolder:FindFirstChild('CamShakeRelative'),OrionLib.Flags['AntiCameraShake'])
     end
 })
 Anti:AddToggle({
@@ -812,11 +938,7 @@ Anti:AddToggle({
         FakeEvent(Value,'Jumpscare')
         FakeEvent(Value,'SpiderJumpscare')
         if not Value then return end
-        local JumpscaresFolder = RemoteListener:FindFirstChild('Jumpscares') or RemoteListener:FindFirstChild('_Jumpscares')
-        JumpscaresFolder.Name = '_Jumpscares'; task.spawn(function()
-            repeat task.wait() until not OrionLib.Flags['AntiJumpscare'].Value or not OrionLib:IsRunning()
-            JumpscaresFolder.Name = 'Jumpscares'
-        end)
+        HideObject(RemoteListener:FindFirstChild('Jumpscares'),OrionLib.Flags['AntiJumpscare'])
     end
 })
 Anti:AddToggle({
@@ -826,11 +948,7 @@ Anti:AddToggle({
     Default = false,
     Callback = function(Value) 
         FakeEvent(Value,'Cutscene')
-        local CutscenesFolder = RemoteListener:FindFirstChild('Cutscenes') or RemoteListener:FindFirstChild('_Cutscenes')
-        CutscenesFolder.Name = '_Cutscenes'; task.spawn(function()
-            repeat task.wait() until not OrionLib.Flags['AntiCutscene'].Value or not OrionLib:IsRunning()
-            CutscenesFolder.Name = 'Cutscenes'
-        end)
+        HideObject(RemoteListener:FindFirstChild('Cutscenes'),OrionLib.Flags['AntiCutscene'])
     end
 })
 Anti:AddSection({Name = "防实体"})
@@ -864,10 +982,11 @@ Anti:AddToggle({
         if not Value then return end
         local MotorReplication = RemotesFolder.MotorReplication
         for i = 1,10 do MotorReplication:FireServer(-1000) end
-        MotorReplication.Parent = nil
-        RemotesFolder.PlayerDied.OnClientEvent:Once(function() OrionLib.Flags['Anti_Eyes_Lookman']:Set(false) end)
-        repeat task.wait() until not OrionLib.Flags['Anti_Eyes_Lookman'].Value or not OrionLib:IsRunning()
-        MotorReplication.Parent = RemotesFolder
+        HideObject(MotorReplication,OrionLib.Flags['Anti_Eyes_Lookman'])
+        task.spawn(function()
+            repeat task.wait() until not Character:GetAttribute('Alive')
+            OrionLib.Flags['Anti_Eyes_Lookman']:Set(false)
+        end)
     end
 })
 Anti:AddToggle({
@@ -895,7 +1014,7 @@ AddConnection(workspace.ChildAdded,function(entity) -- Entity
         })
     end
     if OrionLib.Flags['EntitiesEsp'].Value then
-        CheckEspItem(entity,Entities[entity.Name],Entities,OrionLib.Flags['EntitiesEsp'])
+        CheckEspItem({inst = entity,instName = entity.Name,DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
     end
 end)
 
@@ -910,10 +1029,13 @@ AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Check des
             if Event then Event:Disconnect() end
         end); return
     end
-    if CheckEspItem(inst,'KeyObtain',GameItems,OrionLib.Flags['KeyEsp']) then return end
-    if CheckEspItem(inst,'FuseObtain',GameItems,OrionLib.Flags['FuseEsp']) then return end
-    if CheckEspItem(inst,'LeverForGate',GameItems,OrionLib.Flags['LeverEsp']) then return end
-    for item, name in pairs(Items) do if CheckEspItem(inst,name,Items,OrionLib.Flags['ItemsEsp']) then return end end
+    CheckAllEspItems(inst)
+end)
+
+AddConnection(workspace.Drops.ChildAdded,function(DropItem) -- Check drop item
+    for item, name in pairs(Items) do 
+        CheckEspItem({inst = DropItem,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']})
+    end
 end)
 
 AddConnection(LatestRoom.Changed,function(value)
@@ -933,7 +1055,7 @@ AddConnection(LatestRoom.Changed,function(value)
             local SideRoomDupe = CurrentRoom():WaitForChild('SideroomDupe',2)
             if not SideRoomDupe then return end
             local DupeDoorEsp = AddESP({
-                inst = SideRoomDupe:WaitForChild('DoorFake',2),
+                inst = SideRoomDupe:WaitForChild('Start',2),
                 Name = 'Dupe门',
                 value = OrionLib.Flags['DupeDoorEsp'],
                 Color = Color3.new(1,0,0)
