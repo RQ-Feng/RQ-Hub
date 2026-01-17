@@ -94,11 +94,13 @@ end
 local function HideObject(Object,flag)
     if not Object then return end
     flag = flag or {Value = true}
-    local cacheObject = Object
-    local OriginalParent = cacheObject.Parent
-    cacheObject.Parent = nil
-    repeat task.wait() until not flag.Value or not OrionLib:IsRunning()
-    cacheObject.Parent = OriginalParent
+    task.spawn(function()
+        local cacheObject = Object
+        local OriginalParent = cacheObject.Parent
+        cacheObject.Parent = nil
+        repeat task.wait() until not flag.Value or not OrionLib:IsRunning()
+        cacheObject.Parent = OriginalParent
+    end)
 end
 
 local function AntiClientEntity(value,Name)
@@ -896,7 +898,7 @@ Floor:AddToggle({
     Default = false,
     Flag = 'AutoBreaker',
     Callback = function(Value)
-        if not Value then return end
+        if not Value or not CheckFloor('Hotel',OrionLib.Flags['AutoBreaker']) then return end
         repeat RemotesFolder.EBF:FireServer(); task.wait() until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
     end
 })
@@ -907,7 +909,7 @@ Floor:AddToggle({
     Default = false,
     Flag = 'AutoDailyRunDoor',
     Callback = function(Value)
-        if not Value then return end
+        if not Value or not CheckFloor('Daily Runs',OrionLib.Flags['AutoBreaker']) then return end
         if not CurrentRoom():FindFirstChild('RippleExitDoor') then return end
         local Statisticed = false
         local Event = RemotesFolder.Statistics.OnClientEvent:Once(function() Statisticed = true end)
@@ -980,12 +982,29 @@ Anti:AddToggle({
     Default = false,
     Callback = function(Value) 
         if not Value then return end
-        local MotorReplication = RemotesFolder.MotorReplication
+        local MotorReplication = RemotesFolder:FindFirstChild('MotorReplication')
+        local FakeMotorReplication = Instance.new('UnreliableRemoteEvent',RemotesFolder)
+        FakeMotorReplication.Name = 'MotorReplication'
         for i = 1,10 do MotorReplication:FireServer(-1000) end
         HideObject(MotorReplication,OrionLib.Flags['Anti_Eyes_Lookman'])
-        task.spawn(function()
-            repeat task.wait() until not Character:GetAttribute('Alive')
+
+        local function Stop()
             OrionLib.Flags['Anti_Eyes_Lookman']:Set(false)
+            FakeMotorReplication:Destroy()
+            for i = 1,10 do MotorReplication:FireServer(0) end
+        end
+
+        AddConnection(RemotesFolder.PlayerDied.OnClientEvent,function(char,plr) if plr.Name == LocalPlayer.Name then 
+            OrionLib:MakeNotification({
+                Name = '防Eyes/Lookman',
+                Content = '已自动关闭.',
+                Time = 3
+            }); Stop() 
+        end end,OrionLib.Flags['Anti_Eyes_Lookman'])
+
+        task.spawn(function()
+            repeat task.wait() until not OrionLib.Flags['Anti_Eyes_Lookman'].Value or not OrionLib:IsRunning()
+            Stop()
         end)
     end
 })
