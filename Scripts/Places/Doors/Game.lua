@@ -369,7 +369,7 @@ Tab:AddToggle({
     Callback = function(Value)
         if not Value then return end
         AddConnection(game:GetService('ProximityPromptService').PromptShown,function(prompt)
-            if not table.find(InteractPrompts,prompt.Name) then return end
+            if not table.find(InteractPrompts,prompt.Name) or prompt:GetAttribute('Interactions'..LocalPlayer.Name) then return end
             local ModelParent = prompt:FindFirstAncestorOfClass('Model')
             
             local HasBlackedPrompt; for _,BlackObjectName in pairs(Interact_Blacklist) do
@@ -377,7 +377,7 @@ Tab:AddToggle({
             end; if HasBlackedPrompt then return end
 
             while prompt and ModelParent and OrionLib:IsRunning() and OrionLib.Flags['AutoPrompt'].Value do     
-                if ModelParent:FindFirstChild('LootHolder') and not ModelParent:FindFirstChild('KeyObtain') then break end
+                if prompt and prompt:GetAttribute('Interactions'..LocalPlayer.Name) then break end
                 fireproximityprompt(prompt); task.wait() 
             end
         end,OrionLib.Flags['AutoPrompt'])
@@ -452,8 +452,8 @@ Feature:AddSection({Name = "绕过"})
 Feature:AddSlider({
     Name = "绕过速率",
     Save = true,
-    Min = 0.1,
-    Max = 0.28,
+    Min = 0.18,
+    Max = 0.3,
     Default = 0.23,
     Increment = 0.01,
     Flag = 'BypassSpeedACRate'
@@ -909,7 +909,7 @@ Floor:AddToggle({
     Default = false,
     Flag = 'AutoDailyRunDoor',
     Callback = function(Value)
-        if not Value or not CheckFloor('Daily Runs',OrionLib.Flags['AutoBreaker']) then return end
+        if not Value or not CheckFloor('Daily Runs',OrionLib.Flags['AutoDailyRunDoor']) then return end
         if not CurrentRoom():FindFirstChild('RippleExitDoor') then return end
         local Statisticed = false
         local Event = RemotesFolder.Statistics.OnClientEvent:Once(function() Statisticed = true end)
