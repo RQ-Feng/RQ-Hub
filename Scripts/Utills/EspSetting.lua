@@ -29,13 +29,6 @@ task.spawn(function()
 			Save = true,
 			Callback = function(value) GlobalESPSetting['Rainbow'] = value end
 		})
-		ESPSetting:AddColorpicker({
-			Name = "颜色",
-			Flag = 'ESPColor',
-			Save = true,
-			Default = Color3.fromRGB(255, 0, 0),
-			Callback = function(Value) CurrentEspSetting['Color'] = Value if RefreshESP then RefreshESP() end end	  
-		})
 		ESPSetting:AddToggle({
 			Name = "距离显示",
 			Default = true,

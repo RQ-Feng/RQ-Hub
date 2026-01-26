@@ -106,7 +106,7 @@ function AddESP(ESPConfig)
     if not ESPConfig.inst then return end
     ESPConfig.value = ESPConfig.value or {['Value'] = true}
     ESPConfig.Type = ESPConfig.Type or "Adornment"
-    ESPConfig.Color = ESPConfig.Color or CurrentEspSetting['Color']
+    ESPConfig.Color = ESPConfig.Color or Color3.new(1,1,1)
     ESPConfig.Name = ESPConfig.Name or ESPConfig.inst.Name
 
     local ESPElement = ESPLibrary:Add({
