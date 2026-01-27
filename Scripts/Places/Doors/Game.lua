@@ -1,4 +1,3 @@
-ESPLibrary.GlobalConfig['Rainbow'] = true
 local RemotesFolder = ReplicatedStorage.RemotesFolder
 local GameData = ReplicatedStorage.GameData
 local LatestRoom = GameData.LatestRoom
@@ -12,6 +11,8 @@ end)
 local Main_Game = MainUI.Initiator.Main_Game
 local RemoteListener = Main_Game.RemoteListener
 local RemoteModules = RemoteListener.Modules
+
+local IsBypassingAC = false
 
 local Floors = {
     ['Garden'] = 'Outdoors',
@@ -122,7 +123,8 @@ local GameItems = {
     ['LiveHintBook'] = '书本',
     ['TimerLever'] = '时间拉杆',
     ['GoldPile'] = '金币',
-    ['StardustPickup'] = '星尘'
+    ['StardustPickup'] = '星尘',
+    ['LadderModel'] = '梯子'
 }
 
 local Items = { --Have auto esp
@@ -196,6 +198,8 @@ local InteractPrompts = {
     'ModulePrompt',
     'UnlockPrompt',
     'LootPrompt',
+    'FusesPrompt',
+    'LeverPrompt',
     'ActivateEventPrompt'
 }
 
@@ -209,6 +213,7 @@ local function CheckEspItem(config)
     local inst = config['inst']
     if not inst then return false end 
     local instName = config['instName'] or inst.Name
+    local Color = config['Color'] or Color3.new(1,1,1)
     local DisplayTable = config['DisplayTable'] or GameItems
     local Flag = config['Flag'] or true
     local EspType = config['EspType']
@@ -216,12 +221,18 @@ local function CheckEspItem(config)
     if inst.Name ~= instName or not inst:IsA('Model') then return false end -- Check inst
     if Players:GetPlayerFromCharacter(inst.Parent) or inst.Parent.Name == 'SallyMoving' then return false end -- Check parent
     
-    AddESP({inst = EspItems[instName] and EspItems[instName](inst) or inst, Name = DisplayTable[instName] or inst.Name, Type = EspType, value = Flag})
-    return true
+    AddESP({
+        inst = EspItems[instName] and EspItems[instName](inst) or inst,
+        Name = DisplayTable[instName] or inst.Name,
+        Type = EspType,
+        Color = Color,
+        value = Flag
+    }); return true
 end
 
 local function CheckAllEspItems(ItemInst)
     if not ItemInst:IsA('Model') then return end
+    if CheckEspItem({inst = ItemInst,instName = 'KeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']}) then return end
     if CheckEspItem({inst = ItemInst,instName = 'KeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']}) then return end
     if CheckEspItem({inst = ItemInst,instName = 'FuseObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['FuseEsp']}) then return end
     if CheckEspItem({inst = ItemInst,instName = 'LeverForGate',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']}) then return end
@@ -229,20 +240,27 @@ local function CheckAllEspItems(ItemInst)
     if CheckEspItem({inst = ItemInst,instName = 'TimerLever',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']}) then return end
     if CheckEspItem({inst = ItemInst,instName = 'ElectricalKeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']}) then return end
     if CheckEspItem({inst = ItemInst,instName = 'LiveHintBook',DisplayTable = GameItems,Flag = OrionLib.Flags['LiveHintBookEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'FigureRig',DisplayTable = Entities['OnlyLocalization'],Flag = OrionLib.Flags['EntitiesEsp']}) then return end
+    if CheckEspItem({inst = ItemInst,instName = 'FigureRig',Color = Color3.new(1,0,0),DisplayTable = Entities['OnlyLocalization'],Flag = OrionLib.Flags['EntitiesEsp']}) then return end
     if CheckEspItem({inst = ItemInst,instName = 'StardustPickup',DisplayTable = GameItems,Flag = OrionLib.Flags['CurrencyEsp']}) then return end
     if ItemInst.Name == 'GoldPile' then AddESP({
         inst = ItemInst,
         Name = tostring(ItemInst:GetAttribute('GoldValue'))..GameItems['GoldPile'],
         Type = 'Highlight',
+        Color = Color3.new(1, 1, 0),
         value = OrionLib.Flags['CurrencyEsp']
     }); return end
 
     for item, name in pairs(Items) do if CheckEspItem({
         inst = ItemInst,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']
     }) then return end end
+
+    if not IsBypassingAC and ItemInst.Name == 'LadderModel' then
+        local ladderEsp = CheckEspItem({inst = ItemInst,instName = 'LadderModel',DisplayTable = GameItems,Flag = OrionLib.Flags['BypassACFromLadder']}) 
+        task.spawn(function() repeat task.wait() until IsBypassingAC; if ladderEsp then ladderEsp:Destroy() end end)
+    end
+    
 end
---Feature Function
+--Feature Function/others
 local function GetPadlockCode(paper)
     local UI = paper:FindFirstChild("UI")
     if not UI then return "_____" end
@@ -492,6 +510,14 @@ Feature:AddToggle({
         local function BypassSpeedAC()
             task.spawn(function()
                 while OrionLib.Flags['BypassSpeedAC'].Value and OrionLib:IsRunning() do
+                    if IsBypassingAC then 
+                        OrionLib.Flags['BypassSpeedAC']:Set(false)
+                        OrionLib:MakeNotification({
+                            Name = "速度绕过",
+                            Content = '已绕过反作弊,自动关闭.',
+                            Time = 5
+                        }); break
+                    end
                     if CloneCollisionPart then CloneCollisionPart.Massless = not CloneCollisionPart.Massless end
                     task.wait(OrionLib.Flags['BypassSpeedACRate'].Value) 
                 end
@@ -521,21 +547,91 @@ Feature:AddToggle({
 
         task.spawn(function()
             repeat task.wait() until not OrionLib.Flags['BypassSpeedAC'].Value or not OrionLib:IsRunning()
-        if CloneCollisionPart then CloneCollisionPart:Destroy() end
+            if CloneCollisionPart then CloneCollisionPart:Destroy() end
         end)
     end
 })
 Feature:AddBind({
-	Name = "反作弊穿墙",
+	Name = "使用反作弊穿墙",
 	Default = Enum.KeyCode.V,
     Flag = 'ClipByACBind',
 	Hold = true,
     Callback = function(Value)
         if not Value then return end
+        if IsBypassingAC then OrionLib:MakeNotification({
+            Name = "使用反作弊穿墙",
+            Content = '你已绕过反作弊,无需使用.',
+            Time = 5
+        }); return end
         repeat task.wait()
             if not Character then break end
             Character:PivotTo(Character:GetPivot() * CFrame.new(0, 0, 1000))
         until not OrionLib.Flags['ClipByACBind'].Holding or not OrionLib:IsRunning()
+    end
+})
+Feature:AddToggle({
+    Name = "绕过反作弊(需要梯子)",
+    Save = true,
+    Default = false,
+    Flag = 'BypassACFromLadder',
+    Callback = function(Value)
+        if not Value then return end
+        local ClimbLadder = RemotesFolder:FindFirstChild('ClimbLadder')
+        if not ClimbLadder then return end
+        local WaitingForClimbingNotify
+        if not Character:GetAttribute('Climbing') then
+            WaitingForClimbingNotify = OrionLib:MakeNotification({
+                Name = "绕过反作弊",
+                Content = "请先爬上梯子.",
+                Time = 30
+            })
+            for _, item in pairs(workspace.CurrentRooms:GetDescendants()) do
+                if item.Name ~= 'LadderModel' then continue end
+                local ladderEsp = AddESP({
+                    inst = item,
+                    Name = '梯子',
+                    value = OrionLib.Flags['BypassACFromLadder']
+                }) 
+                task.spawn(function() repeat task.wait() until IsBypassingAC; if ladderEsp then ladderEsp:Destroy() end end)
+            end
+            repeat task.wait() until Character:GetAttribute('Climbing') or not OrionLib.Flags['BypassACFromLadder'].Value or not OrionLib:IsRunning()
+            if WaitingForClimbingNotify then OrionLib:CloseNotification(WaitingForClimbingNotify) end
+            if not OrionLib.Flags['BypassACFromLadder'].Value or not OrionLib:IsRunning() then return end
+        end
+        IsBypassingAC = true
+        HideObject(ClimbLadder,OrionLib.Flags['BypassACFromLadder'])
+        Character:SetAttribute('Climbing',false)
+        OrionLib:MakeNotification({
+            Name = "绕过反作弊",
+            Content = "已成功绕过,过场将会导致绕过失效.",
+            Time = 5
+        })
+        AddConnection(RemotesFolder:FindFirstChild("UseEnemyModule").OnClientEvent,function(...)
+            local info = {...}
+            function TableVisualization(Table)
+                if type(Table) ~= 'table' then return end
+                warn('[Table可视化] 输出:')
+                local function forTable(ForTable,arg)
+                    arg = arg or ''
+                    for i,v in pairs(ForTable) do
+                        if type(v) == 'table' then print(arg..'[\''..tostring(i)..'\']') forTable(v,arg..'∣')
+                        else print(arg..'[\''..tostring(i)..'\'] -> '..tostring(v)) end
+                    end
+                end
+                forTable(Table)
+                warn('[Table可视化] 输出完毕.')
+            end
+            TableVisualization(info)
+            if info[1] == 'Glitch' and info[3] then return end
+            OrionLib:MakeNotification({
+                Name = "绕过反作弊",
+                Content = "检测到触发过场,已自动关闭.",
+                Time = 5
+            })
+            OrionLib.Flags['BypassACFromLadder']:Set(false)
+        end,OrionLib.Flags['BypassACFromLadder'])
+        repeat task.wait() until not OrionLib.Flags['BypassACFromLadder'].Value or not OrionLib:IsRunning()
+        IsBypassingAC = false
     end
 })
 Feature:AddSection({Name = "玩家"})
@@ -815,10 +911,16 @@ Esp:AddToggle({
         if not Value then return end
         for _, entity in pairs(workspace:GetChildren()) do
             if not Entities[entity.Name] then continue end
-            CheckEspItem({inst = entity,instName = Entities[entity.Name],DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
+            CheckEspItem({inst = entity,instName = Entities[entity.Name],Color = Color3.new(1,0,0),DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
         end; local FigureSetup = CurrentRoom():FindFirstChild('FigureSetup')
         if not FigureSetup then return end
-        CheckEspItem({inst = FigureSetup:WaitForChild('FigureRig',5),instName = 'FigureRig',DisplayTable = Entities['OnlyLocalization'],Flag = OrionLib.Flags['EntitiesEsp']})
+        CheckEspItem({
+            inst = FigureSetup:WaitForChild('FigureRig',5),
+            instName = 'FigureRig',
+            Color = Color3.new(1,0,0),
+            DisplayTable = Entities['OnlyLocalization']
+            ,Flag = OrionLib.Flags['EntitiesEsp']
+        })
     end
 })
 local function CheckFloor(floorName,flag)
@@ -1033,7 +1135,7 @@ AddConnection(workspace.ChildAdded,function(entity) -- Entity
         })
     end
     if OrionLib.Flags['EntitiesEsp'].Value then
-        CheckEspItem({inst = entity,instName = entity.Name,DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
+        CheckEspItem({inst = entity,instName = entity.Name,Color = Color3.new(1,0,0),DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
     end
 end)
 
