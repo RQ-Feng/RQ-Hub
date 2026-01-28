@@ -1,16 +1,17 @@
-print("--------------------成功注入，正在加载中--------------------")
-local baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/"
-local PlaceTable = loadstring(game:HttpGet(baseUrl .. "PlaceTable.lua"))()
-
 local StarterGui = game:GetService("StarterGui")
 local function VanillaNotify(text,duration,icon)
-    StarterGui:SetCore("SendNotification",{
-        Title = "RQ-Hub",
-        Text = text or '',
-        Duration = duration or 5,
-        Icon = icon
-    })
+    pcall(function(...)
+        StarterGui:SetCore("SendNotification",{
+            Title = "RQ-Hub",
+            Text = text or '',
+            Duration = duration or 5,
+            Icon = icon
+        })
+    end)
 end
+VanillaNotify('正在加载,请稍等...',5,'rbxassetid://7733715400')
+local baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/"
+local PlaceTable = loadstring(game:HttpGet(baseUrl .. "PlaceTable.lua"))()
 
 local GameId,PlaceId = game.GameId,game.PlaceId
 
@@ -26,7 +27,6 @@ ExecutorChecker = loadstring(game:HttpGet(baseUrl .. 'Utills/ExecutorChecker.lua
 
 local checklist = {OrionLib,ESPLibrary,RQHub,ExecutorChecker}
 if not checklist[4] then VanillaNotify('加载资源时遇到问题',10,'rbxassetid://7733658271'); return end
-VanillaNotify('正在加载,请稍等...',3,'rbxassetid://7733715400')
 
 local GameFolder = 'RQHub\\'..Game.Folder
 if not isfolder(GameFolder) then makefolder(GameFolder) end

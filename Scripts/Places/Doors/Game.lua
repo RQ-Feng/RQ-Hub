@@ -1140,16 +1140,7 @@ AddConnection(workspace.ChildAdded,function(entity) -- Entity
 end)
 
 AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Check descendant
-    if inst.Name == 'Hidden' and inst.Parent.Name == 'RippleExitDoor' and OrionLib.Flags['AutoDailyRunDoor'] then
-        local Statisticed = false
-        local Event = RemotesFolder.Statistics.OnClientEvent:Once(function() Statisticed = true end)
-        task.spawn(function()
-            repeat task.wait()
-                CurrentRoom().RippleExitDoor.Hidden.CFrame = HumanoidRootPart.CFrame
-            until Statisticed or not OrionLib.Flags['AutoDailyRunDoor'] or not OrionLib:IsRunning()
-            if Event then Event:Disconnect() end
-        end); return
-    end
+
     CheckAllEspItems(inst)
 end)
 
@@ -1160,7 +1151,7 @@ AddConnection(workspace.Drops.ChildAdded,function(DropItem) -- Check drop item
 end)
 
 AddConnection(LatestRoom.Changed,function(value)
-    if OrionLib.Flags['RealDoorEsp'].Value then --RealDoorEsp
+    if OrionLib.Flags['RealDoorEsp'].Value then
         local RealDoorEsp = AddESP({
             inst = CurrentDoor():WaitForChild('Door'),
             Name = '真门',
@@ -1171,7 +1162,7 @@ AddConnection(LatestRoom.Changed,function(value)
             if RealDoorEsp then RealDoorEsp:Destroy() end
         end)
     end
-    if OrionLib.Flags['DupeDoorEsp'].Value then --DupeDoorEsp
+    if OrionLib.Flags['DupeDoorEsp'].Value then
         task.spawn(function()
             local SideRoomDupe = CurrentRoom():WaitForChild('SideroomDupe',2)
             if not SideRoomDupe then return end
@@ -1184,6 +1175,20 @@ AddConnection(LatestRoom.Changed,function(value)
                 repeat task.wait() until LatestRoom.Value ~= value
                 if DupeDoorEsp then DupeDoorEsp:Destroy() end
             end)
+        end)
+    end
+    if OrionLib.Flags['AutoDailyRunDoor'].Value then
+        task.spawn(function()
+            local RippleExitDoor = workspace.CurrentRooms[value]:WaitForChild('RippleExitDoor',2)
+            if not RippleExitDoor then return end
+            local Hidden = RippleExitDoor:WaitForChild('Hidden',2)
+            if not Hidden then return end
+
+            local Statisticed = false
+            local Event = RemotesFolder.Statistics.OnClientEvent:Once(function() Statisticed = true end)
+            
+            repeat task.wait(); Hidden.CFrame = HumanoidRootPart.CFrame until Statisticed or not OrionLib.Flags['AutoDailyRunDoor'] or not OrionLib:IsRunning()
+            if Event then Event:Disconnect() end
         end)
     end
 end)
