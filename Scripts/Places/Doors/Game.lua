@@ -321,14 +321,26 @@ Anti = Window:MakeTab({
 })
 Tab:AddSection({Name = "速度"})
 local SpeedWays = {"SpeedBoost", "SpeedBoostBehind"}
-local function CheckSpeed(way)
-    Character:SetAttribute(way,OrionLib.Flags['Speed'].Value)
-    local event = AddConnection(Character:GetAttributeChangedSignal(way),function()
-        Character:SetAttribute(way,OrionLib.Flags['Speed'].Value)
+local function CheckSpeed(Value)
+    if not Value then return end
+    local currentSpeedWay = OrionLib.Flags['SpeedWay'].Value
+
+    local function detectSpeed()
+        if OrionLib.Flags['Speed'].Value > 6 and (not OrionLib.Flags['BypassSpeedAC'] or not OrionLib.Flags['BypassSpeedAC'].Value) then
+            repeat task.wait() until OrionLib.Flags['BypassSpeedAC'] and not Character:FindFirstChild('CollisionPart').Anchored
+            OrionLib.Flags['BypassSpeedAC']:Set(true)
+            OrionLib:MakeNotification({Name = "速度",Content = "已自动启动速度绕过.",Time = 3})
+        end
+    end; detectSpeed()
+
+    Character:SetAttribute(currentSpeedWay,OrionLib.Flags['Speed'].Value)
+    local event = AddConnection(Character:GetAttributeChangedSignal(currentSpeedWay),function()
+        detectSpeed()
+        Character:SetAttribute(currentSpeedWay,OrionLib.Flags['Speed'].Value)
     end,OrionLib.Flags['EnableSpeed'])
-    repeat task.wait() until OrionLib.Flags['SpeedWay'].Value ~= way or not OrionLib.Flags['EnableSpeed'].Value or not OrionLib:IsRunning()
+    repeat task.wait() until OrionLib.Flags['SpeedWay'].Value ~= currentSpeedWay or not OrionLib.Flags['EnableSpeed'].Value or not OrionLib:IsRunning()
     if event then event:Disconnect() end
-    Character:SetAttribute(way,0)
+    Character:SetAttribute(currentSpeedWay,0)
 end
 Tab:AddDropdown({
     Name = "加速方式",
@@ -343,10 +355,7 @@ Tab:AddToggle({
     Save = true,
     Default = false,
     Flag = 'EnableSpeed',
-    Callback = function(Value)
-        if not Value then return end
-        CheckSpeed(OrionLib.Flags['SpeedWay'].Value)
-    end
+    Callback = CheckSpeed
 })
 Tab:AddSlider({
     Name = "速度",
@@ -487,15 +496,6 @@ Feature:AddToggle({
         local CollisionPart = Character:FindFirstChild('CollisionPart')
         local CloneCollisionPart,AntiAnchorLagNotify
 
-        if CollisionPart.Anchored then 
-            OrionLib.Flags['BypassSpeedAC']:Set(false)
-            OrionLib:MakeNotification({
-                Name = "速度绕过",
-                Content = "检测到被锚定,已自动关闭.",
-                Time = 2
-            }); return
-        end
-
         local function CloneBypassPart(char)
             CloneCollisionPart = char:FindFirstChild('CollisionPart'):Clone()
             CloneCollisionPart.Parent = char
@@ -506,6 +506,15 @@ Feature:AddToggle({
         end
         
         CloneCollisionPart = Character:FindFirstChild('_CollisionPart') or CloneBypassPart(Character)
+
+        local function NotifyWhenAnchor(content)
+            if AntiAnchorLagNotify then OrionLib:CloseNotification(AntiAnchorLagNotify) end
+            AntiAnchorLagNotify = OrionLib:MakeNotification({
+                Name = "速度绕过",
+                Content = content,
+                Time = 2
+            })
+        end
 
         local function BypassSpeedAC()
             task.spawn(function()
@@ -518,32 +527,22 @@ Feature:AddToggle({
                             Time = 5
                         }); break
                     end
+                    if CollisionPart.Anchored then 
+                        NotifyWhenAnchor("检测到被锚定,等待中...")
+                        if CloneCollisionPart then CloneCollisionPart.Massless = true end
+                        if OrionLib.Flags['ClipByACBind'].Holding then repeat task.wait() until not OrionLib.Flags['ClipByACBind'].Holding end
+                        repeat task.wait() until not CollisionPart.Anchored or not OrionLib:IsRunning()
+                        if not OrionLib:IsRunning() then return end
+                        task.wait(0.5)
+                        NotifyWhenAnchor("已自动重启.")
+                    end
                     if CloneCollisionPart then CloneCollisionPart.Massless = not CloneCollisionPart.Massless end
                     task.wait(OrionLib.Flags['BypassSpeedACRate'].Value) 
                 end
             end)
         end; BypassSpeedAC()
 
-        local function SetWhenAnchor(value,content)
-            if AntiAnchorLagNotify then OrionLib:CloseNotification(AntiAnchorLagNotify) end
-            OrionLib.Flags['BypassSpeedAC']:Set(value)
-            AntiAnchorLagNotify = OrionLib:MakeNotification({
-                Name = "速度绕过",
-                Content = content,
-                Time = 2
-            })
-        end
-
         AddConnection(LocalPlayer.CharacterAdded,CloneBypassPart,OrionLib.Flags['BypassSpeedAC'])
-        AddConnection(CollisionPart:GetPropertyChangedSignal('Anchored'),function()
-            if not CollisionPart.Anchored then return end
-            SetWhenAnchor(false,"检测到被锚定,已自动关闭.")
-            if OrionLib.Flags['ClipByACBind'].Holding then repeat task.wait() until not OrionLib.Flags['ClipByACBind'].Holding end
-            repeat task.wait() until not CollisionPart.Anchored or not OrionLib:IsRunning()
-            if not OrionLib:IsRunning() then return end
-            task.wait(0.2)
-            SetWhenAnchor(true,"已自动重启.")
-        end,OrionLib.Flags['BypassSpeedAC'])
 
         task.spawn(function()
             repeat task.wait() until not OrionLib.Flags['BypassSpeedAC'].Value or not OrionLib:IsRunning()
@@ -608,21 +607,7 @@ Feature:AddToggle({
         })
         AddConnection(RemotesFolder:FindFirstChild("UseEnemyModule").OnClientEvent,function(...)
             local info = {...}
-            function TableVisualization(Table)
-                if type(Table) ~= 'table' then return end
-                warn('[Table可视化] 输出:')
-                local function forTable(ForTable,arg)
-                    arg = arg or ''
-                    for i,v in pairs(ForTable) do
-                        if type(v) == 'table' then print(arg..'[\''..tostring(i)..'\']') forTable(v,arg..'∣')
-                        else print(arg..'[\''..tostring(i)..'\'] -> '..tostring(v)) end
-                    end
-                end
-                forTable(Table)
-                warn('[Table可视化] 输出完毕.')
-            end
-            TableVisualization(info)
-            if info[1] == 'Glitch' and info[3] then return end
+            if (info[1] == 'Glitch' and info[3]) or info[1] == 'Seek' then return end
             OrionLib:MakeNotification({
                 Name = "绕过反作弊",
                 Content = "检测到触发过场,已自动关闭.",
@@ -1140,7 +1125,6 @@ AddConnection(workspace.ChildAdded,function(entity) -- Entity
 end)
 
 AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Check descendant
-
     CheckAllEspItems(inst)
 end)
 
