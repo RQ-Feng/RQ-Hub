@@ -19,37 +19,25 @@ local function PlayerDownedDetector(plr)
     local DownedEsp--esp
     local DownedName,CarriedName = '倒地玩家','倒地玩家(被抬起)'
     local onDownedEvent,onCarriedEvent --events
-    warn('detecting',plr.Name)
 
     local function onCharacterAdded(Character)
         local function onDowned()
             local downed = Character:GetAttribute('Downed')
             if downed then
-                warn(Character.Name,'downed!')
                 DownedEsp = AddESP({
                     Name = DownedName,
                     inst = Character,
+                    Type = 'Highlight',
                     Color = Color3.new(0, 1, 0),
                     value = OrionLib.Flags['DownedPlayerEsp']
                 })
-                warn(Character.Name,'got esp!')
-            elseif DownedEsp then 
-                DownedEsp:Destroy() 
-                warn(Character.Name,'destroyed esp!')
-            end
+            elseif DownedEsp then DownedEsp:Destroy() end
         end
 
         local function onCarried()
             local carried = Character:GetAttribute('Carried')
             if not DownedEsp then return end
-            if carried then
-                warn(Character.Name,'carried!')
-                DownedEsp.CurrentSettings.Name = CarriedName
-                warn(Character.Name,'changed esp!')
-            else
-                DownedEsp.CurrentSettings.Name = DownedName
-                warn(Character.Name,'changed esp back!')
-            end
+            DownedEsp.CurrentSettings.Name = carried and CarriedName or DownedName
         end
 
         if not OrionLib.Flags['DownedPlayerEsp'].Value then return end
@@ -81,6 +69,18 @@ AddConnection(Stats:GetAttributeChangedSignal('Timer'),function()
      
     Timer:Set(TimerPrefix:format(State,Stats:GetAttribute('Timer')))
 end)
+Tab:AddToggle({
+    Name = "启动缩放",
+    Default = true,
+    Flag = "EnableAutoZoom",
+    Callback = function(value) 
+        if not value then return end
+        repeat task.wait() until OrionLib.Flags['AutoZoom']
+        if not OrionLib.Flags['EnableAutoZoom'].Value then return end
+        AddConnection(Zoom.Changed,function() Zoom.Value = OrionLib.Flags['AutoZoom'].Value end,OrionLib.Flags['EnableAutoZoom'])
+        Zoom.Value = OrionLib.Flags['AutoZoom'].Value
+    end
+})
 Tab:AddSlider({
     Name = "缩放",
     Save = true,
@@ -129,9 +129,7 @@ Esp:AddToggle({
                 inst = char,
                 Color = Color3.new(1, 0, 0),
                 value = OrionLib.Flags['EntitiesEsp'],
-                Type = 'Highlight'
             })
-            if char:FindFirstChild('Hitbox') then char.Hitbox.Transparency = 0 end
         end 
 
         AddConnection(MainGame.Players.ChildAdded,function(char) -- 其他
@@ -140,9 +138,7 @@ Esp:AddToggle({
                 inst = char,
                 Color = Color3.new(1, 0, 0),
                 value = OrionLib.Flags['EntitiesEsp'],
-                Type = 'Highlight'
             })
-            if char:WaitForChild('Hitbox',1) then char.Hitbox.Transparency = 0 end
         end,OrionLib.Flags['EntitiesEsp'])
     end
 })
@@ -182,8 +178,6 @@ Esp:AddToggle({
         for _,plr in pairs(Players:GetPlayers()) do PlayerDownedDetector(plr) end
     end
 })
-
-AddConnection(Zoom.Changed,function() Zoom.Value = OrionLib.Flags['AutoZoom'].Value end)
 
 AddConnection(Players.PlayerAdded,function(plr)
     if OrionLib.Flags['DownedPlayerEsp'] then PlayerDownedDetector(plr) end
