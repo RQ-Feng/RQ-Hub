@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService('Players')
 local StarterGui = game:GetService("StarterGui")
 local PathfindingService = game:GetService("PathfindingService")
+local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService('UserInputService')
 
 local function Notify(Text,Duration,ButtonsCfg)
@@ -16,20 +17,21 @@ local function Notify(Text,Duration,ButtonsCfg)
         cfgTable['Callback'] = Instance.new('BindableFunction')        
 		cfgTable['Button1'] = ButtonsCfg['Button1']
 		cfgTable['Button2'] = ButtonsCfg['Button2']
-		cfgTable['Callback'].OnInvoke = ButtonsCfg['Callback'] or function() end
+		if type(ButtonsCfg['Callback']) ~= 'function' then return end
+		cfgTable['Callback'].OnInvoke = (ButtonsCfg['Callback'])
     end
 			
     local suc,_err
     repeat
         suc,_err = pcall(function()
             StarterGui:SetCore('SendNotification',cfgTable)
-        end)
-        if not suc then warn(_err) end; task.wait(0.1)
+        end); task.wait(0.1)
     until suc
 end
 
+local LobbyPlaceId = 6516141723
 repeat task.wait() until game:IsLoaded()
-if game.PlaceId ~= 6839171747 then Notify('Incorrect place'); return end
+if game.GameId ~= 2440500124 then Notify('Incorrect game'); return end
 
 local RemotesFolder = ReplicatedStorage:WaitForChild('RemotesFolder')
 
@@ -38,6 +40,18 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild('HumanoidRootPart')
 local Humanoid = Character:WaitForChild('Humanoid')
 
+--date
+local date = DateTime.now():ToLocalTime()
+local function GetDate()
+	return date['Year']..'/'..date['Month']..'/'..date['Day']..' '..date['Hour']..':'..date['Minute']..':'..date['Second']..':'..date['Millisecond']
+end
+--log
+local logName = 'Doors-Auto-Stardusts-loot.log'
+if not isfile(logName) then writefile(logName,'') end
+local function InsertInfo(info)
+    appendfile(logName,GetDate() .. ' ' .. tostring(info)..'\n')
+end
+
 local Connections = {}
 local function AddConnection(signal,func)
     local con = signal:Connect(func)
@@ -45,9 +59,37 @@ local function AddConnection(signal,func)
     return con
 end
 
+AddConnection(game:GetService("GuiService").ErrorMessageChanged,function(info)--Reconnecter 
+    Stop(); InsertInfo('Got error: '..info..',trying reconnecting.')
+	warn('Seems like u got a disconnect,reconnecting...')
+    for tried = 1,5 do 
+        warn('Trying reconnect,attempt(s):'..tried)
+        TeleportService:Teleport(6516141723,LocalPlayer)
+        task.wait(5)--timeout
+    end
+    warn('gone😢')
+end)
+
+if game.PlaceId == LobbyPlaceId then
+    local suc,StardustCostOff; repeat
+        suc,StardustCostOff = pcall(function() 
+            return LocalPlayer.PlayerGui:WaitForChild('MainUI').LobbyFrame.ChooseFloor.List.Rooms.StardustCostOff.Text 
+        end)
+    task.wait() until suc
+    if tonumber(StardustCostOff) and tonumber(StardustCostOff) > 0 then return Notify('Need stardust now bruh',math.huge) end
+    Notify('Rejoining rooms...')
+    RemotesFolder:WaitForChild('CreateElevator'):FireServer({
+        FriendsOnly = true,
+        MaxPlayers = 1,
+        Mods = {},
+        Destination = 'Rooms',
+        Settings = {}
+    }); return
+end
+
 local CurrentFloor = ReplicatedStorage:WaitForChild('GameData'):WaitForChild('Floor').Value
 if CurrentFloor ~= 'Rooms' then Notify('Incorrect floor'); return end
-
+InsertInfo('Rejoining Rooms now ig.')
 local executor = identifyexecutor and tostring(identifyexecutor())
 local executor_BlackList = {
     ['Xeno'] = {'fireproximityprompt'}
@@ -56,9 +98,13 @@ local executor_BlackList = {
 local MainUI = LocalPlayer.PlayerGui:WaitForChild('MainUI')
 local Main_Game = MainUI.Initiator.Main_Game
 local LatestRoom = ReplicatedStorage.GameData.LatestRoom
+local StardustVal = LocalPlayer.PlayerGui.TopbarUI.Topbar.StatsTopbarHandler.StatModules.Stardust:WaitForChild('StardustVal')
 
 local Key_BlackList = {Enum.KeyCode.A,Enum.KeyCode.W,Enum.KeyCode.S,Enum.KeyCode.D}
+local loots = {'GoldPile','StardustPickup'}
+local Stardusts,GoldPiles = {},{}
 local Highlights = {}
+local ExitDoor
 local IsRunning = true
 local FinalCD = 0
 
@@ -122,12 +168,16 @@ local function CurrentDoor()
     return CurrentRoom():WaitForChild('Door')
 end
 
+local function GoldPicked()
+    return ReplicatedStorage.GameStats:FindFirstChild('Player_'..LocalPlayer.Name).Total.GoldPicked.Value
+end
+
 local function GetEntity()
     return workspace:FindFirstChild("A120")
 end
 
 local function SetPrompt(prompt)
-    if not prompt or typeof(prompt) ~= 'Instance' or not prompt:IsA("ProximityPrompt") then return end
+    if typeof(prompt) ~= 'Instance' or not prompt:IsA("ProximityPrompt") then warn("[InteractPrompt]:ProximityPrompt expected, got " .. typeof(prompt)); return end
     prompt.Enabled = true
     prompt.RequiresLineOfSight = false
     prompt.HoldDuration = 0
@@ -146,6 +196,29 @@ local function InteractPrompt(Path,prompt)
 
     SetPrompt(prompt)
     prompt:InputHoldBegin(); task.wait(0.05); prompt:InputHoldEnd()
+end
+
+local function IsLoot(loot) return loot and table.find(loots,loot.Name) end
+
+local function GetLoot(Loot)--Need to teleport manually
+    Loot = Loot:IsA('Model') and Loot or Loot:FindFirstAncestorOfClass('Model')
+    if not Loot or not IsLoot(Loot) then return end
+
+    local path = Loot:FindFirstChild('Hitbox') or Loot:FindFirstChild('Main')
+    local prompt = Loot:FindFirstChild('LootPrompt') or Loot:FindFirstChild('ModulePrompt')
+    local LootTable = Loot.Name == 'StardustPickup' and Stardusts or GoldPiles
+
+    repeat task.wait() until
+    Loot:FindFirstAncestor('Assets') and tonumber(Loot:FindFirstAncestor('Assets').Parent.Name) <= LatestRoom.Value
+
+    repeat InteractPrompt(path,prompt); task.wait() until
+    not Loot or not Loot.Parent or not path or not prompt
+
+    if LootTable == Stardusts then --I mean if got stardust
+        InsertInfo('Got a stardust at room '..LatestRoom.Value..'.Currently have '..(StardustVal.Value + 1)..' stardust(s).')
+    end
+
+    if table.find(LootTable,Loot) then table.remove(LootTable,table.find(LootTable,Loot)) end
 end
 
 local function IsHiding() return Character:GetAttribute('Hiding') end
@@ -172,9 +245,16 @@ local function getLocker()
 end
 
 local function getPath(ForceToDoor)
+    if ForceToDoor then 
+        Stardusts,GoldPiles = {},{}
+        return ExitDoor or CurrentDoor():WaitForChild('Door') 
+    end
+
     local Path
-    if ForceToDoor then Path = CurrentDoor():WaitForChild('Door')
-    elseif GetEntity() and GetEntity().Main.Position.Y > -4 then Path = getLocker()
+    if GetEntity() and GetEntity().Main.Position.Y > -4 then Path = getLocker()
+    elseif Stardusts[1] and Stardusts[1].Parent and (HumanoidRootPart.Position - Stardusts[1].PrimaryPart.Position).Magnitude <= 60 then Path = Stardusts[1].PrimaryPart
+    elseif ExitDoor then Path =  ExitDoor
+    elseif GoldPiles[1] and GoldPiles[1].Parent and (HumanoidRootPart.Position - GoldPiles[1].PrimaryPart.Position).Magnitude <= 60 then Path = GoldPiles[1].PrimaryPart
     else Path = CurrentDoor():WaitForChild('Door') end
     return Path
 end
@@ -197,6 +277,7 @@ local function pathFallback(path,Destination,times)
             Humanoid:MoveTo(Destination.Position); task.wait(2)
             TeleportPlayer(Destination.CFrame); task.wait(0.5)
         else
+            Stardusts,GoldPiles = {},{} 
             TeleportPlayer(getPath().CFrame)
             times = 0
         end
@@ -257,12 +338,13 @@ local function gotoPath(ForceDestination)
 
     for _, Waypoint in ipairs(Waypoints) do--Walk
         if not IsRunning or not Destination or not Destination.Parent then break end
+        if ExitDoor and Destination ~= ExitDoor then break end
         if GetEntity() and (IsHiding() or Destination ~= getLocker()) then break end
         repeat task.wait() until not IsHiding()
         if Waypoint.Action == Enum.PathWaypointAction.Jump then Jump() end
         Humanoid:MoveTo(Waypoint.Position); local MoveSuccess = Humanoid.MoveToFinished:Wait()
     
-        if not MoveSuccess and not IsHiding() and (HumanoidRootPart.Position - Waypoint.Position).Magnitude <= 10 then
+        if not MoveSuccess and not IsHiding() and (HumanoidRootPart.Position - Waypoint.Position).Magnitude <= 10 then 
             PrefixWarn('Maybe you\'re stuck,trying again...')
             TeleportPlayer(Destination.CFrame)
             task.wait(1); Jump(); break 
@@ -274,6 +356,7 @@ end
 
 local function ExitFromLocker()
     repeat RemotesFolder.CamLock:FireServer(); task.wait() until not IsHiding()
+    gotoPath()
 end
 
 local function antiafk()
@@ -290,7 +373,7 @@ local function antiafk()
     end)
 end
 
-local function Stop(Info)
+local function Stop(GoLobbyInfo)
     PrefixWarn('Stop running now.')
     IsRunning = false
     for _,con in pairs(Connections) do con:Disconnect() end
@@ -307,62 +390,72 @@ local function Stop(Info)
     if Humanoid then Humanoid.WalkSpeed = 21 end
     RemotesFolder.Crouch:FireServer(true)
 
-    if not Info then return end
-    
-    local ExitReason = (Info == 'Moved' and 'Player moved.')
-    or (Info == 'Done' and 'Reached A-1000.')
-    or (Info == 'Awfulstuck' and 'Awful stuck.')
-    or (not Character:GetAttribute('Alive') and 'Died to '..Character:GetAttribute('DeathCause'))
-    or (Info['Knobs'] and 'Statistics,got '..Info['Knobs'][3]..' knob(s).')
+    if not GoLobbyInfo then return end
 
-    Notify('Stop running.Reason:\n'..ExitReason,math.huge,{
-        Button1 = ((Info ~= 'Moved' and Info ~= 'Done') and 'Damn '  or '') ..'okay'
-    })
+    local ExitReason = (GoLobbyInfo == 'Awfulstuck' and 'Awful stuck.')
+    or (not Character:GetAttribute('Alive') and 'Died to '..Character:GetAttribute('DeathCause'))
+    or (GoLobbyInfo['Knobs'] and 'Statistics,got '..GoLobbyInfo['Knobs'][3]..' knob(s).')
+
+    InsertInfo('Stop running and trying to back Lobby.Reason: '..ExitReason)
+
+    RemotesFolder.Statistics:FireServer()
+    task.wait()
+    RemotesFolder.Lobby:FireServer()
+    task.wait(3)
+    TeleportService:Teleport(6516141723,LocalPlayer)
 end
 
 antiafk()
 
+AddConnection(game:GetService('ProximityPromptService').PromptShown,GetLoot)
 AddConnection(RemotesFolder.PlayerDied.OnClientEvent,Stop)
 AddConnection(RemotesFolder.Statistics.OnClientEvent,Stop)
-AddConnection(game:GetService("GuiService").ErrorMessageChanged,Stop)
-AddConnection(workspace.CurrentRooms.DescendantAdded,SetPrompt)
-AddConnection(game:GetService('ProximityPromptService').PromptShown,function(Loot)
-    Loot = Loot:IsA('Model') and Loot or Loot:FindFirstAncestorOfClass('Model')
-    if not Loot or not table.find({'GoldPile','StardustPickup'},Loot.Name) then return end
-
-    local path = Loot:FindFirstChild('Hitbox') or Loot:FindFirstChild('Main')
-    local prompt = Loot:FindFirstChild('LootPrompt') or Loot:FindFirstChild('ModulePrompt')
-
-    repeat task.wait() until
-    Loot:FindFirstAncestor('Assets') and tonumber(Loot:FindFirstAncestor('Assets').Parent.Name) <= LatestRoom.Value
-
-    repeat InteractPrompt(path,prompt); task.wait() until
-    not Loot or not Loot.Parent or not path or not prompt or not IsRunning
-end)
 AddConnection(LatestRoom.Changed,function(value)
     local room = CurrentRoom()
     TextLabel.Text = "Room: "..math.clamp(value, 1,1000)
     FinalCD = 0
     if LatestRoom.Value == 1000 then
         Folder:ClearAllChildren()
-        Notify('已到达A-1000',math.huge)
-        Stop('Done')
+
+        local Sound = Instance.new("Sound")
+          Sound.SoundId = "rbxassetid://4590662766"
+          Sound.Parent = game:GetService("SoundService")
+          Sound.Volume = 5
+          Sound:Play()
+
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "提示";
+            Text = "已到达A-1000";
+            Icon = "rbxassetid://14250466898";
+            Duration = 5;
+        })
+        return
     end
     if room:GetAttribute('RawName'):find('Rooms_Catwalk') then
-        local Parts = room:WaitForChild('Parts')
-        AddConnection(Parts.DescendantAdded,function(floor)
-            if floor.Name == 'Floor' then floor:Destroy() end
-        end)
-        for _,floor in pairs(Parts:GetChildren()) do
-            if floor.Name == 'Floor' then floor:Destroy() end
+        local function CheckItems(Parent,instName,func)
+            AddConnection(Parent.ChildAdded,function(inst)
+                if inst.Name == instName then func(inst) end
+            end)
+            for _,inst in pairs(Parent:GetChildren()) do
+                if inst.Name == instName then func(inst) end
+            end
         end
+        CheckItems(room:WaitForChild('Parts'),'Steps',function(Steps)
+            CheckItems(Steps,'Floor',function(floor) floor:Destroy() end)
+        end)
+    end
+end)
+AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst)
+    if inst.Name == 'GoldPile' and inst:GetAttribute('GoldValue') >= 100 and GoldPicked() < 10000 then table.insert(GoldPiles,inst)
+    elseif inst.Name == 'StardustPickup' then table.insert(Stardusts,inst)
+    elseif inst:IsA('ProximityPrompt') then SetPrompt(inst)
     end
 end)
 AddConnection(game:GetService('UserInputService').InputBegan,function(InputObject,state)
     if InputObject.UserInputType ~= Enum.UserInputType.Keyboard or state == true then return end
-    if table.find(Key_BlackList,InputObject.KeyCode) then Stop('Moved') end
+    if not table.find(Key_BlackList,InputObject.KeyCode) then return end
+    Stop()
 end)
-
 task.spawn(function() --Fuck u A90
     local A90_RemoteEvent = ReplicatedStorage.RemotesFolder:FindFirstChild("A90")
     if not A90_RemoteEvent then return end
@@ -381,17 +474,18 @@ task.spawn(function() --Fuck u USELESS COLLISION
     AddConnection(Collision:GetPropertyChangedSignal("CanCollide"),NoClip)
 end)
 
-task.spawn(function() --Auto stop when the awful stuck wastes 2m
+task.spawn(function() --Auto rejoin when the awful stuck wastes 2m
     repeat FinalCD = FinalCD + 1
         if math.fmod(FinalCD,30) == 0 and FinalCD ~= 0 then task.spawn(gotoPath) end
     task.wait(1) until FinalCD == 80 or not IsRunning
     if not IsRunning then return end
-    PrefixWarn('Awful stuck bro...')
+    PrefixWarn('Awful stuck.Auto rejoin.')
     Stop('Awfulstuck')
 end)
 
 task.spawn(function() --Other while do things
-    while IsRunning do task.wait() --Avoid lag crash
+    while IsRunning do 
+        task.wait() --Avoid lag crash
         local Path = getPath()
 
         if GetEntity() then
@@ -403,6 +497,17 @@ task.spawn(function() --Other while do things
             if IsHiding() then ExitFromLocker() end
             CurrentDoor():WaitForChild('ClientOpen'):FireServer()
         end
+        
+        if Path and (HumanoidRootPart.Position - Path.Position).Magnitude <= 16 then GetLoot(Path) end
+
+        task.spawn(function()
+            if GoldPicked() < 10000 then return end
+            local RoomsDoor_Exit = CurrentRoom():WaitForChild('RoomsDoor_Exit',3)
+            if not RoomsDoor_Exit then return end
+            ExitDoor = RoomsDoor_Exit:WaitForChild('Door',3)
+            if not ExitDoor then return end
+            repeat InteractPrompt(ExitDoor,ExitDoor:WaitForChild('EnterPrompt')); task.wait() until not IsRunning
+        end)
     end
 end)
 
