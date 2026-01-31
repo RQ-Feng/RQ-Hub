@@ -290,7 +290,7 @@ local function antiafk()
     end)
 end
 
-local function Stop(Info)
+function Stop(Info)
     PrefixWarn('Stop running now.')
     IsRunning = false
     for _,con in pairs(Connections) do con:Disconnect() end

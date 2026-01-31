@@ -10,7 +10,7 @@ local function VanillaNotify(text,duration,icon)
     end)
 end
 VanillaNotify('正在加载,请稍等...',5,'rbxassetid://7733715400')
-local baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/"
+baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/"
 local PlaceTable = loadstring(game:HttpGet(baseUrl .. "PlaceTable.lua"))()
 
 local GameId,PlaceId = game.GameId,game.PlaceId
