@@ -1016,7 +1016,7 @@ Floor:AddToggle({
         end
         local enabledNotity = OrionLib:MakeNotification({
             Name = "Rooms自动通关",
-            Content = '已启动,推荐将加速关闭防止拉回.',
+            Content = '已启动(无法自动关闭).',
             Time = 5
         })
         loadstring(AutoRoomsScript)()
