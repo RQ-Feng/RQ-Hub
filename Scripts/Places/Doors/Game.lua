@@ -992,7 +992,7 @@ Floor:AddToggle({
 local AutoRoomsScript
 Floor:AddSection({Name = "Rooms"})
 Floor:AddToggle({
-    Name = "自动通关",
+    Name = "自动通关(会导致部分游戏功能失效)",
     Save = true,
     Default = false,
     Flag = 'AutoRooms',
@@ -1004,13 +1004,13 @@ Floor:AddToggle({
                 Content = '加载文件中...',
                 Time = 60
             }); local loadSuc
-            repeat task.wait()
-                loadSuc,AutoRoomsScript = pcall(function() return loadstring(game:HttpGet(baseUrl..'Extra/Doors/doors%20auto%20rooms.lua'))() end)
+            repeat loadSuc,AutoRoomsScript = pcall(function() return game:HttpGet(baseUrl..'Extra/Doors/doors%20auto%20rooms.lua') end)
                 if not loadSuc then OrionLib:MakeNotification({
                     Name = "Rooms自动通关",
                     Content = '加载失败,重新加载中...',
                     Time = 3
-                }); AutoRoomsScript = nil end
+                }); warn('[AutoRooms] 加载文件失败,返回错误:',tostring(AutoRoomsScript))
+                AutoRoomsScript = nil; task.wait(1) end
             until loadSuc or not OrionLib.Flags['AutoRooms'].Value or not OrionLib:IsRunning()
             if notity then OrionLib:CloseNotification(notity) end
         end
@@ -1019,8 +1019,8 @@ Floor:AddToggle({
             Content = '已启动,推荐将加速关闭防止拉回.',
             Time = 5
         })
-        loadstring(AutoRoomsScript)
-        task.spawn(function() 
+        loadstring(AutoRoomsScript)()
+        task.spawn(function()
             repeat task.wait() until not OrionLib.Flags['AutoRooms'].Value or not OrionLib:IsRunning()
             if enabledNotity then OrionLib:CloseNotification(enabledNotity) end
             if StopAutoRooms then StopAutoRooms() end

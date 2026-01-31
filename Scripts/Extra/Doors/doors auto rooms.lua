@@ -37,6 +37,7 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild('HumanoidRootPart')
 local Humanoid = Character:WaitForChild('Humanoid')
+local OriginalHipHeight = Humanoid.HipHeight
 
 local Connections = {}
 local function AddConnection(signal,func)
@@ -304,7 +305,10 @@ function StopAutoRooms(Info)
 
     ScreenGui:Destroy()
     Folder:Destroy()
-    if Humanoid then Humanoid.WalkSpeed = 21 end
+    if Humanoid then 
+        Humanoid.WalkSpeed = 21 
+        Humanoid.HipHeight = OriginalHipHeight
+    end
     RemotesFolder.Crouch:FireServer(true)
 
     if not Info then return end
