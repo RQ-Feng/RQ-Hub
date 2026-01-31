@@ -989,6 +989,44 @@ Floor:AddToggle({
         repeat RemotesFolder.EBF:FireServer(); task.wait() until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
     end
 })
+local AutoRoomsScript
+Floor:AddSection({Name = "Rooms"})
+Floor:AddToggle({
+    Name = "自动通关",
+    Save = true,
+    Default = false,
+    Flag = 'AutoRooms',
+    Callback = function(Value)
+        if not Value or not CheckFloor('Rooms',OrionLib.Flags['AutoRooms']) then return end
+        if not AutoRoomsScript then
+            local notity = OrionLib:MakeNotification({
+                Name = "Rooms自动通关",
+                Content = '加载文件中...',
+                Time = 60
+            }); local loadSuc
+            repeat task.wait()
+                loadSuc,AutoRoomsScript = pcall(function() return loadstring(game:HttpGet(baseUrl..'Extra/Doors/doors%20auto%20rooms.lua'))() end)
+                if not loadSuc then OrionLib:MakeNotification({
+                    Name = "Rooms自动通关",
+                    Content = '加载失败,重新加载中...',
+                    Time = 3
+                }); AutoRoomsScript = nil end
+            until loadSuc or not OrionLib.Flags['AutoRooms'].Value or not OrionLib:IsRunning()
+            if notity then OrionLib:CloseNotification(notity) end
+        end
+        local enabledNotity = OrionLib:MakeNotification({
+            Name = "Rooms自动通关",
+            Content = '已启动,推荐将加速关闭防止拉回.',
+            Time = 5
+        })
+        loadstring(AutoRoomsScript)
+        task.spawn(function() 
+            repeat task.wait() until not OrionLib.Flags['AutoRooms'].Value or not OrionLib:IsRunning()
+            if enabledNotity then OrionLib:CloseNotification(enabledNotity) end
+            if StopAutoRooms then StopAutoRooms() end
+        end)
+    end
+})
 Floor:AddSection({Name = "Daily Run"})
 Floor:AddToggle({
     Name = "自动检测通关门",

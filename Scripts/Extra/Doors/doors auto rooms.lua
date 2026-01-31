@@ -290,7 +290,7 @@ local function antiafk()
     end)
 end
 
-function Stop(Info)
+function StopAutoRooms(Info)
     PrefixWarn('Stop running now.')
     IsRunning = false
     for _,con in pairs(Connections) do con:Disconnect() end
@@ -322,9 +322,9 @@ end
 
 antiafk()
 
-AddConnection(RemotesFolder.PlayerDied.OnClientEvent,Stop)
-AddConnection(RemotesFolder.Statistics.OnClientEvent,Stop)
-AddConnection(game:GetService("GuiService").ErrorMessageChanged,Stop)
+AddConnection(RemotesFolder.PlayerDied.OnClientEvent,StopAutoRooms)
+AddConnection(RemotesFolder.Statistics.OnClientEvent,StopAutoRooms)
+AddConnection(game:GetService("GuiService").ErrorMessageChanged,StopAutoRooms)
 AddConnection(workspace.CurrentRooms.DescendantAdded,SetPrompt)
 AddConnection(game:GetService('ProximityPromptService').PromptShown,function(Loot)
     Loot = Loot:IsA('Model') and Loot or Loot:FindFirstAncestorOfClass('Model')
@@ -346,7 +346,7 @@ AddConnection(LatestRoom.Changed,function(value)
     if LatestRoom.Value == 1000 then
         Folder:ClearAllChildren()
         Notify('已到达A-1000',math.huge)
-        Stop('Done')
+        StopAutoRooms('Done')
     end
     if room:GetAttribute('RawName'):find('Rooms_Catwalk') then
         local Parts = room:WaitForChild('Parts')
@@ -360,7 +360,7 @@ AddConnection(LatestRoom.Changed,function(value)
 end)
 AddConnection(game:GetService('UserInputService').InputBegan,function(InputObject,state)
     if InputObject.UserInputType ~= Enum.UserInputType.Keyboard or state == true then return end
-    if table.find(Key_BlackList,InputObject.KeyCode) then Stop('Moved') end
+    if table.find(Key_BlackList,InputObject.KeyCode) then StopAutoRooms('Moved') end
 end)
 
 task.spawn(function() --Fuck u A90
@@ -387,7 +387,7 @@ task.spawn(function() --Auto stop when the awful stuck wastes 2m
     task.wait(1) until FinalCD == 80 or not IsRunning
     if not IsRunning then return end
     PrefixWarn('Awful stuck bro...')
-    Stop('Awfulstuck')
+    StopAutoRooms('Awfulstuck')
 end)
 
 task.spawn(function() --Other while do things
@@ -432,4 +432,4 @@ task.spawn(function() --Player setter
 end)
 
 PrefixWarn('Start running now.')
-while IsRunning do task.wait(); gotoPath() end
+task.spawn(function() while IsRunning do task.wait(); gotoPath() end end)
