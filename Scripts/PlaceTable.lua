@@ -28,7 +28,7 @@ return {
         ["Folder"] = "Delusional-Office",
         ["Main"] = "Delusional Office",
         ["PlaceId"] = {
-            [75392387363437] = "Test-3.5-Version",
+            [75392387363437] = "Test Version 3.5",
         }
     },
     [3647333358] = {
