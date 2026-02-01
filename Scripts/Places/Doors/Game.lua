@@ -919,7 +919,11 @@ local function CheckFloor(floorName,flag)
     }); if flag then flag:Set(false) end
     return false
 end
+Floor:AddSection({Name = "楼层信息"})
 Floor:AddLabel('您当前位于 '..CurrentFloor()..' 楼层.')
+Floor:AddLabel('秘密楼层(无法直接加入): '..(GameData.SecretFloor.Value and '是' or '否'))
+local LatestRoomLabel = Floor:AddLabel('目前最前面为 '.. LatestRoom.Value ..' 号门.')
+AddConnection(LatestRoom.Changed,function() LatestRoomLabel:Set('目前最前面为 '.. LatestRoom.Value ..' 号门.') end)
 Floor:AddSection({Name = "酒店"})
 Floor:AddSlider({
     Name = "开锁距离",
