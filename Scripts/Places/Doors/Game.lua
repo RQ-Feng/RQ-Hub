@@ -908,16 +908,10 @@ Esp:AddToggle({
         })
     end
 })
-local function CheckFloor(floorName,flag)
+local function CheckFloor(floorName)
     if not floorName then return warn('[CheckFloor] Got nil floor name.') end
-    local correctFloor = CurrentFloor() == floorName
-    if correctFloor then return true end
-    OrionLib:MakeNotification({
-        Name = '楼层检测',
-        Content = '此楼层不支持该功能.',
-        Time = 5
-    }); if flag then flag:Set(false) end
-    return false
+    local isCorrectFloor = CurrentFloor() == floorName
+    return isCorrectFloor
 end
 Floor:AddSection({Name = "楼层信息"})
 Floor:AddLabel('您当前位于 '..CurrentFloor()..' 楼层.')
@@ -940,7 +934,7 @@ Floor:AddToggle({
     Default = false,
     Flag = 'AutoLibraryUnlock',
     Callback = function(Value)
-        if not Value or not CheckFloor('Hotel',OrionLib.Flags['AutoLibraryUnlock']) then return end
+        if not Value or not CheckFloor('Hotel') then return end
         if LatestRoom.Value > 50 then 
             OrionLib:MakeNotification({
                 Name = "自动图书馆开锁",
@@ -989,7 +983,7 @@ Floor:AddToggle({
     Default = false,
     Flag = 'AutoBreaker',
     Callback = function(Value)
-        if not Value or not CheckFloor('Hotel',OrionLib.Flags['AutoBreaker']) then return end
+        if not Value or not CheckFloor('Hotel') then return end
         repeat RemotesFolder.EBF:FireServer(); task.wait() until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
     end
 })
@@ -1001,7 +995,7 @@ Floor:AddToggle({
     Default = false,
     Flag = 'AutoRooms',
     Callback = function(Value)
-        if not Value or not CheckFloor('Rooms',OrionLib.Flags['AutoRooms']) then return end
+        if not Value or not CheckFloor('Rooms') then return end
         if not AutoRoomsScript then
             local notity = OrionLib:MakeNotification({
                 Name = "Rooms自动通关",
@@ -1038,7 +1032,7 @@ Floor:AddToggle({
     Default = false,
     Flag = 'AutoDailyRunDoor',
     Callback = function(Value)
-        if not Value or not CheckFloor('Daily Runs',OrionLib.Flags['AutoDailyRunDoor']) then return end
+        if not Value or not CheckFloor('Daily Runs') then return end
         if not CurrentRoom():FindFirstChild('RippleExitDoor') then return end
         local Statisticed = false
         local Event = RemotesFolder.Statistics.OnClientEvent:Once(function() Statisticed = true end)
