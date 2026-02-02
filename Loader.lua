@@ -5,7 +5,8 @@ local function VanillaNotify(text,duration,icon)
             Title = "RQ-Hub",
             Text = text or '',
             Duration = duration or 5,
-            Icon = icon
+            Icon = icon,
+            Button1 = '好'
         })
     end)
 end
@@ -46,7 +47,7 @@ if not isfolder(GameFolder) then makefolder(GameFolder) end
 
 local ScriptURLs = {
     baseUrl .. 'Utills/Init.lua',
-    baseUrl .. "Places/" .. gameInfo.Folder .. '/' .. (placeInfo ~= '*' and placeInfo or '') .. ".lua",
+    baseUrl .. "Places/" .. gameInfo.Folder .. '/' .. (placeInfo ~= '*' and placeInfo or 'General') .. ".lua",
     baseUrl .. 'Utills/EspSetting.lua',
 }
 local Scripts = {}

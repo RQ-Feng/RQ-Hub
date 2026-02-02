@@ -48,7 +48,7 @@ return {
         }
     },
     [3717264063] = {
-        ["Folder"] = "Nico's nextbots",
+        ["Folder"] = "Nico's_nextbots",
         ["Main"] = "Nico's nextbots",
         ["PlaceId"] = {
             ['*'] = "*",
