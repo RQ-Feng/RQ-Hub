@@ -46,5 +46,12 @@ return {
         ["PlaceId"] = {
             [6839171747] = "Game",
         }
+    },
+    [3717264063] = {
+        ["Folder"] = "Nico's nextbots",
+        ["Main"] = "Nico's nextbots",
+        ["PlaceId"] = {
+            ['*'] = "*",
+        }
     }
 }
