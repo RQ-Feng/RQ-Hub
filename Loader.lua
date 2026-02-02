@@ -35,7 +35,6 @@ local ScriptURLs = {
     baseUrl .. 'Utills/Init.lua',
     baseUrl .. "Places/" .. Game.Folder .. '/' .. Place .. ".lua",
     baseUrl .. 'Utills/EspSetting.lua',
-    'https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/Other-scripts/Setting.lua'
 }
 local Scripts = {}
 
