@@ -1,6 +1,23 @@
 local events = ReplicatedStorage.events
+local currentMap = workspace:FindFirstChild('currentMap')
+
+local function GetMap() return currentMap and currentMap:GetChildren()[1] or workspace end
+--Features
+local function KickDoor(door)
+    task.spawn(function()
+        if door.Name ~= 'interactable_door' or not door:IsA('Model') or not OrionLib.Flags['KickAllDoors'].Value then return end
+        repeat events.player.char.bashdoor:InvokeServer(door,true); task.wait(1) until 
+        not door.Parent or not OrionLib.Flags['KickAllDoors'].Value or not OrionLib:IsRunning()
+    end)
+end
+local JumpEffects
+
 Tab = Window:MakeTab({
     Name = "主界面",
+    Icon = "rbxassetid://4483345998"
+})
+Exploit = Window:MakeTab({
+    Name = "利用",
     Icon = "rbxassetid://4483345998"
 })
 Tab:AddLabel('当前处于WIP阶段.')
@@ -30,3 +47,42 @@ Tab:AddButton({
     ClickTwice = true,
     Callback = function() events.player.char.respawnchar:FireServer() end
 })
+Exploit:AddToggle({
+    Name = "重复蹦床效果",
+    Default = false,
+    Flag = 'RepeatJumpEffects',
+    Callback = function(value)
+        if not value then JumpEffects = nil; return end
+        for _,inst in pairs(GetMap():GetDescendants()) do
+            if inst.Name == 'JumpEffects' and inst:IsA('RemoteEvent') and OrionLib.Flags['RepeatJumpEffects'].Value then
+                JumpEffects = inst
+            end
+        end; repeat task.wait() until JumpEffects
+        local function RepeatJumpEffectsDelEffect(inst)
+            task.spawn(function()
+                local cache = HumanoidRootPart:WaitForChild(inst,1)
+                if cache then cache:Destroy() end
+            end)
+        end
+        while JumpEffects and OrionLib.Flags['RepeatJumpEffects'].Value and OrionLib:IsRunning() do task.wait()
+            pcall(function() JumpEffects:FireServer() end)
+            RepeatJumpEffectsDelEffect('BounceParticles')
+            RepeatJumpEffectsDelEffect('boing')
+        end
+    end
+})
+Exploit:AddToggle({
+    Name = "全局踢门",
+    Default = false,
+    Flag = 'KickAllDoors',
+    Callback = function(value)
+        if not value then return end
+        for _,door in pairs(GetMap():GetDescendants()) do KickDoor(door) end
+    end
+})
+AddConnection(currentMap.DescendantAdded,function(inst)
+    if inst.Name == 'JumpEffects' and inst:IsA('RemoteEvent') and OrionLib.Flags['RepeatJumpEffects'].Value then
+        JumpEffects = inst
+    end
+    KickDoor(inst)
+end)
