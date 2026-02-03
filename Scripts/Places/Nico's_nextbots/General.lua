@@ -6,7 +6,7 @@ local function GetMap() return currentMap and currentMap:GetChildren()[1] or wor
 local function KickDoor(door)
     task.spawn(function()
         if door.Name ~= 'interactable_door' or not door:IsA('Model') or not OrionLib.Flags['KickAllDoors'].Value then return end
-        repeat events.player.char.bashdoor:InvokeServer(door,true); task.wait(1) until 
+        repeat events.player.char.bashdoor:InvokeServer(door,true); task.wait(OrionLib.Flags['KickAllDoorsSpeed'].Value) until 
         not door.Parent or not OrionLib.Flags['KickAllDoors'].Value or not OrionLib:IsRunning()
     end)
 end
@@ -70,6 +70,15 @@ Exploit:AddToggle({
             RepeatJumpEffectsDelEffect('boing')
         end
     end
+})
+Exploit:AddSlider({
+    Name = "踢门速度",
+    Save = true,
+    Min = 0,
+    Max = 2,
+    Default = 1,
+    Increment = 0.1,
+    Flag = 'KickAllDoorsSpeed'
 })
 Exploit:AddToggle({
     Name = "全局踢门",
