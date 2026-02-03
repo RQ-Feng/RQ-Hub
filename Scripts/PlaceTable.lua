@@ -28,16 +28,14 @@ return {
         ["Folder"] = "Delusional-Office",
         ["Main"] = "Delusional Office",
         ["PlaceId"] = {
-            [75392387363437] = "Test Version 3.5",
+            [75392387363437] = "TestVersion-3.5",
         }
     },
     [3647333358] = {
         ["Folder"] = "Evade",
         ["Main"] = "Evade",
         ["PlaceId"] = {
-            [11353528705] = "Evade",
-            [75392387363437] = "Evade",
-            [99214917572799] = "Evade"
+            ['*'] = "*"
         }
     },
     [2440500124] = {
@@ -51,7 +49,7 @@ return {
         ["Folder"] = "Nico's_nextbots",
         ["Main"] = "Nico's nextbots",
         ["PlaceId"] = {
-            ['*'] = "*",
+            ['*'] = "*"
         }
     }
 }

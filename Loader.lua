@@ -56,11 +56,9 @@ task.spawn(function()
     for _,url in ipairs(ScriptURLs) do table.insert(Scripts,game:HttpGet(url)) end --Load scripts from urls
 end)
 
-local Suffix = gameInfo.Folder .. (placeInfo ~= '*' and (' - ' .. placeInfo) or '')
-
 Window = OrionLib:MakeWindow({
     IntroText = "RQHub-WIP",
-    Name = 'RQHub | ' .. Suffix,
+    Name = 'RQHub | ' .. gameInfo.Main,
     SaveConfig = true,
     ConfigFolder = GameFolder .. (placeInfo ~= '*' and ('\\' .. placeInfo) or '')
 })
