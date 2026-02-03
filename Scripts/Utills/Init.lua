@@ -287,19 +287,48 @@ function BetterPrompt(Distance,value)
         SetPrompt(prompt,Distance)
     end,value)
 end
+--tpunanchored
+local blacklistPartName,frozenParts = {'Torso','Head','Right Arm','Left Arm','Right Leg','Left Leg','HumanoidRootPart'},{}
+function tpua(part,pos)
+    if not part or not pos then return end
+
+    if part:IsA("BasePart" or "UnionOperation" or "Model") and part.Anchored == false and not part:IsDescendantOf(Character) and not table.find(blacklistPartName,part.Name) then
+        for i,c in pairs(part:GetChildren()) do if c:IsA("BodyPosition") or c:IsA("BodyGyro") then c:Destroy() end end
+
+        local ForceInstance = Instance.new("BodyPosition")
+        ForceInstance.Parent = part
+        ForceInstance.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        ForceInstance.D = 10000
+        ForceInstance.P = 10000000
+        ForceInstance.Position = pos
+
+        if not table.find(frozenParts,part) then table.insert(frozenParts,part) end
+    end
+end
+
+function untpua(part)
+    local checkTable = part and {part} or frozenParts
+	for _,v in pairs(checkTable) do
+		for _,c in pairs(v:GetChildren()) do
+			if c:IsA("BodyPosition") or c:IsA("BodyGyro") then
+				c:Destroy()
+			end
+		end
+	end; if not part then frozenParts = {} end
+end
 
 local FullBrightEvent
 local OldFBProps = {
-    ['Brightness'] = 0,
-    ['ClockTime'] = 14,
-    ['FogEnd'] = 100000,
-    ['GlobalShadows'] = true,
-    ['OutdoorAmbient'] = Color3.new(0, 0, 0),
+    ['Brightness'] = Lighting.Brightness,
+    ['ClockTime'] = Lighting.ClockTime,
+    ['FogEnd'] = Lighting.FogEnd,
+    ['GlobalShadows'] = Lighting.GlobalShadows,
+    ['OutdoorAmbient'] = Lighting.OutdoorAmbient,
 }
 
 local function SetBright(value)
     local suc,prop = pcall(function() return Lighting[tostring(value)] end)
-    if suc then OldFBProps[tostring(value)] = prop end
+    if suc then OldFBProps[tostring(value)] = prop else return end
     Lighting.Brightness = value and 2 or OldFBProps['Brightness']
     Lighting.ClockTime = value and 14 or OldFBProps['ClockTime']
     Lighting.FogEnd = value and 100000 or OldFBProps['FogEnd']
@@ -321,4 +350,5 @@ task.spawn(function()
         ScreenGui:Destroy() 
     end
     SetBright(false)
+    untpua()
 end)
