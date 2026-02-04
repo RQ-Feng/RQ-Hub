@@ -10,6 +10,9 @@ local function VanillaNotify(text,duration,icon)
         })
     end)
 end
+local function DebugWarn(msg)
+    warn('[RQHub Debug]:',tostring(msg))
+end
 VanillaNotify('正在加载,请稍等...',5,'rbxassetid://7733715400')
 baseUrl = "https://raw.githubusercontent.com/RQ-Feng/RQ-Hub/refs/heads/main/Scripts/"
 local PlaceTable = loadstring(game:HttpGet(baseUrl .. "PlaceTable.lua"))()
@@ -21,7 +24,9 @@ local placeInfo = gameInfo and (gameInfo.PlaceId['*'] or gameInfo.PlaceId[PlaceI
 --检查Place
 if not gameInfo or not placeInfo then VanillaNotify('不支持此地点.'); return end
 
-local LoadSuc,_ = pcall(function()
+local loadedScripts = 0
+
+local LoadSuc,err = pcall(function()
     local baseScriptURLs = {
         'https://raw.githubusercontent.com/RQ-Feng/Orion/refs/heads/main/main.lua',
         'https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau',
@@ -30,8 +35,14 @@ local LoadSuc,_ = pcall(function()
     }
     local baseScripts = {}
     
-    for i,url in ipairs(baseScriptURLs) do task.spawn(function() baseScripts[i] = game:HttpGet(url) end) end
-    repeat task.wait() until #baseScripts == 4 --Waiting for scripts
+    for i,url in ipairs(baseScriptURLs) do 
+        task.spawn(function() 
+            baseScripts[i] = game:HttpGet(url) 
+            loadedScripts = loadedScripts + 1
+            DebugWarn(url..' 已加载')
+        end) 
+    end
+    repeat task.wait() until loadedScripts == 4 --Waiting for scripts
 
     OrionLib = loadstring(baseScripts[1])()
     ESPLibrary = loadstring(baseScripts[2])()
@@ -39,8 +50,10 @@ local LoadSuc,_ = pcall(function()
     ExecutorChecker = loadstring(baseScripts[4])()
 end)
 
-local checklist = {OrionLib,ESPLibrary,RQHub,ExecutorChecker}
-if not LoadSuc or not checklist[4] then VanillaNotify('加载资源时遇到问题',10,'rbxassetid://7733658271'); return end
+if not LoadSuc then 
+    DebugWarn('遇到加载问题: '..err)
+    VanillaNotify('加载资源时遇到问题',10,'rbxassetid://7733658271'); return 
+end
 
 local GameFolder = 'RQHub\\' .. gameInfo.Folder
 if not isfolder(GameFolder) then makefolder(GameFolder) end
@@ -53,7 +66,11 @@ local ScriptURLs = {
 local Scripts = {}
 
 task.spawn(function()
-    for _,url in ipairs(ScriptURLs) do table.insert(Scripts,game:HttpGet(url)) end --Load scripts from urls
+    for _,url in ipairs(ScriptURLs) do 
+        table.insert(Scripts,game:HttpGet(url))
+        loadedScripts = loadedScripts + 1
+        DebugWarn(url..' 已加载')
+     end --Load scripts from urls
 end)
 
 Window = OrionLib:MakeWindow({
@@ -63,7 +80,7 @@ Window = OrionLib:MakeWindow({
     ConfigFolder = GameFolder .. (placeInfo ~= '*' and ('\\' .. placeInfo) or '')
 })
 
-repeat task.wait() until #Scripts == 3 --Waiting for scripts
+repeat task.wait() until loadedScripts == 7 --Waiting for scripts
 
 for _,script in pairs(Scripts) do loadstring(script)() end
 
