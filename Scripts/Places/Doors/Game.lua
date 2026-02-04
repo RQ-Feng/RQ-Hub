@@ -1105,27 +1105,43 @@ Anti:AddToggle({
     Default = false,
     Callback = function(Value) 
         if not Value then return end
-        local MotorReplication = RemotesFolder:FindFirstChild('MotorReplication')
-        local FakeMotorReplication = Instance.new('UnreliableRemoteEvent',RemotesFolder)
-        FakeMotorReplication.Name = 'MotorReplication'
-        for i = 1,10 do MotorReplication:FireServer(-1000) end
-        HideObject(MotorReplication,OrionLib.Flags['Anti_Eyes_Lookman'])
+        local MotorReplication,FakeMotorReplication
+        local Enable = {}
+
+        local function Start()
+            if Enable['Value'] then return end
+            repeat task.wait() until Character:GetAttribute('Alive') or not OrionLib:IsRunning()
+            if not OrionLib.Flags['Anti_Eyes_Lookman'] or not OrionLib:IsRunning() then return end
+            MotorReplication = RemotesFolder:FindFirstChild('MotorReplication')
+            FakeMotorReplication = Instance.new('UnreliableRemoteEvent',RemotesFolder)
+            FakeMotorReplication.Name = 'MotorReplication'
+            for i = 1,10 do MotorReplication:FireServer(-1000) end
+            Enable['Value'] = true
+            HideObject(MotorReplication,Enable)
+        end
 
         local function Stop()
-            OrionLib.Flags['Anti_Eyes_Lookman']:Set(false)
-            FakeMotorReplication:Destroy()
+            if FakeMotorReplication then FakeMotorReplication:Destroy() end
+            Enable['Value'] = false
+            task.wait()
             for i = 1,10 do MotorReplication:FireServer(0) end
         end
 
-        AddConnection(RemotesFolder.PlayerDied.OnClientEvent,function(char,plr) if plr.Name == LocalPlayer.Name then 
-            OrionLib:MakeNotification({
-                Name = '防Eyes/Lookman',
-                Content = '已自动关闭.',
-                Time = 3
-            }); Stop() 
-        end end,OrionLib.Flags['Anti_Eyes_Lookman'])
+        AddConnection(RemotesFolder.PlayerDied.OnClientEvent,function(char,plr)
+            if plr.Name == LocalPlayer.Name then Stop() end
+        end,OrionLib.Flags['Anti_Eyes_Lookman'])
+
+        AddConnection(LocalPlayer.CharacterAdded,function(char)
+            local suc,movement; repeat
+                suc,movement = pcall(function()
+                    return game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game.Movement
+                end); task.wait()
+            until suc; task.wait(1)
+            Start()
+        end,OrionLib.Flags['Anti_Eyes_Lookman'])
 
         task.spawn(function()
+            Start()
             repeat task.wait() until not OrionLib.Flags['Anti_Eyes_Lookman'].Value or not OrionLib:IsRunning()
             Stop()
         end)
