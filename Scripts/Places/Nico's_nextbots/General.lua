@@ -1,3 +1,4 @@
+local MarketplaceService = game:GetService("MarketplaceService")
 local events = ReplicatedStorage.events
 local currentMap = workspace:FindFirstChild('currentMap')
 
@@ -14,6 +15,10 @@ local JumpEffects
 
 Tab = Window:MakeTab({
     Name = "主界面",
+    Icon = "rbxassetid://4483345998"
+})
+Boombox = Window:MakeTab({
+    Name = "音箱",
     Icon = "rbxassetid://4483345998"
 })
 Exploit = Window:MakeTab({
@@ -47,6 +52,27 @@ Tab:AddButton({
     ClickTwice = true,
     Callback = function() events.player.char.respawnchar:FireServer() end
 })
+--BoomboxSound
+local boomboxes = SoundService.master.global.boombox
+
+local function UpdateBoomboxVolume()
+    for _,boomboxSound in pairs(boomboxes:GetChildren()) do
+        if boomboxSound.Name == tostring(LocalPlayer.UserId) then continue end
+        boomboxSound.Volume = OrionLib.Flags['BoomboxSoundVolume'].Value
+    end
+end
+
+Boombox:AddSlider({
+    Name = "其他人音箱音量",
+    Save = true,
+    Min = 0,
+    Max = 2,
+    Default = 0.75,
+    Increment = 0.1,
+    Flag = 'BoomboxSoundVolume',
+    Callback = UpdateBoomboxVolume
+}); AddConnection(boomboxes.ChildAdded,UpdateBoomboxVolume)
+
 Exploit:AddToggle({
     Name = "重复蹦床效果",
     Default = false,
@@ -89,6 +115,7 @@ Exploit:AddToggle({
         for _,door in pairs(GetMap():GetDescendants()) do KickDoor(door) end
     end
 })
+
 AddConnection(currentMap.DescendantAdded,function(inst)
     if inst.Name == 'JumpEffects' and inst:IsA('RemoteEvent') and OrionLib.Flags['RepeatJumpEffects'].Value then
         JumpEffects = inst
