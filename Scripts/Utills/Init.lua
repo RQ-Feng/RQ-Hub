@@ -328,7 +328,7 @@ local OldFBProps = {
 
 local function SetBright(value)
     local suc,prop = pcall(function() return Lighting[tostring(value)] end)
-    if suc then OldFBProps[tostring(value)] = prop else return end
+    if suc then OldFBProps[tostring(value)] = prop end
     Lighting.Brightness = value and 2 or OldFBProps['Brightness']
     Lighting.ClockTime = value and 14 or OldFBProps['ClockTime']
     Lighting.FogEnd = value and 100000 or OldFBProps['FogEnd']
