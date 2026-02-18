@@ -127,7 +127,7 @@ local GameItems = {
     ['LadderModel'] = '梯子'
 }
 
-local Items = { --Have auto esp
+local ItemsName = {
     ['Lighter'] = '打火机',
     ['Lockpick'] = '撬锁器',
     ['Vitamins'] = '维他命',
@@ -154,7 +154,7 @@ local Items = { --Have auto esp
     ['StarVial'] = '小星光瓶',
     ['AloeVera'] = '芦荟',
     ['TipJar'] = '小费罐',
-    ['GweenSoda'] = '',
+    ['GweenSoda'] = 'Gween苏打水',
     ['Donut'] = '甜甜圈',
     ['Shears'] = '剪刀',
     ['GoldGun'] = '金枪',
@@ -166,7 +166,7 @@ local Items = { --Have auto esp
     ['LiveHintBook'] = '书本'
 }
 
-local EspItems = {
+local GetEspItemBoxes = {
     ['KeyObtain'] = function(item)
         local hitbox = item:WaitForChild('Hitbox',3)
         if hitbox then return hitbox:WaitForChild('KeyHitbox',3) end
@@ -222,7 +222,7 @@ local function CheckEspItem(config)
     if Players:GetPlayerFromCharacter(inst.Parent) or inst.Parent.Name == 'SallyMoving' then return false end -- Check parent
     
     AddESP({
-        inst = EspItems[instName] and EspItems[instName](inst) or inst,
+        inst = GetEspItemBoxes[instName] and GetEspItemBoxes[instName](inst) or inst,
         Name = DisplayTable[instName] or inst.Name,
         Type = EspType,
         Color = Color,
@@ -230,29 +230,54 @@ local function CheckEspItem(config)
     }); return true
 end
 
-local function CheckAllEspItems(ItemInst)
-    if not ItemInst:IsA('Model') then return end
-    if CheckEspItem({inst = ItemInst,instName = 'KeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'KeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'FuseObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['FuseEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'LeverForGate',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'VineGuillotine',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'TimerLever',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'ElectricalKeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'LiveHintBook',DisplayTable = GameItems,Flag = OrionLib.Flags['LiveHintBookEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'FigureRig',Color = Color3.new(1,0,0),DisplayTable = Entities['OnlyLocalization'],Flag = OrionLib.Flags['EntitiesEsp']}) then return end
-    if CheckEspItem({inst = ItemInst,instName = 'StardustPickup',DisplayTable = GameItems,Flag = OrionLib.Flags['CurrencyEsp']}) then return end
-    if ItemInst.Name == 'GoldPile' then AddESP({
-        inst = ItemInst,
-        Name = tostring(ItemInst:GetAttribute('GoldValue'))..GameItems['GoldPile'],
-        Type = 'Highlight',
-        Color = Color3.new(1, 1, 0),
-        value = OrionLib.Flags['CurrencyEsp']
-    }); return end
+local EspMethods = {
+    ['KeyObtain'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'KeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']})
+    end,
+    ['FuseObtain'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'FuseObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['FuseEsp']})
+    end,
+    ['LeverForGate'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'LeverForGate',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
+    end,
+    ['VineGuillotine'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'VineGuillotine',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
+    end,
+    ['TimerLever'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'TimerLever',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
+    end,
+    ['ElectricalKeyObtain'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'ElectricalKeyObtain',DisplayTable = GameItems,Flag = OrionLib.Flags['KeyEsp']})
+    end,
+    ['LiveHintBook'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'LiveHintBook',DisplayTable = GameItems,Flag = OrionLib.Flags['LiveHintBookEsp']})
+    end,
+    ['FigureRig'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'FigureRig',Color = Color3.new(1,0,0),DisplayTable = Entities['OnlyLocalization'],Flag = OrionLib.Flags['EntitiesEsp']})
+    end,
+    ['StardustPickup'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'StardustPickup',DisplayTable = GameItems,Flag = OrionLib.Flags['CurrencyEsp']})
+    end,
+    ['GoldPile'] = function(ItemInst)
+        AddESP({
+            inst = ItemInst,
+            Name = tostring(ItemInst:GetAttribute('GoldValue'))..GameItems['GoldPile'],
+            Type = 'Highlight',
+            Color = Color3.new(1, 1, 0),
+            value = OrionLib.Flags['CurrencyEsp']
+        })
+    end,
+}
 
-    for item, name in pairs(Items) do if CheckEspItem({
-        inst = ItemInst,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']
-    }) then return end end
+local function CheckAllEspItems(ItemInst)
+    local itemName = ItemInst.Name
+    if EspMethods[itemName] then return EspMethods[itemName](ItemInst) end
+
+    if ItemsName[itemName] then
+        return CheckEspItem({
+            inst = ItemInst,instName = itemName,DisplayTable = ItemsName,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']
+        })
+    end
 
     if not IsBypassingAC and ItemInst.Name == 'LadderModel' then
         local ladderEsp = CheckEspItem({inst = ItemInst,instName = 'LadderModel',DisplayTable = GameItems,Flag = OrionLib.Flags['BypassACFromLadder']}) 
@@ -583,7 +608,7 @@ Feature:AddToggle({
                 Name = "绕过反作弊",
                 Content = "请先爬上梯子.",
                 Time = 30
-            })
+            }); IsBypassingAC = false
             for _, item in pairs(workspace.CurrentRooms:GetDescendants()) do
                 if item.Name ~= 'LadderModel' then continue end
                 local ladderEsp = AddESP({
@@ -873,18 +898,26 @@ Esp:AddToggle({
     Flag = 'ItemsEsp',
     Callback = function(Value)
         if not Value then return end
-        for item, name in pairs(Items) do 
-            task.spawn(function()
-                for _, inst in pairs(workspace.CurrentRooms:GetDescendants()) do
-                    CheckEspItem({inst = inst,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']})
+        task.spawn(function()
+            for _, inst in pairs(workspace.CurrentRooms:GetDescendants()) do
+                local itemName = inst.Name
+                if inst:IsA('Model') and ItemsName[itemName] then
+                    return CheckEspItem({
+                        inst = inst,instName = itemName,DisplayTable = ItemsName,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']
+                    })
                 end
-            end)
-            task.spawn(function()
-                for _, inst in pairs(workspace.Drops:GetDescendants()) do
-                    CheckEspItem({inst = inst,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']})
+            end
+        end)
+        task.spawn(function()
+            for _, inst in pairs(workspace.Drops:GetDescendants()) do
+                local itemName = inst.Name
+                if inst:IsA('Model') and ItemsName[itemName] then
+                    return CheckEspItem({
+                        inst = inst,instName = itemName,DisplayTable = ItemsName,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']
+                    })
                 end
-            end)
-        end
+            end
+        end)
     end
 })
 Esp:AddToggle({
@@ -1176,13 +1209,15 @@ AddConnection(workspace.ChildAdded,function(entity) -- Entity
     end
 end)
 
-AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Check descendant
+AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Esp
+    local itemName = inst.Name
+    if not EspMethods[itemName] and not GameItems[itemName] and not ItemsName[itemName] then return end
     CheckAllEspItems(inst)
 end)
 
 AddConnection(workspace.Drops.ChildAdded,function(DropItem) -- Check drop item
-    for item, name in pairs(Items) do 
-        CheckEspItem({inst = DropItem,instName = item,DisplayTable = Items,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']})
+    for item, name in pairs(ItemsName) do 
+        CheckEspItem({inst = DropItem,instName = item,DisplayTable = ItemsName,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']})
     end
 end)
 
