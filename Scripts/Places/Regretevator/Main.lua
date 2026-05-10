@@ -142,6 +142,7 @@ Tab:AddToggle({
 })
 local TaskAmountUpdate,ChallengeEventAsync,MultiPlrContinue,finishChallenge --For AutoChallenge
 local AutoChallengeToggle --Toggle
+
 AutoChallengeToggle = Tab:AddToggle({
     Name = "自动任务(部分)",
     Flag = 'AutoChallenge',
@@ -174,6 +175,12 @@ AutoChallengeToggle = Tab:AddToggle({
             task.spawn(function() Type.wait(3); MultiPlrContinue = false end)
             return TaskNotify('当前服务器有多个玩家\n若仍旧启动请在3s内重新打开',true)
         end
+
+        -- for _,v in pairs(workspace:GetDescendants()) do
+        --     if v:IsA('Seat') then
+        --         Instance.new('Highlight',v.Parent)
+        --     end
+        -- end
 
         local cacheConnections = {}
 
