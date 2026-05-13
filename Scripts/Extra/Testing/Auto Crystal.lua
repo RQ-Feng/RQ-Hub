@@ -22,7 +22,7 @@ if game.PlaceId == 12411473842 then
 end
 --前期设置
 local IsRunning = true
-local HasEntity = false
+local NeedToStop = false
 local stuckTime,stuckTimeLimited = 0,80
 local CheckStuckTime = task.spawn(function()
     while IsRunning and stuckTime < stuckTimeLimited do
@@ -51,9 +51,7 @@ local AuxItems = MainGui.Health.AuxItems
 
 local entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "A60"} -- 实体
 local NoPromptDoors = {'LargeRoundDoor'}
-local SpecialRooms = {
-    ['SearchlightsEncounter'] = function(room) end
-}
+local SpecialRooms = {}
 local KeyItems = {'NormalKeyCard','RidgeKeyCard','PasswordPaper'}
 --RequiresLineOfSight
 --Debug
@@ -63,11 +61,12 @@ end
 
 --通用
 local function DoorIsOpened(Entrance)
-    local Root = Entrance:WaitForChild('Root',2)
+    local Root = Entrance:WaitForChild('Root',1)
     local Lock = Entrance:GetAttribute('Locked') and Entrance:WaitForChild('Lock',2)
-    if not Entrance or Entrance:WaitForChild('OpenValue').Value then return true end
+    if not Entrance or not Root or Entrance:WaitForChild('OpenValue').Value then return true end
     local suc,prompt = pcall(function() return Lock and Lock.Main.ProximityPrompt or Root.ProximityPrompt end)
     if not suc or not prompt.Enabled then return true end
+    if Entrance:GetAttribute('OpenedByAutoCrystal') then return true end
     return false
 end
 
@@ -109,9 +108,13 @@ end
 --开普通门
 local function OpenNextDoor()
     for _,room in pairs(Rooms:GetChildren()) do
-        if not room:IsA('Model') then continue end
-        if SpecialRooms[room.Name] then return SpecialRooms[room.Name](room) end--特殊房间特殊对待
-        local Entrances = room:WaitForChild('Entrances')
+        if not room:IsA('Model') or NeedToStop then continue end
+        if SpecialRooms[room.Name] then 
+            Warn(room.Name .. ' 尝试使用特殊Function通过')
+            SpecialRooms[room.Name](room); continue 
+        end--特殊房间特殊对待
+        local Entrances = room:WaitForChild('Entrances',1)
+        if not Entrances then continue end
         local Entrance = Entrances:FindFirstChildOfClass('Model')
         --对于双门的特定检测
         Entrance = Entrance and (string.find(Entrance.Name, "DoubleDoor") and Entrance:FindFirstChild('NormalDoor') or Entrance)
@@ -124,7 +127,6 @@ local function OpenNextDoor()
         if table.find(NoPromptDoors,Entrance.Name) then return TeleportLookVector(Root,math.random(6,12)) end
 
         local suc,prompt = pcall(function() return Lock and Lock.Main.ProximityPrompt or Root.ProximityPrompt end)
-        prompt.Enabled = true
 
         local FinalkeyName,Password
 
@@ -164,6 +166,7 @@ local function OpenNextDoor()
 end
 --修复装置
 local function GeneratorFix(Generator)
+    if not Generator then return end
     local Fixed = Generator.Fixed
     if Fixed.Value == 100 then return end
     Character:PivotTo(Generator.ProxyPart.CFrame)
@@ -189,10 +192,46 @@ local function FixBossMachine(room)
         end
     end
 end
---最终运行设置
+--特殊房间Function设置
+SpecialRooms['FirewallStart'] = function(room)
+    local Elevator = workspace:FindFirstChild('Elevator')
+    if not Elevator then return end
+    local Highlight = Elevator.ElevatorKey.Highlight
+    local ProximityPrompt = Highlight:FindFirstChild('ProximityPrompt')
+    if not ProximityPrompt then return end
+    PromptPart(Highlight,function()
+        while ProximityPrompt.Parent and task.wait() do InteractPrompt(ProximityPrompt) end
+    end,4)
+end
+SpecialRooms['FirewallElevator'] = function(room)
+    local ChaseRooms = room:FindFirstChild('ChaseRooms')
+    local OpenedDoors = 0
+    for _,chaseRoom in pairs(ChaseRooms:GetChildren()) do
+        if string.find(chaseRoom.Name,'FirewallTutorialStart') then continue end
+        OpenedDoors = OpenedDoors + 1
+        local Entrance = chaseRoom.Entrances.SpawningBlock:FindFirstChildOfClass('Model')
+        while not Entrance.OpenValue.Value and not Entrance:GetAttribute('OpenedByAutoCrystal') and task.wait(0.1) do TeleportLookVector(Entrance:WaitForChild('RootPart',1),math.random(2,6)) end
+        Entrance:SetAttribute('OpenedByAutoCrystal',true)
+    end
+    if OpenedDoors == 0 then
+        local End = Rooms:FindFirstChild('FirewallEnd')
+        local door = End.Entrances:FindFirstChild('LargeRoundDoor')
+        while not door.OpenValue.Value and not door:GetAttribute('OpenedByAutoCrystal') and task.wait(0.1) do TeleportLookVector(door:WaitForChild('RootPart',1),math.random(2,6)) end
+        door:SetAttribute('OpenedByAutoCrystal',true)
+    end
+end
+SpecialRooms['SearchlightsTramStart'] = function(room)
+    GeneratorFix(room:WaitForChild('Interactables'):WaitForChild('PresetGenerator'))
+end
+SpecialRooms['SearchlightsTramEnd'] = function(room)
+    local door = room:WaitForChild('Entrances'):WaitForChild('LargeRoundDoor')
+    while not door.OpenValue.Value and not door:GetAttribute('OpenedByAutoCrystal') and task.wait(0.1) do TeleportLookVector(door:WaitForChild('RootPart',1),math.random(6,12)) end
+    door:SetAttribute('OpenedByAutoCrystal',true)
+end
 SpecialRooms['SearchlightsEncounter'] = function(room)
     FixBossMachine(room)
 end
+--最终运行设置
 local RoomsAdded;RoomsAdded = Rooms.ChildAdded:Connect(function(room)
     local Name = room.Name
     if Name == 'PipeBoardPuzzle1' then
@@ -216,7 +255,7 @@ end)
 local RunTask = task.spawn(function()
     while IsRunning and task.wait() do 
         workspace.Camera.FieldOfView = 120
-        if HasEntity then coroutine.yield() end
+        if NeedToStop then coroutine.yield() end
         OpenNextDoor() 
     end
 end)
@@ -231,14 +270,15 @@ local EntityDetector = workspace.ChildAdded:Connect(function(entity) -- 关于�
         end
         repeat task.wait() until GetDistance(entity, HumanoidRootPart) <= 80 or not entity or not IsRunning
         if not entity or not IsRunning then return end
-        HasEntity = true
+        NeedToStop = true
         local OldCF = HumanoidRootPart.CFrame
         repeat HumanoidRootPart.CFrame = CFrame.new(0,10000,0); task.wait(1) until not entity.Parent or not IsRunning
-        HasEntity = false
+        NeedToStop = false
         HumanoidRootPart.CFrame = OldCF
         if RunTask then coroutine.resume(RunTask) end
     end
 end)
+--删除Eyefestation
 local EyefestationInsts = {'Eyefestation','EnragedEyefestation','EyefestationGaze','EnragedEyefestation'}
 local EyefestationDeleter = workspace.DescendantAdded:Connect(function(inst) -- 其他
     if table.find(EyefestationInsts,inst.Name) then inst:Destroy() end
