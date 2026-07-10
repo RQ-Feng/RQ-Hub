@@ -109,6 +109,7 @@ end
 local function OpenNextDoor()
     for _,room in pairs(Rooms:GetChildren()) do
         if not room:IsA('Model') or NeedToStop then continue end
+
         if SpecialRooms[room.Name] then 
             Warn(room.Name .. ' 尝试使用特殊Function通过')
             SpecialRooms[room.Name](room); continue 
@@ -160,15 +161,15 @@ local function OpenNextDoor()
                 end
             end,5)
         end
-        Entrance:SetAttribute('OpenedByAutoCrystal',true)
+        Entrance:SetAttribute('OpenedByAutoCrystal',Entrance:FindFirstChild('OpenValue').Value or false)
         stuckTime = 0
     end
 end
 --修复装置
 local function GeneratorFix(Generator)
     if not Generator then return end
-    local Fixed = Generator.Fixed
-    if Fixed.Value == 100 then return end
+    local Fixed = Generator:WaitForChild("Fixed",3)
+    if not Fixed or Fixed.Value == 100 then return end
     Character:PivotTo(Generator.ProxyPart.CFrame)
     task.wait(0.5)
     Generator.RemoteFunction:InvokeServer('')
@@ -187,7 +188,7 @@ local function FixBossMachine(room)
         until bigdoor:FindFirstChild('OpenValue') and bigdoor.OpenValue.Value
         task.wait(15)
         for _,Generator in pairs(room.Interactables:GetChildren()) do
-            if Generator.Name ~= 'PresetGenerator' then continue end
+            if Generator.Name ~= 'Generator' then continue end
             GeneratorFix(Generator)
         end
     end
@@ -234,7 +235,7 @@ end
 --最终运行设置
 local RoomsAdded;RoomsAdded = Rooms.ChildAdded:Connect(function(room)
     local Name = room.Name
-    if Name == 'PipeBoardPuzzle1' then
+    if string.find(Name,'Puzzle') then
         Warn('L Room,play again.')
         Events.PlayAgain:FireServer()
     elseif Name == 'SearchlightsEncounter' then
@@ -255,7 +256,7 @@ end)
 local RunTask = task.spawn(function()
     while IsRunning and task.wait() do 
         workspace.Camera.FieldOfView = 120
-        if NeedToStop then coroutine.yield() end
+        if NeedToStop then Warn("Need to stop now."); coroutine.yield() end
         OpenNextDoor() 
     end
 end)

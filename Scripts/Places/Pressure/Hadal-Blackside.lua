@@ -413,21 +413,21 @@ Tab:AddButton({
         RemoteFolder.PlayAgain:FireServer()
     end
 })
-Tab:AddSlider({
-    Name = "玩家透明度",
-    Save = true,
-    Min = 0,
-    Max = 1,
-    Default = 0,
-    Increment = 0.05,
-    Callback = function(Value)
-        for _, humanpart in pairs(Character:GetChildren()) do
-            if humanpart:IsA("MeshPart") then
-                humanpart.Transparency = Value
-            end
-        end
-    end
-})
+-- Tab:AddSlider({
+--     Name = "玩家透明度",
+--     Save = true,
+--     Min = 0,
+--     Max = 1,
+--     Default = 0,
+--     Increment = 0.05,
+--     Callback = function(Value)
+--         for _, humanpart in pairs(Character:GetChildren()) do
+--             if humanpart:IsA("MeshPart") then
+--                 humanpart.Transparency = Value
+--             end
+--         end
+--     end
+-- })
 Tab:AddToggle({ -- 玩家提醒
     Name = "玩家提醒",
     Save = true,
@@ -1078,7 +1078,7 @@ workspaceCA = workspace.ChildAdded:Connect(function(child) -- 关于实体
         if OrionLib.Flags.EntityEsp.Value then -- 实体esp
             createBilltoesp(child, child.Name, Color3.new(1, 0, 0), true)
         end
-        if OrionLib.Flags.nopandemonium.Value and child.Name == "Pandemonium" and child:IsDescendantOf(workspace) then -- 删除z367
+        if OrionLib.Flags.nopandemonium.Value and (string.find(child.Name, "pande") or string.find(child.Name, "monium")) and child:IsDescendantOf(workspace) then -- 删除z367
             task.wait(0.1)
             child:Destroy()
             delNotifi("Pandemonium")
