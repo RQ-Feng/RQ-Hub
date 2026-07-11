@@ -1,10 +1,10 @@
 -- local设置
-entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
-noautoinst = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet"}
-playerPositions = {} -- 存储玩家坐标
-Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
-EspConnects = {}
-Character = Players.LocalPlayer.Character -- 本地玩家Character
+local entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
+local noautoinst = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile"}
+local playerPositions = {} -- 存储玩家坐标
+local Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
+local EspConnects = {}
+
 humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
 PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
 RS = game:GetService("ReplicatedStorage")
@@ -1078,7 +1078,7 @@ workspaceCA = workspace.ChildAdded:Connect(function(child) -- 关于实体
         if OrionLib.Flags.EntityEsp.Value then -- 实体esp
             createBilltoesp(child, child.Name, Color3.new(1, 0, 0), true)
         end
-        if OrionLib.Flags.nopandemonium.Value and (string.find(child.Name, "pande") or string.find(child.Name, "monium")) and child:IsDescendantOf(workspace) then -- 删除z367
+        if OrionLib.Flags.nopandemonium.Value and (string.find(child.Name, "Pande") or string.find(child.Name, "monium")) and child:IsDescendantOf(workspace) then -- 删除z367
             task.wait(0.1)
             child:Destroy()
             delNotifi("Pandemonium")
