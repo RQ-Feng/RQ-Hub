@@ -1,6 +1,6 @@
 -- local设置
 local entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
-local noautoinst = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile"}
+local noautoinst = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile","Lock"}
 local playerPositions = {} -- 存储玩家坐标
 local Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
 local EspConnects = {}
@@ -220,25 +220,25 @@ Tab:AddToggle({ -- 轻松交互
         end
     end
 })
-Tab:AddToggle({ -- 轻松修复
-    Name = "轻松修复",
-    Save = true,
-    Default = true,
-    Callback = function(Value)
-        if Value == false then
-            ezfix = false
-            return
-        end
-        ezfix = true
-        task.spawn(function()
-            while ezfix and OrionLib:IsRunning() do
-                FixGame = PlayerGui.Main.FixMinigame.Background.Frame.Middle
-                FixGame.Circle.Rotation = FixGame.Pointer.Rotation - 20
-                task.wait()
-            end
-        end)
-    end
-})
+-- Tab:AddToggle({ -- 轻松修复
+--     Name = "轻松修复",
+--     Save = true,
+--     Default = true,
+--     Callback = function(Value)
+--         if Value == false then
+--             ezfix = false
+--             return
+--         end
+--         ezfix = true
+--         task.spawn(function()
+--             while ezfix and OrionLib:IsRunning() do
+--                 FixGame = PlayerGui.Main.FixMinigame.Background.Frame.Middle
+--                 FixGame.Circle.Rotation = FixGame.Pointer.Rotation - 20
+--                 task.wait()
+--             end
+--         end)
+--     end
+-- })
 Tab:AddToggle({ -- 自动修复
     Name = "自动修复",
     Save = true,
@@ -250,7 +250,7 @@ Tab:AddToggle({ -- 自动修复
         end
         autofix = true
         task.spawn(function()
-            for _, autofixthing in pairs(workspace.Rooms:GetDescendants()) do
+            for _, autofixthing in pairs(workspace.GameplayFolder.Rooms:GetDescendants()) do
                 if autofixthing.Name == "EncounterGenerator" then
                     autofixthing.RemoteFunction:InvokeServer("")
                     while autofixthing.Fixed ~= 100 do
@@ -1089,7 +1089,7 @@ workspaceCR = workspace.ChildRemoved:Connect(function(child) -- 关于实体
     if table.find(entityNames, child.Name) then
         if OrionLib.Flags.avoid.Value and Entitytoavoid[child] then -- 自动躲避
             teleportPlayerBack(Players.LocalPlayer)
-            Entitytoavoid[child] = nil
+            Entitytoavoid[child] = nil 
         end
         if OrionLib.Flags.NotifyEntities.Value and OrionLib.Flags.avoid.Value == false then -- 实体提醒
             entityNotifi(child.Name .. "消失")
