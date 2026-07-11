@@ -1,6 +1,6 @@
 Connects = {}
 noautoinst = {}
-RS = game:GetService("ReplicatedStorage")
+ReplicatedStorage = game:GetService("ReplicatedStorage")
 Character = Players.LocalPlayer.Character -- 本地玩家Character
 humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
 PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
@@ -337,9 +337,17 @@ Esp:AddToggle({
                 if themodel.Name == "Door" then
                     if themodel.Parent.Parent.Name == "Rooms" then--第一个Parent为房间号
                         if themodel:WaitForChild("Door"):IsA("Model") then
-                            createBilltoesp(themodel:WaitForChild("Door"),"门", Color3.new(0,1,0),true)
+                            AddESP({
+                                inst = themodel:WaitForChild("Door"),
+                                Name = "门",
+                                Color = Color3.new(0,1,0),
+                            })
                         elseif themodel:WaitForChild("Door"):IsA("Part") then
-                            createBilltoesp(themodel,"门", Color3.new(0,1,0),true)
+                            AddESP({
+                                inst = themodel,
+                                Name = "门",
+                                Color = Color3.new(0,1,0),
+                            })
                         end
                     end
                 end
@@ -463,7 +471,7 @@ Del:AddButton({
     Name = "God mode",
     Callback = function()
         suc,err = pcall(function()
-            RS.KillClient:Destroy()
+            ReplicatedStorage.KillClient:Destroy()
             Notify("伪God mode","成功删除")
         end)
             if not suc then
@@ -506,7 +514,7 @@ Del:AddButton({
     Name = "删除Goatman生成",
     Callback = function()
         suc,err = pcall(function()
-            RS.SendGoatman:Destroy()
+            ReplicatedStorage.SendGoatman:Destroy()
             Notify("删除Goatman","成功删除")
         end)
             if not suc then
@@ -519,8 +527,8 @@ Del:AddButton({
     Name = "删除Rush生成",
     Callback = function()
         suc,err = pcall(function()
-            RS.SendRush:Destroy()
-            RS.Rush:Destroy()
+            ReplicatedStorage.SendRush:Destroy()
+            ReplicatedStorage.Rush:Destroy()
             Notify("删除Rush","成功删除")
         end)
             if not suc then
@@ -533,7 +541,7 @@ Del:AddButton({
     Name = "删除Sorrow生成",
     Callback = function()
         suc,err = pcall(function()
-            RS.SendSorrow:Destroy()
+            ReplicatedStorage.SendSorrow:Destroy()
             Notify("删除Sorrow","成功删除")
         end)
             if not suc then
@@ -546,8 +554,8 @@ Del:AddButton({
     Name = "删除Worm生成",
     Callback = function()
         suc,err = pcall(function()
-            RS.SendWorm:Destroy()
-            RS.Worm:Destroy()
+            ReplicatedStorage.SendWorm:Destroy()
+            ReplicatedStorage.Worm:Destroy()
             Notify("删除Worm","成功删除")
         end)
             if not suc then
@@ -581,11 +589,11 @@ workspaceDA = workspace.DescendantAdded:Connect(function(inst)
     NotifiEntity(inst,"Worm","Worm(白怪)","spawn",OrionLib.Flags.noworm.Value)
     if inst.Name == "Rush" and OrionLib.Flags.norush.Value then
         inst:Destroy()
-        RS.SendRush.Carnation.tinnitus.Playing = false
+        ReplicatedStorage.SendRush.Carnation.tinnitus.Playing = false
     end
     if inst.Name == "Worm" and OrionLib.Flags.noworm.Value then
         inst:Destroy()
-        RS.SendWorm.Slugfish.tinnitus.Playing = false
+        ReplicatedStorage.SendWorm.Slugfish.tinnitus.Playing = false
     end
     if inst.Name == "eye" and OrionLib.Flags.noblueeyes.Value then
         inst:Destroy()

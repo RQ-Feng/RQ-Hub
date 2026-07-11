@@ -1,14 +1,12 @@
 -- local设置
 local entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
-local noautoinst = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile","Lock"}
+local autoInst_Blaacklist = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile","Lock"}
 local playerPositions = {} -- 存储玩家坐标
 local Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
 local EspConnects = {}
 
-humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
 PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
-RS = game:GetService("ReplicatedStorage")
-RemoteFolder = RS.Events -- Remote Event储存区之一
+RemoteFolder = ReplicatedStorage.Events -- Remote Event储存区之一
 --local结束->Function设置
 function Notify(name,content,time,Sound,SoundId) -- 信息
     OrionLib:MakeNotification({
@@ -34,48 +32,13 @@ function copyitems(copyitem) -- 复制物品
     create_NumberValue.Name = copyitem
     create_NumberValue.Parent = game.Players.LocalPlayer.PlayerFolder.Inventory
 end
-function createBilltoesp(theobject,name,color,hlset) -- 创建BillboardGui-颜色:Color3.new(r,g,b)
-    bill = Instance.new("BillboardGui", theobject) -- 创建BillboardGui
-    bill.AlwaysOnTop = true
-    bill.Size = UDim2.new(0, 100, 0, 50)
-    bill.Adornee = theobject
-    bill.MaxDistance = 2000
-    bill.Name = name .. "esp"
-    mid = Instance.new("Frame", bill) -- 创建Frame-圆形
-    mid.AnchorPoint = Vector2.new(0.5, 0.5)
-    mid.BackgroundColor3 = color
-    mid.Size = UDim2.new(0, 8, 0, 8)
-    mid.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Instance.new("UICorner", mid).CornerRadius = UDim.new(1, 0)
-    Instance.new("UIStroke", mid)
-    txt = Instance.new("TextLabel", bill) -- 创建TextLabel-显示
-    txt.AnchorPoint = Vector2.new(0.5, 0.5)
-    txt.BackgroundTransparency = 1
-    txt.TextColor3 =color
-    txt.Size = UDim2.new(1, 0, 0, 20)
-    txt.Position = UDim2.new(0.5, 0, 0.7, 0)
-    txt.Text = name
-    Instance.new("UIStroke", txt)
-    if hlset then
-        hl = Instance.new("Highlight",PlayerGui)
-        hl.Name = name .. "透视高光"
-        hl.Adornee = theobject
-        hl.DepthMode = "AlwaysOnTop"
-        hl.FillColor = color
-        hl.FillTransparency = "0.6"
-        task.spawn(function()
-            while hl do
-                if hl.Adornee == nil or not hl.Adornee:IsDescendantOf(workspace) then
-                    hl:Destroy()
-                end
-                task.wait()
-            end
-        end)
-    end
-end
-function espmodel(themodel,modelname,name,r,g,b,hlset) -- Esp物品(Model对象)用
+function espmodel(themodel,modelname,name,r,g,b) -- Esp物品(Model对象)用
     if themodel:IsA("Model") and themodel.Parent.Name ~= Players and themodel.Name == modelname then
-        createBilltoesp(themodel, name, Color3.new(r,g,b),hlset)
+        AddESP({
+            inst = themodel,
+            Name = name,
+            Color = Color3.new(r,g,b),
+        })
     end
 end
 function unesp(name) -- unEsp物品用
@@ -298,7 +261,7 @@ Tab:AddToggle({ -- 轻松交互
             while autoinst and OrionLib:IsRunning() do -- 交互-循环
                 for _, proximity in pairs(workspace:GetDescendants()) do
                     if proximity:IsA("ProximityPrompt") and
-                        not table.find(noautoinst, proximity:FindFirstAncestorOfClass("Model").Name) then
+                        not table.find(autoInst_Blaacklist, proximity:FindFirstAncestorOfClass("Model").Name) then
                         proximity:InputHoldBegin()
                     end
                 end
@@ -934,17 +897,17 @@ Esp:AddToggle({ -- 玩家
     Name = "玩家透视",
     Save = true,
     Default = false,
+    Flag = "PlayerEsp",
     Callback = function(Value)
+        if not Value then return end
         for _, player in pairs(game.Players:GetPlayers()) do
-            if Value then
-                if player ~= game.Players.LocalPlayer then
-                    createBilltoesp(player.Character, player.Name, Color3.new(238, 201, 0),false)
-                end
-            else
-                if player.Character:FindFirstChildOfClass("BillboardGui") then
-                    player.Character:FindFirstChildOfClass("BillboardGui"):Destroy()
-                end
-            end
+            if player == game.Players.LocalPlayer then continue end
+            AddESP({
+                inst = player.Character,
+                Name = player.Name,
+                Color = Color3.fromRGB(238, 201, 0),
+                value = OrionLib.Flags["PlayerEsp"]
+            })
         end
     end
 })
@@ -1076,7 +1039,12 @@ workspaceCA = workspace.ChildAdded:Connect(function(child) -- 关于实体
             chatMessage(child.Name .. "出现")
         end
         if OrionLib.Flags.EntityEsp.Value then -- 实体esp
-            createBilltoesp(child, child.Name, Color3.new(1, 0, 0), true)
+            AddESP({
+                inst = child,
+                Name = child.Name,
+                Color = Color3.new(1, 0, 0),
+                value = OrionLib.Flags["EntityEsp"]
+            })
         end
         if OrionLib.Flags.nopandemonium.Value and (string.find(child.Name, "Pande") or string.find(child.Name, "monium")) and child:IsDescendantOf(workspace) then -- 删除z367
             task.wait(0.1)
@@ -1115,6 +1083,14 @@ Players.PlayerAdded:Connect(function(player)
             Notififriend = ""
         end
         Notify("玩家提醒", player.Name .. Notififriend .. "已加入", 2,false)
+    end
+    if OrionLib.Flags['PlayerEsp'] then
+        AddESP({
+            inst = player.Character,
+            Name = player.Name,
+            Color = Color3.fromRGB(238, 201, 0),
+            value = OrionLib.Flags["PlayerEsp"]
+        })
     end
 end)
 Players.PlayerRemoving:Connect(function(player)

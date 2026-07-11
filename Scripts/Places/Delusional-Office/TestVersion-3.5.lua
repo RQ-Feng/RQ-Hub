@@ -173,12 +173,12 @@ Players.PlayerAdded:Connect(function(player)
         Notify("玩家提醒", player.Name .. Notififriend .. "已加入", 5,false)
     end
     if OrionLib.Flags.playeresp.Value and player ~= Players.LocalPlayer then
-        AddESP{
+        AddESP({
             inst = player.Character,
             Name = player.Name,
             Color = Color3.new(238, 201, 0),
             Type = 'Highlight'
-        }
+        })
     end
 end)
 Players.PlayerRemoving:Connect(function(player)

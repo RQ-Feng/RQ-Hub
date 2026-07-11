@@ -4,7 +4,7 @@ doors = {"CryptDoor","GraveyardGate"}
 Character = Players.LocalPlayer.Character -- 本地玩家Character
 humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
 Espboxes = Players.LocalPlayer.PlayerGui
-RemoteFolder = game:GetService('ReplicatedStorage').Events -- Remote Event储存区之一
+RemoteFolder = ReplicatedStorage.Events -- Remote Event储存区之一
 --local结束->Function设置
 function Notify(name,content,time,Sound,SoundId) -- 信息
     OrionLib:MakeNotification({
