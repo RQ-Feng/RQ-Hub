@@ -543,6 +543,7 @@ Esp:AddToggle({ -- door
                     espmodel(themodel,"BigRoomDoor","大门","0","1","0",true)
                 end
             end
+            
             esp = workspace.DescendantAdded:Connect(function(themodel)
                 if themodel.Parent.Name == "Entrances" then
                     espmodel(themodel,"NormalDoor","门","0","1","0",true)
@@ -885,7 +886,9 @@ Esp:AddToggle({ -- 玩家
         end
     end
 })
-workspaceDA = workspace.DescendantAdded:Connect(function(inst) -- 其他
+
+AddConnection(workspace.GameplayFolder.Rooms) -- 房间
+AddConnection(workspace.DescendantAdded,function(inst) -- 其他
     if inst.Name == "Eyefestation" and OrionLib.Flags.noeyefestation.Value then
         inst:Destroy()
         delNotifi("Eyefestation")
@@ -971,34 +974,16 @@ workspaceDA = workspace.DescendantAdded:Connect(function(inst) -- 其他
         Notify("检测假门", "尝试删除")
         inst.Trickster:Destroy()
     end
-    if inst.Name == "WallDweller" and OrionLib.Flags.NotifyEntities.Value then -- 实体提醒-z90
+    if (inst.Name == "WallDweller" or inst.Name == "RottenWallDweller") and OrionLib.Flags.NotifyEntities.Value then
         entityNotifi("墙居者出现")
-        if OrionLib.Flags.chatNotifyEntities.Value then
-            chatMessage("墙居者出现")
-        end
-    end
-    if inst.Name == "RottenWallDweller" and OrionLib.Flags.NotifyEntities.Value then
-        entityNotifi("墙居者出现")
-        if OrionLib.Flags.chatNotifyEntities.Value then
-            chatMessage("墙居者出现")
-        end
+        if OrionLib.Flags.chatNotifyEntities.Value then chatMessage("墙居者出现") end
+        repeat task.wait() until not inst
+        if not OrionLib.Flags.NotifyEntities.Value then return end
+        entityNotifi("墙居者消失")
+        if OrionLib.Flags.chatNotifyEntities.Value then chatMessage("墙居者消失") end
     end
 end)
-workspaceDR = workspace.DescendantRemoving:Connect(function(inst) -- 实体提醒-z90
-    if inst.Name == "WallDweller" and OrionLib.Flags.NotifyEntities.Value then
-        entityNotifi("墙居者消失")
-        if OrionLib.Flags.chatNotifyEntities.Value then
-            chatMessage("墙居者消失")
-        end
-    end
-    if inst.Name == "RottenWallDweller" and OrionLib.Flags.NotifyEntities.Value then
-        entityNotifi("墙居者消失")
-        if OrionLib.Flags.chatNotifyEntities.Value then
-            chatMessage("墙居者消失")
-        end
-    end
-end)
-workspaceCA = workspace.ChildAdded:Connect(function(child) -- 关于实体
+AddConnection(workspace.ChildAdded,function(child) -- 关于实体
     local childName = string.lower(child.Name)
     if table.find(entityNames, child.Name) and child:IsDescendantOf(workspace) then
         if OrionLib.Flags.NotifyEntities.Value and OrionLib.Flags.avoid.Value == false then -- 实体提醒
@@ -1028,7 +1013,7 @@ workspaceCA = workspace.ChildAdded:Connect(function(child) -- 关于实体
         end
     end
 end)
-workspaceCR = workspace.ChildRemoved:Connect(function(child) -- 关于实体
+AddConnection(workspace.ChildRemoved,function(child) -- 关于实体
     if table.find(entityNames, child.Name) then
         if OrionLib.Flags.avoid.Value and Entitytoavoid[child] then -- 自动躲避
             teleportPlayerBack(Players.LocalPlayer)
@@ -1050,7 +1035,7 @@ workspaceCR = workspace.ChildRemoved:Connect(function(child) -- 关于实体
         end
     end
 end)
-Players.PlayerAdded:Connect(function(player)
+AddConnection(Players.PlayerAdded,function(player)
     if OrionLib.Flags.PlayerNotifications.Value then
         if player:IsFriendsWith(Players.LocalPlayer.UserId) then
             Notififriend = "(好友)"
@@ -1068,7 +1053,7 @@ Players.PlayerAdded:Connect(function(player)
         })
     end
 end)
-Players.PlayerRemoving:Connect(function(player)
+AddConnection(Players.PlayerRemoving,function(player)
     if OrionLib.Flags.PlayerNotifications.Value then
         if player:IsFriendsWith(Players.LocalPlayer.UserId) then
             Notififriend = "(好友)"
