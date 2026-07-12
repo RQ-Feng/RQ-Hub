@@ -1,6 +1,10 @@
 -- local设置
 local entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
-local autoInst_Blaacklist = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile","Lock"}
+local autoInst_Blacklist = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile","NormalDoor"}
+local NotifyMes = {
+    ["delete"] = "已成功删除",
+    ["copy"] = "已成功复制"
+}
 local playerPositions = {} -- 存储玩家坐标
 local Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
 local EspConnects = {}
@@ -8,7 +12,7 @@ local EspConnects = {}
 PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
 RemoteFolder = ReplicatedStorage.Events -- Remote Event储存区之一
 --local结束->Function设置
-function Notify(name,content,time,Sound,SoundId) -- 信息
+local function Notify(name,content,time,Sound,SoundId) -- 信息
     OrionLib:MakeNotification({
         Name = name,
         Content = content,
@@ -18,8 +22,8 @@ function Notify(name,content,time,Sound,SoundId) -- 信息
         SoundId = SoundId
     })
 end
-function copyNotifi(copyitemname) -- 复制信息
-    Notify(copyitemname, "已成功复制")
+local function copyNotifi(copyitemname) -- 复制信息
+    Notify(copyitemname, NotifyMes["copy"])
 end
 function delNotifi(delthings) -- 删除信息
     Notify(delthings, "已成功删除")
@@ -32,7 +36,7 @@ function copyitems(copyitem) -- 复制物品
     create_NumberValue.Name = copyitem
     create_NumberValue.Parent = game.Players.LocalPlayer.PlayerFolder.Inventory
 end
-function espmodel(themodel,modelname,name,r,g,b) -- Esp物品(Model对象)用
+local function espmodel(themodel,modelname,name,r,g,b) -- Esp物品(Model对象)用
     if themodel:IsA("Model") and themodel.Parent.Name ~= Players and themodel.Name == modelname then
         AddESP({
             inst = themodel,
@@ -214,7 +218,7 @@ Tab:AddToggle({ -- 自动修复
         autofix = true
         task.spawn(function()
             for _, autofixthing in pairs(workspace.GameplayFolder.Rooms:GetDescendants()) do
-                if autofixthing.Name == "EncounterGenerator" then
+                if autofixthing.Name == "Generator" then
                     autofixthing.RemoteFunction:InvokeServer("")
                     while autofixthing.Fixed ~= 100 do
                         autofixthing.RemoteEvent:FireServer("")
@@ -251,23 +255,15 @@ Tab:AddToggle({ -- 轻松交互
     Name = "自动交互",
     Save = true,
     Default = false,
+    Flag = "AutoPrompt",
     Callback = function(Value)
-        if Value == false then
-            autoinst = false
-            return
-        end
-        autoinst = true
-        task.spawn(function()
-            while autoinst and OrionLib:IsRunning() do -- 交互-循环
-                for _, proximity in pairs(workspace:GetDescendants()) do
-                    if proximity:IsA("ProximityPrompt") and
-                        not table.find(autoInst_Blaacklist, proximity:FindFirstAncestorOfClass("Model").Name) then
-                        proximity:InputHoldBegin()
-                    end
-                end
-                task.wait(0.05)
+        if not Value then return end
+        AddConnection(ProximityPromptService.PromptShown,function(prompt)
+            if table.find(autoInst_Blacklist,prompt:FindFirstAncestorOfClass("Model").Name) then return end
+            while prompt and prompt.Parent and OrionLib:IsRunning() and OrionLib.Flags['AutoPrompt'].Value do     
+                fireproximityprompt(prompt); task.wait() 
             end
-        end)
+        end,OrionLib.Flags['AutoPrompt'])
     end
 })
 Section = Tab:AddSection({
@@ -277,43 +273,21 @@ Tab:AddToggle({ -- 保持广角
     Name = "保持广角",
     Save = true,
     Default = true,
+    Flag = "keep120fov",
     Callback = function(Value)
-        if Value then
-            keep120fov = true
-            task.spawn(function()
-                while game.Workspace.Camera.FieldOfView ~= "120" and keep120fov and OrionLib:IsRunning() do
-                    game.Workspace.Camera.FieldOfView = "120"
-                    task.wait()
-                end
-            end)
-        else
-            keep120fov = false
-        end
+        if not Value then return end
+        AddConnection(workspace.Camera.Changed,function(property)
+            if property ~= 'FieldOfView' then return end
+            workspace.Camera.FieldOfView = "120"
+        end)
+        workspace.Camera.FieldOfView = "120"
     end
 })
 Tab:AddToggle({ -- 高亮
     Name = "高亮(低质量)",
     Save = true,
     Default = true,
-    Callback = function(Value)
-        Light = game:GetService("Lighting")
-        if Value then
-            FullBrightLite = true
-            task.spawn(function()
-                while FullBrightLite and OrionLib:IsRunning() do
-                    Light.Ambient = Color3.new(1, 1, 1)
-                    Light.ColorShift_Bottom = Color3.new(1, 1, 1)
-                    Light.ColorShift_Top = Color3.new(1, 1, 1)
-                    task.wait()
-                end
-            end)
-        else
-            FullBrightLite = false
-            Light.Ambient = Color3.new(0, 0, 0)
-            Light.ColorShift_Bottom = Color3.new(0, 0, 0)
-            Light.ColorShift_Top = Color3.new(0, 0, 0)
-        end
-    end
+    Callback = function(Value) FullBright(Value) end
 })
 --[[Tab:AddToggle({--第三人称
     Name = "第三人称(测试)",
@@ -423,7 +397,7 @@ Item:AddButton({
     Callback = function()
         if OrionLib.Flags.cpyordel.Value == "复制" then
             copyitems("FlashBeacon")
-            copyNotifi("闪光灯")
+            Notify("闪光灯", NotifyMes["copy"])
         else
             game.Players.LocalPlayer.PlayerFolder.Inventory.FlashBeacon:Destroy()
             delNotifi("闪光灯")
@@ -1025,11 +999,12 @@ workspaceDR = workspace.DescendantRemoving:Connect(function(inst) -- 实体提�
     end
 end)
 workspaceCA = workspace.ChildAdded:Connect(function(child) -- 关于实体
+    local childName = string.lower(child.Name)
     if table.find(entityNames, child.Name) and child:IsDescendantOf(workspace) then
         if OrionLib.Flags.NotifyEntities.Value and OrionLib.Flags.avoid.Value == false then -- 实体提醒
             entityNotifi(child.Name .. "出现")
         end
-        if OrionLib.Flags.avoid.Value and child.Name ~= "Mirage" then -- 自动躲避
+        if OrionLib.Flags.avoid.Value and childName ~= "mirage" then -- 自动躲避
             createPlatform("AvoidPlatform", Vector3.new(3000, 1, 3000), Vector3.new(5000, 10000, 5000))
             teleportPlayerTo(Players.LocalPlayer, Platform.Position + Vector3.new(0, Platform.Size.Y / 2 + 5, 0),true)
             Entitytoavoid[child] = true
@@ -1046,7 +1021,7 @@ workspaceCA = workspace.ChildAdded:Connect(function(child) -- 关于实体
                 value = OrionLib.Flags["EntityEsp"]
             })
         end
-        if OrionLib.Flags.nopandemonium.Value and (string.find(child.Name, "Pande") or string.find(child.Name, "monium")) and child:IsDescendantOf(workspace) then -- 删除z367
+        if OrionLib.Flags.nopandemonium.Value and (string.find(childName, "pande") or string.find(childName, "monium")) then -- 删除z367
             task.wait(0.1)
             child:Destroy()
             delNotifi("Pandemonium")
