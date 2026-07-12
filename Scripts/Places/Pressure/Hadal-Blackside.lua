@@ -1,6 +1,6 @@
 -- local设置
 local entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "RidgePinkie", "Froger", "RidgeFroger","Chainsmoker", "Pandemonium", "Eyefestation", "A60", "Mirage"} -- 实体
-local autoInst_Blacklist = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile","NormalDoor"}
+local autoInst_Blacklist = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile","Lock","NormalDoor"}
 local NotifyMes = {
     ["delete"] = "已成功删除",
     ["copy"] = "已成功复制"
@@ -868,7 +868,7 @@ Esp:AddToggle({ -- 玩家
 
 AddConnection(workspace.GameplayFolder.Rooms.ChildAdded,function(room) -- Esp
     if OrionLib.Flags["DoorEsp"].Value then
-        for _,door in pairs(room:WaitForChild("Entrances")) do
+        for _,door in pairs(room:WaitForChild("Entrances"):GetChildren()) do
             AddESP({
                 inst = door,
                 Name = DoorName[door.Name] or door.Name,
