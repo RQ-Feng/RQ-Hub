@@ -5,6 +5,10 @@ local NotifyMes = {
     ["delete"] = "已成功删除",
     ["copy"] = "已成功复制"
 }
+local DoorName = {
+    ['NormalDoor'] = "门",
+    ['BigRoomDoor'] = "大门"
+}
 local playerPositions = {} -- 存储玩家坐标
 local Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
 local EspConnects = {}
@@ -345,6 +349,7 @@ Tab:AddToggle({
 })
 Tab:AddButton({
     Name = "再来一局",
+    ClickTwice = true,
     Callback = function()
         Notify("再来一局","请稍等...")
         RemoteFolder.PlayAgain:FireServer()
@@ -534,41 +539,15 @@ Esp:AddToggle({ -- door
     Name = "门透视",
     Save = true,
     Default = true,
+    Flag = "DoorEsp",
     Callback = function(Value)
-        if Value then
-            doorsesp = true
-            for _, themodel in pairs(workspace:GetDescendants()) do
-                if themodel.Parent.Name == "Entrances" then
-                    espmodel(themodel,"NormalDoor","门","0","1","0",true)
-                    espmodel(themodel,"BigRoomDoor","大门","0","1","0",true)
-                end
-            end
-            
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                if themodel.Parent.Name == "Entrances" then
-                    espmodel(themodel,"NormalDoor","门","0","1","0",true)
-                    espmodel(themodel,"BigRoomDoor","大门","0","1","0",true)
-                end
-            end)
-            table.insert(EspConnects,esp)
-            task.spawn(function()
-                while OrionLib:IsRunning() do
-                    if doorsesp == false then
-                        esp:Disconnect()
-                        unesp("门")
-                        unesp("大门")
-                        for _, hl in pairs(PlayerGui:GetChildren()) do
-                            if hl.Name == "门透视高光" or hl.Name == "大门透视高光" then
-                                hl:Destroy()                            
-                            end
-                        end
-                        break
-                    end   
-                    task.wait(0.1)
-                end
-            end)
-        else
-            doorsesp = false
+        if not Value then return end
+        for _,door in pairs(room:WaitForChild("Entrances")) do
+            AddESP({
+                inst = door,
+                Name = DoorName[door.Name] or door.Name,
+                Color = Color3.new(0,1,0)
+            })
         end
     end
 })
@@ -887,7 +866,17 @@ Esp:AddToggle({ -- 玩家
     end
 })
 
-AddConnection(workspace.GameplayFolder.Rooms) -- 房间
+AddConnection(workspace.GameplayFolder.Rooms.ChildAdded,function(room) -- Esp
+    if OrionLib.Flags["DoorEsp"].Value then
+        for _,door in pairs(room:WaitForChild("Entrances")) do
+            AddESP({
+                inst = door,
+                Name = DoorName[door.Name] or door.Name,
+                Color = Color3.new(0,1,0)
+            })
+        end
+    end
+end) -- 房间
 AddConnection(workspace.DescendantAdded,function(inst) -- 其他
     if inst.Name == "Eyefestation" and OrionLib.Flags.noeyefestation.Value then
         inst:Destroy()
