@@ -222,7 +222,7 @@ local function MakeNotifyScreenGui()
     return ScreenGui
 end
 
-function Notify(NotifyCfg)
+function PopupNotify(NotifyCfg)
     local ControlNotify = {}
     MakeNotifyScreenGui()
     if not NotifyCfg then return end
@@ -243,6 +243,17 @@ function Notify(NotifyCfg)
     }; ControlNotify:Set(NotifyCfg)
 
     return ControlNotify
+end
+
+function OrionNotify(name,content,time,Sound,SoundId)
+    OrionLib:MakeNotification({
+        Name = name,
+        Content = content,
+        Image = "rbxassetid://4483345998",
+        Time = time or "3",
+        Sound = Sound,
+        SoundId = SoundId
+    })
 end
 --------------------------------------------------Other functions
 function AddConnection(signal,func,Value)
@@ -344,6 +355,11 @@ end
 --------------------------------------------------The behavior when OrionLib stop running.
 task.spawn(function()
     repeat task.wait() until not OrionLib:IsRunning()
+    -- 清除所有ESP部件
+    if ESPLibrary and ESPLibrary.Destroy then
+        ESPLibrary:Destroy()
+    end
+    -- 清除UI
     if ScreenGui then
         ScreenGui:SetAttribute('Showing',false)
         task.wait(0.2)

@@ -9,7 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService('TextChatService')
 local Players = game:GetService("Players")
 --// Function
-function Notify(text,duration)
+local function Notify(text,duration)
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Revive Dupe Helper",
         Text = text,

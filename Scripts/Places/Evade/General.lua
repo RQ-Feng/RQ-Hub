@@ -51,11 +51,11 @@ local function PlayerDownedDetector(plr)
     AddConnection(plr.CharacterAdded,onCharacterAdded,OrionLib.Flags['DownedPlayerEsp'])
 end
 
-Tab = Window:MakeTab({
+local Tab = Window:MakeTab({
     Name = "主界面",
     Icon = "rbxassetid://4483345998"
 })
-Esp = Window:MakeTab({
+local Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })

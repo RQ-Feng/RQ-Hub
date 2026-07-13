@@ -1,85 +1,29 @@
-Connects = {}
-noautoinst = {}
-ReplicatedStorage = game:GetService("ReplicatedStorage")
-Character = Players.LocalPlayer.Character -- 本地玩家Character
-humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
-PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
-function Notify(name,content,time,Sound,SoundId) -- 信息
-    OrionLib:MakeNotification({
-        Name = name,
-        Content = content,
-        Image = "rbxassetid://4483345998",
-        Time = time or "3",
-        Sound = Sound,
-        SoundId = SoundId
-    })
-end
-function createBilltoesp(theobject,name,color,hlset) -- 创建BillboardGui-颜色:Color3.new(r,g,b)
-    bill = Instance.new("BillboardGui", theobject) -- 创建BillboardGui
-    bill.AlwaysOnTop = true
-    bill.Size = UDim2.new(0, 100, 0, 50)
-    bill.Adornee = theobject
-    bill.MaxDistance = 2000
-    bill.Name = name .. "esp"
-    mid = Instance.new("Frame", bill) -- 创建Frame-圆形
-    mid.AnchorPoint = Vector2.new(0.5, 0.5)
-    mid.BackgroundColor3 = color
-    mid.Size = UDim2.new(0, 8, 0, 8)
-    mid.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Instance.new("UICorner", mid).CornerRadius = UDim.new(1, 0)
-    Instance.new("UIStroke", mid)
-    txt = Instance.new("TextLabel", bill) -- 创建TextLabel-显示
-    txt.AnchorPoint = Vector2.new(0.5, 0.5)
-    txt.BackgroundTransparency = 1
-    txt.TextColor3 =color
-    txt.Size = UDim2.new(1, 0, 0, 20)
-    txt.Position = UDim2.new(0.5, 0, 0.7, 0)
-    txt.Text = name
-    Instance.new("UIStroke", txt)
-    --[[if hlset then
-        hl = Instance.new("Highlight",PlayerGui)
-        hl.Name = name .. "透视高光"
-        hl.Adornee = theobject
-        hl.DepthMode = "AlwaysOnTop"
-        hl.FillColor = color
-        hl.FillTransparency = "0.6"
-    end
-    task.spawn(function()
-        while hl do
-            if hl.Adornee == nil or not hl.Adornee:IsDescendantOf(workspace) then
-                hl:Destroy()
-            end
-            task.wait()
-        end
-    end)]]
-end
-function unesp(name) -- unEsp物品用
-    for _, esp in pairs(workspace:GetDescendants()) do
-        if esp.Name == name .. "esp" then
-            esp:Destroy()
-        end
-    end
-    for _, hl in pairs(workspace:GetDescendants()) do
-        if hl.Name == name .. "透视高光" then
-            hl:Destroy()
-        end
-    end
-end
-function teleportPlayerTo(toPositionVector3) -- 传送玩家-Vector3.new(x,y,z)
+local Connects = {}
+local noautoinst = {}
+local humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
+local PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
+local doorsesp, leversp, SafeRoomVaultesp, itemesp, entityesp
+local ezinst, autolever, autodoor, FullBrightLite
+
+local playerPositions = {}
+local function teleportPlayer(toPositionVector3)
     if Character:FindFirstChild("HumanoidRootPart") then
+        playerPositions[LocalPlayer.UserId] = Character.HumanoidRootPart.CFrame
         Character.HumanoidRootPart.CFrame = toPositionVector3
     end
 end
-function chatMessage(chat) -- 发送信息
+
+local function chatMessage(chat) -- 发送信息
     game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(tostring(chat))
 end
-function NotifiEntity(inst,EntityName,NotifyName,mode,delflag)
+
+local function NotifiEntity(inst,EntityName,NotifyName,mode,delflag)
     if mode == "spawn" then
         if inst.Name == EntityName and OrionLib:IsRunning() then
             if delflag then
-                Notify("实体删除",NotifyName .. "已被删除")
+                OrionNotify("实体删除",NotifyName .. "已被删除")
             elseif OrionLib.Flags.NotifyEntities.Value then
-                Notify("实体提醒",NotifyName .. "出现")
+                OrionNotify("实体提醒",NotifyName .. "出现")
             end        
             if OrionLib.Flags.chatNotifyEntities.Value then
                 chatMessage(NotifyName .. "出现")
@@ -89,9 +33,9 @@ function NotifiEntity(inst,EntityName,NotifyName,mode,delflag)
         if inst.Name == EntityName and OrionLib:IsRunning() then
             if OrionLib.Flags.NotifyEntities.Value then
                 if delflag then
-                    Notify("实体删除",NotifyName .. "已被删除")
+                    OrionNotify("实体删除",NotifyName .. "已被删除")
                 else
-                    Notify("实体提醒",NotifyName .. "消失")
+                    OrionNotify("实体提醒",NotifyName .. "消失")
                 end
             end        
             if OrionLib.Flags.chatNotifyEntities.Value then
@@ -100,17 +44,7 @@ function NotifiEntity(inst,EntityName,NotifyName,mode,delflag)
         end
     end
 end
-function loadfinish() -- 加载完成后向控制台发送
-    print("--------------------------加载完成--------------------------")
-    print("--Grace Script已加载完成")
-    print("--欢迎使用!" .. game.Players.LocalPlayer.Name)
-    print("--此服务器游戏ID为:" .. GameId)
-    print("--此服务器位置ID为:" .. PlaceId)
-    print("--此服务器UUID为:" .. game.JobId)
-    print("--此服务器上的游戏版本为:version_" .. game.PlaceVersion)
-    print("--------------------------欢迎使用--------------------------")
-end
---Function结束-其他
+
 task.spawn(function()--关闭设置
 	while (OrionLib:IsRunning()) do
 		task.wait()
@@ -118,30 +52,35 @@ task.spawn(function()--关闭设置
 	for _, Connection in pairs(Connects) do
 		Connection:Disconnect()
 	end
-    t = {"autodoor","autolever","autoinst","ezinst"}
+    local t = {"autodoor","autolever","autoinst","ezinst"}
     for _, v in pairs(t) do
         v = false
     end
 end)
-loadfinish()--其他结束->加载完成信息
-Notify("加载完成", "已成功加载")
-Tab = Window:MakeTab({
+
+OrionNotify("加载完成", "已成功加载")
+
+local Tab = Window:MakeTab({
     Name = "主界面",
     Icon = "rbxassetid://4483345998"
 })
-Esp = Window:MakeTab({
+
+local Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })
-Del = Window:MakeTab({
+
+local Del = Window:MakeTab({
     Name = "删除",
     Icon = "rbxassetid://4483345998"
 })
-another = Window:MakeTab({
+
+local another = Window:MakeTab({
     Name = "杂项",
     Icon = "rbxassetid://4483345998"
 })
-others = Window:MakeTab({
+
+local others = Window:MakeTab({
     Name = "其他",
     Icon = "rbxassetid://4483345998"
 })
@@ -155,7 +94,7 @@ Tab:AddToggle({
     Default = false,
     Flag = "chatNotifyEntities",
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "交互"
 })
 Tab:AddLabel("交互距离超过40可能会导致交互bug")
@@ -248,7 +187,7 @@ Tab:AddToggle({
         end
     end
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "其他"
 })
 Tab:AddLabel("请删除所有实体生成再使用自动过关")
@@ -258,21 +197,21 @@ Tab:AddButton({ -- 自动过关
         if OrionLib.Flags.sureautogame.Value then
             task.spawn(function()
                 while OrionLib.Flags.sureautogame.Value do
-                    hitboxes = {}
+                    local hitboxes = {}
                     for _, hitbox in pairs(workspace.Rooms:GetDescendants()) do
                         if hitbox.Name == "hitBox" then
                             table.insert(hitboxes,hitbox)
                         end
                     end
                     for _, i in pairs(hitboxes) do
-                        teleportPlayerTo(i.CFrame)
+                        teleportPlayer(i.CFrame)
                     end
                     hitboxes = {}
                     task.wait(0.02)
                 end
             end)
         else
-            Notify("自动过关","请二次确认后再使用")
+            OrionNotify("自动过关","请二次确认后再使用")
         end
     end
 })
@@ -285,7 +224,7 @@ Tab:AddToggle({ -- 高亮
     Name = "高亮(低质量)",
     Default = true,
     Callback = function(Value)
-        Light = game:GetService("Lighting")
+        local Light = game:GetService("Lighting")
         if Value then
             FullBrightLite = true
             task.spawn(function()
@@ -352,13 +291,21 @@ Esp:AddToggle({
                     end
                 end
             end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
+            local esp = workspace.DescendantAdded:Connect(function(themodel)
                 if themodel.Name == "Door" then
                     if themodel.Parent.Parent.Name == "Rooms" then
                         if themodel:WaitForChild("Door"):IsA("Model") then
-                            createBilltoesp(themodel:WaitForChild("Door"),"门", Color3.new(0,1,0),true)
+                            AddESP({
+                                inst = themodel:WaitForChild("Door"),
+                                Name = "门",
+                                Color = Color3.new(0,1,0),
+                            })
                         elseif themodel:WaitForChild("Door"):IsA("Part") then
-                            createBilltoesp(themodel,"门", Color3.new(0,1,0),true)
+                            AddESP({
+                                inst = themodel,
+                                Name = "门",
+                                Color = Color3.new(0,1,0),
+                            })
                         end
                     end
                 end
@@ -368,11 +315,6 @@ Esp:AddToggle({
                 while OrionLib:IsRunning() do
                     if doorsesp ~= true then
                         esp:Disconnect()
-                        for _, hl in pairs(PlayerGui:GetChildren()) do
-                            if hl.Name == "门透视高光" then
-                                hl:Destroy()   
-                            end   
-                        end
                         break
                     end
                     task.wait(0.1)
@@ -380,7 +322,6 @@ Esp:AddToggle({
             end)
         else
             doorsesp = false
-            unesp("门")
         end
     end
 })
@@ -393,14 +334,22 @@ Esp:AddToggle({ -- door
             for _, themodel in pairs(workspace:GetDescendants()) do
                 if themodel.Name == "Breaker" then
                     if themodel.Parent.Parent.Name == "Rooms" then
-                        createBilltoesp(themodel,"拉杆", Color3.new(1,0,0),false)
+                        AddESP({
+                            inst = themodel,
+                            Name = "拉杆",
+                            Color = Color3.new(1,0,0),
+                        })
                     end
                 end
             end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
+            local esp = workspace.DescendantAdded:Connect(function(themodel)
                 if themodel.Name == "Breaker" then
                     if themodel.Parent.Parent.Name == "Rooms" then
-                        createBilltoesp(themodel,"拉杆", Color3.new(1,0,0),false)
+                        AddESP({
+                            inst = themodel,
+                            Name = "拉杆",
+                            Color = Color3.new(1,0,0),
+                        })
                     end
                 end
             end)
@@ -409,11 +358,6 @@ Esp:AddToggle({ -- door
                 while OrionLib:IsRunning() do
                     if leveresp ~= true then
                         esp:Disconnect()
-                        for _, hl in pairs(PlayerGui:GetChildren()) do
-                            if hl.Name == "拉杆透视高光" then
-                                hl:Destroy()   
-                            end   
-                        end
                         break
                     end
                     task.wait(0.1)
@@ -421,7 +365,6 @@ Esp:AddToggle({ -- door
             end)
         else
             leveresp = false
-            unesp("拉杆")
         end
     end
 })
@@ -434,14 +377,22 @@ Esp:AddToggle({
             for _, themodel in pairs(workspace:GetDescendants()) do
                 if themodel.Name == "VaultEntrance" then
                     if themodel.Parent.Name == "SafeRoom" then--第一个Parent为房间号
-                        createBilltoesp(themodel:WaitForChild("Hinged"),"井口", Color3.new(0,1,0),true)
+                        AddESP({
+                            inst = themodel:WaitForChild("Hinged"),
+                            Name = "井口",
+                            Color = Color3.new(0,1,0),
+                        })
                     end
                 end
             end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
+            local esp = workspace.DescendantAdded:Connect(function(themodel)
                 if themodel.Name == "VaultEntrance" then
                     if themodel.Parent.Name == "SafeRoom" then
-                        createBilltoesp(themodel:WaitForChild("Hinged"),"井口", Color3.new(0,1,0),true)
+                        AddESP({
+                            inst = themodel:WaitForChild("Hinged"),
+                            Name = "井口",
+                            Color = Color3.new(0,1,0),
+                        })
                     end
                 end
             end)
@@ -450,11 +401,6 @@ Esp:AddToggle({
                 while OrionLib:IsRunning() do
                     if SafeRoomVaultesp ~= true then
                         esp:Disconnect()
-                        for _, hl in pairs(PlayerGui:GetChildren()) do
-                            if hl.Name == "井口透视高光" then
-                                hl:Destroy()   
-                            end   
-                        end
                         break
                     end
                     task.wait(0.1)
@@ -462,7 +408,6 @@ Esp:AddToggle({
             end)
         else
             SafeRoomVaultesp = false
-            unesp("井口")
         end
     end
 })
@@ -470,12 +415,12 @@ Del:AddLabel("使用God mode被某些实体击杀时可能会导致bug")
 Del:AddButton({
     Name = "God mode",
     Callback = function()
-        suc,err = pcall(function()
+        local suc,err = pcall(function()
             ReplicatedStorage.KillClient:Destroy()
-            Notify("伪God mode","成功删除")
+            OrionNotify("伪God mode","成功删除")
         end)
             if not suc then
-            Notify("伪God mode","删除时出错,可能已删除")
+            OrionNotify("伪God mode","删除时出错,可能已删除")
             warn("删除时出错:" .. err .. ",可能已删除")
         end
     end
@@ -513,12 +458,12 @@ Del:AddToggle({
 Del:AddButton({
     Name = "删除Goatman生成",
     Callback = function()
-        suc,err = pcall(function()
+        local suc,err = pcall(function()
             ReplicatedStorage.SendGoatman:Destroy()
-            Notify("删除Goatman","成功删除")
+            OrionNotify("删除Goatman","成功删除")
         end)
             if not suc then
-            Notify("删除Goatman","删除时出错,可能已删除")
+            OrionNotify("删除Goatman","删除时出错,可能已删除")
             warn("删除时出错:" .. err .. ",可能已删除")
         end
     end
@@ -526,13 +471,13 @@ Del:AddButton({
 Del:AddButton({ 
     Name = "删除Rush生成",
     Callback = function()
-        suc,err = pcall(function()
+        local suc,err = pcall(function()
             ReplicatedStorage.SendRush:Destroy()
             ReplicatedStorage.Rush:Destroy()
-            Notify("删除Rush","成功删除")
+            OrionNotify("删除Rush","成功删除")
         end)
             if not suc then
-            Notify("删除Rush","删除时出错,可能已删除")
+            OrionNotify("删除Rush","删除时出错,可能已删除")
             warn("删除时出错:" .. err .. ",可能已删除")
         end
     end
@@ -540,12 +485,12 @@ Del:AddButton({
 Del:AddButton({ 
     Name = "删除Sorrow生成",
     Callback = function()
-        suc,err = pcall(function()
+        local suc,err = pcall(function()
             ReplicatedStorage.SendSorrow:Destroy()
-            Notify("删除Sorrow","成功删除")
+            OrionNotify("删除Sorrow","成功删除")
         end)
             if not suc then
-            Notify("删除Sorrow","删除时出错,可能已删除")
+            OrionNotify("删除Sorrow","删除时出错,可能已删除")
             warn("删除时出错:" .. err .. ",可能已删除")
         end
     end
@@ -553,18 +498,19 @@ Del:AddButton({
 Del:AddButton({ 
     Name = "删除Worm生成",
     Callback = function()
-        suc,err = pcall(function()
+        local suc,err = pcall(function()
             ReplicatedStorage.SendWorm:Destroy()
             ReplicatedStorage.Worm:Destroy()
-            Notify("删除Worm","成功删除")
+            OrionNotify("删除Worm","成功删除")
         end)
             if not suc then
-            Notify("删除Worm","删除时出错,可能已删除")
+            OrionNotify("删除Worm","删除时出错,可能已删除")
             warn("删除时出错:" .. err .. ",可能已删除")
         end
     end
 })
-Section = another:AddSection({
+
+another:AddSection({
     Name = "倒计时设置"
 })
 another:AddLabel("需要至少激活一次倒计时才可使用")
@@ -575,7 +521,7 @@ another:AddTextbox({
 		workspace.DEATHTIMER.Value = Value
 	end	  
 })
-Section = another:AddSection({
+another:AddSection({
     Name = "其他"
 })
 another:AddButton({
@@ -584,7 +530,7 @@ another:AddButton({
 		game:GetService("ReplicatedStorage").KillClient:InvokeServer()
 	end	  
 })
-workspaceDA = workspace.DescendantAdded:Connect(function(inst)
+local workspaceDA = AddConnection(workspace.DescendantAdded,function(inst)
     NotifiEntity(inst,"Rush","Rush(粉怪)","spawn",OrionLib.Flags.norush.Value)
     NotifiEntity(inst,"Worm","Worm(白怪)","spawn",OrionLib.Flags.noworm.Value)
     if inst.Name == "Rush" and OrionLib.Flags.norush.Value then
@@ -605,11 +551,11 @@ workspaceDA = workspace.DescendantAdded:Connect(function(inst)
         inst:Destroy()
     end
 end)
-workspaceDR = workspace.DescendantRemoving:Connect(function(inst)
+local workspaceDR = AddConnection(workspace.DescendantRemoving,function(inst)
     NotifiEntity(inst,"Rush","Rush(粉怪)","remove",OrionLib.Flags.norush.Value)
     NotifiEntity(inst,"Worm","Worm(白怪)","remove",OrionLib.Flags.noworm.Value)
 end)
-PlayersGuiDR = PlayerGui.DescendantAdded:Connect(function(inst)
+local PlayersGuiDR = AddConnection(PlayerGui.DescendantAdded,function(inst)
     if inst.Name == "smilegui" and OrionLib.Flags.nodozer.Value then
         inst:Destroy()
     end

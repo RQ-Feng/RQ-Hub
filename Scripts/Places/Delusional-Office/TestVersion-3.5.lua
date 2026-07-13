@@ -1,7 +1,4 @@
 -- local设置
-local TeleportService = game:GetService("TeleportService") -- 传送服务
-local Players = game:GetService("Players") -- 玩家服务
-local RunService = game:GetService("RunService") -- 运行服务
 local Espboxes = LocalPlayer.PlayerGui
 local MainRooms = workspace.RoomsHolder.MainRooms
 local Remotes = game:GetService("ReplicatedStorage").Remotes
@@ -9,20 +6,11 @@ local Remotes = game:GetService("ReplicatedStorage").Remotes
 local localEntities = {'ShadowEntity','ChaserEntityAlreadyAttacked','DoorcamperEntity','DoorcamperEntityType2','ChaserEntityType2AlreadyAttacked'}
 local DoorInsts = {'MainDoor','MainMouse','Vent1','Keypad'}
 --Function设置
-local function Notify(name,content,time,Sound) -- 信息
-    OrionLib:MakeNotification({
-        Name = name,
-        Content = content,
-        Image = "rbxassetid://4483345998",
-        Time = time or "3",
-        Sound = Sound,
-    })
-end
 local function teleportTo(toPositionVector3 ) -- 传送玩家-Vector3.new(x,y,z)
     if Character:FindFirstChild("HumanoidRootPart") then Character:PivotTo(CFrame.new(toPositionVector3)) end
 end
 local function AnchorPartToCamera(part)
-    local event = RunService.RenderStepped:Connect(function()
+    local event = AddConnection(RunService.RenderStepped,function()
         if part and part.Parent then
             local cameraCFrame = workspace.CurrentCamera.CFrame
             part.CFrame = CFrame.new(cameraCFrame.Position + cameraCFrame.LookVector * 5) * CFrame.Angles(0, math.rad(180), 0)
@@ -62,16 +50,16 @@ local function OpenDoor(door)
         fireclickdetector(door.MainButtons[door.Parent.RandomShape.Value].ClickDetector)
     end
 end
-Tab = Window:MakeTab({
+local Tab = Window:MakeTab({
     Name = "主界面",
     Icon = "rbxassetid://4483345998"
 })
-Test = Window:MakeTab({
+local Test = Window:MakeTab({
     Name = "测试",
     Icon = "rbxassetid://4483345998"
 })
 --子界面
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "主功能"
 })
 local autokickdoor = true
@@ -111,7 +99,7 @@ Tab:AddToggle({
     Default = false,
     Callback = function(Value)
         if not Value then return end
-        Notify('自动开门','建议打开自动踢门以实现最佳体验',2)
+        OrionNotify('自动开门','建议打开自动踢门以实现最佳体验',2)
         for _, door in pairs(workspace.RoomsHolder.MainRooms:GetDescendants()) do OpenDoor(door) end
     end
 })
@@ -167,10 +155,10 @@ AddConnection(MainRooms.DescendantAdded,function(obj)
     end
 end)
 
-Players.PlayerAdded:Connect(function(player)
+AddConnection(Players.PlayerAdded,function(player)
     if OrionLib.Flags.PlayerNotifications.Value then
         local Notififriend = player:IsFriendsWith(Players.LocalPlayer.UserId) and "(好友)" or ''
-        Notify("玩家提醒", player.Name .. Notififriend .. "已加入", 5,false)
+        OrionNotify("玩家提醒", player.Name .. Notififriend .. "已加入", 5,false)
     end
     if OrionLib.Flags.playeresp.Value and player ~= Players.LocalPlayer then
         AddESP({
@@ -181,9 +169,9 @@ Players.PlayerAdded:Connect(function(player)
         })
     end
 end)
-Players.PlayerRemoving:Connect(function(player)
+AddConnection(Players.PlayerRemoving,function(player)
     if OrionLib.Flags.PlayerNotifications.Value then
         local Notififriend = player:IsFriendsWith(Players.LocalPlayer.UserId) and "(好友)" or ''
-        Notify("玩家提醒", player.Name .. Notififriend .. "已退出", 5,false)
+        OrionNotify("玩家提醒", player.Name .. Notififriend .. "已退出", 5,false)
     end
 end)

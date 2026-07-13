@@ -291,7 +291,7 @@ local function antiafk()
     end)
 end
 
-function StopAutoRooms(Info)
+local function StopAutoRooms(Info)
     PrefixWarn('Stop running now.')
     IsRunning = false
     for _,con in pairs(Connections) do con:Disconnect() end

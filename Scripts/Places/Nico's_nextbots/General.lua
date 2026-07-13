@@ -1,4 +1,3 @@
-local MarketplaceService = game:GetService("MarketplaceService")
 local events = ReplicatedStorage.events
 local currentMap = workspace:FindFirstChild('currentMap')
 
@@ -13,15 +12,15 @@ local function KickDoor(door)
 end
 local JumpEffects
 
-Tab = Window:MakeTab({
+local Tab = Window:MakeTab({
     Name = "主界面",
     Icon = "rbxassetid://4483345998"
 })
-Boombox = Window:MakeTab({
+local Boombox = Window:MakeTab({
     Name = "音箱",
     Icon = "rbxassetid://4483345998"
 })
-Exploit = Window:MakeTab({
+local Exploit = Window:MakeTab({
     Name = "利用",
     Icon = "rbxassetid://4483345998"
 })

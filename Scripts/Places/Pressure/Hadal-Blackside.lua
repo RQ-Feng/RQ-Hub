@@ -3,7 +3,8 @@ local entityNames = {"Angler", "RidgeAngler", "Blitz", "RidgeBlitz", "Pinkie", "
 local autoInst_Blacklist = {"Locker", "MonsterLocker", "LockerUnderwater", "Generator", "BrokenCable","EncounterGenerator","Saboterousrusrer","Toilet","BigBed","Radio","BatteryPile","Lock","NormalDoor"}
 local NotifyMes = {
     ["delete"] = "已成功删除",
-    ["copy"] = "已成功复制"
+    ["copy"] = "已成功复制",
+    ["entity"] = "实体提醒"
 }
 local DoorName = {
     ['NormalDoor'] = "门",
@@ -11,57 +12,20 @@ local DoorName = {
 }
 local playerPositions = {} -- 存储玩家坐标
 local Entitytoavoid = {} -- 自动躲避用-检测自动躲避的实体
-local EspConnects = {}
+-- ESP开关 (已改用Flag管理)
+local Platform -- 平台
+local ezinst,autofix,auto367game,autoplay -- 功能开关
 
-PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
-RemoteFolder = ReplicatedStorage.Events -- Remote Event储存区之一
+local PlayerGui = Players.LocalPlayer.PlayerGui--本地玩家PlayerGui
+local RemoteFolder = ReplicatedStorage.Events -- Remote Event储存区之一
 --local结束->Function设置
-local function Notify(name,content,time,Sound,SoundId) -- 信息
-    OrionLib:MakeNotification({
-        Name = name,
-        Content = content,
-        Image = "rbxassetid://4483345998",
-        Time = time or "3",
-        Sound = Sound,
-        SoundId = SoundId
-    })
-end
-local function copyNotifi(copyitemname) -- 复制信息
-    Notify(copyitemname, NotifyMes["copy"])
-end
-function delNotifi(delthings) -- 删除信息
-    Notify(delthings, "已成功删除")
-end
-function entityNotifi(entityname) -- 实体提醒
-    Notify("实体提醒", entityname)
-end
-function copyitems(copyitem) -- 复制物品
-    create_NumberValue = Instance.new("NumberValue") -- copy items-type NumberValue
+local function copyitems(copyitem) -- 复制物品
+    local create_NumberValue = Instance.new("NumberValue") -- copy items-type NumberValue
     create_NumberValue.Name = copyitem
     create_NumberValue.Parent = game.Players.LocalPlayer.PlayerFolder.Inventory
 end
-local function espmodel(themodel,modelname,name,r,g,b) -- Esp物品(Model对象)用
-    if themodel:IsA("Model") and themodel.Parent.Name ~= Players and themodel.Name == modelname then
-        AddESP({
-            inst = themodel,
-            Name = name,
-            Color = Color3.new(r,g,b),
-        })
-    end
-end
-function unesp(name) -- unEsp物品用
-    for _, esp in pairs(workspace:GetDescendants()) do
-        if esp.Name == name .. "esp" then
-            esp:Destroy()
-        end
-    end
-    for _, hl in pairs(workspace:GetDescendants()) do
-        if hl.Name == name .. "透视高光" then
-            hl:Destroy()
-        end
-    end
-end
-function createPlatform(name, sizeVector3,positionVector3) -- 创建平台-Vector3.new(x,y,z)
+
+local function createPlatform(name, sizeVector3,positionVector3) -- 创建平台-Vector3.new(x,y,z)
     if Platform then
         Platform:Destroy() -- 移除多余平台
     end
@@ -74,70 +38,47 @@ function createPlatform(name, sizeVector3,positionVector3) -- 创建平台-Vecto
     Platform.Transparency = 1
     Platform.CastShadow = false
 end
-function teleportPlayerTo(player,toPositionVector3,saveposition) -- 传送玩家-Vector3.new(x,y,z)
-    if player.Character:FindFirstChild("HumanoidRootPart") then
-        if saveposition then
-            playerPositions[player.UserId] = player.Character.HumanoidRootPart.CFrame
-        end
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(toPositionVector3)
-    end
+local function teleportPlayer(player, toPositionVector3) -- 传送玩家-Vector3.new(x,y,z)
+    if not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    playerPositions[player.UserId] = player.Character.HumanoidRootPart.CFrame
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(toPositionVector3)
 end
-function teleportPlayerBack(player) -- 返回玩家 
+local function teleportBack(player) -- 返回玩家 
     if playerPositions[player.UserId] then
         player.Character.HumanoidRootPart.CFrame = playerPositions[player.UserId]
-        playerPositions[player.UserId] = nil -- 清除坐标
+        playerPositions[player.UserId] = nil
     else
-        warn("返回失败!存储玩家原坐标的数值无法用于返回")
+        warn("返回失败!")
     end
 end
-function chatMessage(chat) -- 发送信息
+local function chatMessage(chat) -- 发送信息
     game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(tostring(chat))
 end
-function loadfinish() -- 加载完成后向控制台发送
-    print("--------------------------加载完成--------------------------")
-    print("--Pressure Script已加载完成")
-    print("--欢迎使用!" .. game.Players.LocalPlayer.Name)
-    print("--此服务器游戏ID为:" .. GameId)
-    print("--此服务器位置ID为:" .. PlaceId)
-    print("--此服务器UUID为:" .. game.JobId)
-    print("--此服务器上的游戏版本为:version_" .. game.PlaceVersion)
-    print("--当前您位于Pressure-Hadal Blacksite")
-    print("--------------------------欢迎使用--------------------------")
-end
 --Function结束-其他
-task.spawn(function()--关闭esp的Connect
-	while (OrionLib:IsRunning()) do
-		task.wait()
-	end
-	for _, Connection in pairs(EspConnects) do
-		Connection:Disconnect()
-	end
-end)
-loadfinish()--其他结束->加载完成信息
-Notify("加载完成", "已成功加载")
+OrionNotify("加载完成", "已成功加载")
 --Tab界面
-Tab = Window:MakeTab({
+local Tab = Window:MakeTab({
     Name = "主界面",
     Icon = "rbxassetid://4483345998"
 })
-Item = Window:MakeTab({
+local Item = Window:MakeTab({
     Name = "物品",
     Icon = "rbxassetid://4483345998"
 })
-Del = Window:MakeTab({
+local Del = Window:MakeTab({
     Name = "删除",
     Icon = "rbxassetid://4483345998"
 })
-Esp = Window:MakeTab({
+local Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })
-others = Window:MakeTab({
+local others = Window:MakeTab({
     Name = "其他",
     Icon = "rbxassetid://4483345998"
 })
 --子界面
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "实体"
 })
 Tab:AddToggle({
@@ -161,10 +102,10 @@ Tab:AddToggle({
 Tab:AddButton({ -- 手动返回
     Name = "手动返回",
     Callback = function()
-        teleportPlayerBack(Players.LocalPlayer)
+        teleportBack(Players.LocalPlayer)
     end
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "交互"
 })
 Tab:AddToggle({ -- 轻松交互
@@ -177,7 +118,7 @@ Tab:AddToggle({ -- 轻松交互
             task.spawn(function()
                 while ezinst and OrionLib:IsRunning() do
                     for _, toezInteract in pairs(workspace:GetDescendants()) do
-                        if toezInteract:IsA("ProximityPrompt") then
+                        if toezInteract:IsA("ProximityPrompt") and not string.find(toezInteract:FindFirstAncestorOfClass("Model").Name,'bunny') then
                             toezInteract.HoldDuration = "0"
                             toezInteract.RequiresLineOfSight = false
                             toezInteract.MaxActivationDistance = "12"
@@ -271,7 +212,7 @@ Tab:AddToggle({ -- 轻松交互
         end,OrionLib.Flags['AutoPrompt'])
     end
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "相机"
 })
 Tab:AddToggle({ -- 保持广角
@@ -311,7 +252,7 @@ Tab:AddToggle({ -- 高亮
             thirdperson = false
         end
     end})]]
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "其他"
 })
 Tab:AddButton({ --传送门
@@ -319,7 +260,7 @@ Tab:AddButton({ --传送门
     Callback = function()
         for _, notopendoor in pairs(workspace:GetDescendants()) do
             if notopendoor.Name == "NormalDoor" and notopendoor.Parent.Name == "Entrances" and notopendoor.OpenValue.Value == false then
-                teleportPlayerTo(Players.LocalPlayer, notopendoor.Root.Position, false)
+                teleportPlayer(Players.LocalPlayer, notopendoor.Root.Position)
             end
         end
     end
@@ -334,7 +275,7 @@ Tab:AddToggle({
                 while autoplay and OrionLib:IsRunning() do
                     for _, notopendoor in pairs(workspace:GetDescendants()) do
                         if notopendoor.Name == "NormalDoor" and notopendoor.Parent.Name == "Entrances" and notopendoor.OpenValue.Value == false then
-                            teleportPlayerTo(Players.LocalPlayer,notopendoor.Root.Position, false)
+                            teleportPlayer(Players.LocalPlayer,notopendoor.Root.Position)
                             if notopendoor.OpenValue.Value == true then
                                 break
                             end          
@@ -352,7 +293,7 @@ Tab:AddButton({
     Name = "再来一局",
     ClickTwice = true,
     Callback = function()
-        Notify("再来一局","请稍等...")
+        OrionNotify("再来一局","请稍等...")
         RemoteFolder.PlayAgain:FireServer()
     end
 })
@@ -403,10 +344,10 @@ Item:AddButton({
     Callback = function()
         if OrionLib.Flags.cpyordel.Value == "复制" then
             copyitems("FlashBeacon")
-            Notify("闪光灯", NotifyMes["copy"])
+            OrionNotify("闪光灯", NotifyMes["copy"])
         else
             game.Players.LocalPlayer.PlayerFolder.Inventory.FlashBeacon:Destroy()
-            delNotifi("闪光灯")
+            OrionNotify("闪光灯", NotifyMes["delete"])
         end
     end
 })
@@ -415,10 +356,10 @@ Item:AddButton({
     Callback = function()
         if OrionLib.Flags.cpyordel.Value == "复制" then
             copyitems("Blacklight")
-            copyNotifi("黑光")
+            OrionNotify("黑光", NotifyMes["copy"])
         else
             game.Players.LocalPlayer.PlayerFolder.Inventory.Blacklight:Destroy()
-            delNotifi("黑光")
+            OrionNotify("黑光", NotifyMes["delete"])
         end
     end
 })
@@ -427,10 +368,10 @@ Item:AddButton({
     Callback = function()
         if OrionLib.Flags.cpyordel.Value == "复制" then
             copyitems("WindupLight")
-            copyNotifi("手摇手电筒")
+            OrionNotify("手摇手电筒", NotifyMes["copy"])
         else
             game.Players.LocalPlayer.PlayerFolder.Inventory.WindupLight:Destroy()
-            delNotifi("手摇手电筒")
+            OrionNotify("手摇手电筒", NotifyMes["delete"])
         end
     end
 })
@@ -439,10 +380,10 @@ Item:AddButton({
     Callback = function()
         if OrionLib.Flags.cpyordel.Value == "复制" then
             copyitems("Flashlight")
-            copyNotifi("手电筒")
+            OrionNotify("手电筒", NotifyMes["copy"])
         else
             game.Players.LocalPlayer.PlayerFolder.Inventory.Flashlight:Destroy()
-            delNotifi("手电筒")
+            OrionNotify("手电筒", NotifyMes["delete"])
         end
     end
 })
@@ -451,10 +392,10 @@ Item:AddButton({
     Callback = function()
         if OrionLib.Flags.cpyordel.Value == "复制" then
             copyitems("Lantern")
-            copyNotifi("灯笼")
+            OrionNotify("灯笼", NotifyMes["copy"])
         else
             game.Players.LocalPlayer.PlayerFolder.Inventory.Lantern:Destroy()
-            delNotifi("灯笼")
+            OrionNotify("灯笼", NotifyMes["delete"])
         end
     end
 })
@@ -463,10 +404,10 @@ Item:AddButton({
     Callback = function()
         if OrionLib.Flags.cpyordel.Value == "复制" then
             copyitems("Book")
-            copyNotifi("魔法书")
+            OrionNotify("魔法书", NotifyMes["copy"])
         else
             game.Players.LocalPlayer.PlayerFolder.Inventory.Book:Destroy()
-            delNotifi("魔法书")
+            OrionNotify("魔法书", NotifyMes["delete"])
         end
     end
 })
@@ -475,10 +416,10 @@ Item:AddButton({
     Callback = function()
         if OrionLib.Flags.cpyordel.Value == "复制" then
             copyitems("Gummylight")
-            copyNotifi("软糖手电筒")
+            OrionNotify("软糖手电筒", NotifyMes["copy"])
         else
             game.Players.LocalPlayer.PlayerFolder.Inventory.Gummylight:Destroy()
-            delNotifi("软糖手电筒")
+            OrionNotify("软糖手电筒", NotifyMes["delete"])
         end
     end
 })
@@ -556,28 +497,19 @@ Esp:AddToggle({ -- locker
     Name = "柜子透视",
     Save = true,
     Default = true,
+    Flag = "LockerEsp",
     Callback = function(Value)
         if Value then
-            lockeresp = true
             for _, themodel in pairs(workspace:GetDescendants()) do
-                espmodel(themodel,"Locker","柜子","0","1","0",false)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players and themodel.Name == "Locker" then
+                    AddESP({inst = themodel, Name = "柜子", Color = Color3.new(0,1,0), value = OrionLib.Flags["LockerEsp"]})
+                end
             end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                espmodel(themodel,"Locker","柜子","0","1","0",false)
-            end)
-            table.insert(EspConnects,esp)
-            task.spawn(function()
-                while OrionLib:IsRunning() do
-                    if lockeresp == false then
-                        esp:Disconnect()
-                        unesp("柜子")
-                        break
-                    end   
-                    task.wait(0.1)
-                end                
-            end)
-        else
-            lockeresp = false
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players and themodel.Name == "Locker" then
+                    AddESP({inst = themodel, Name = "柜子", Color = Color3.new(0,1,0), value = OrionLib.Flags["LockerEsp"]})
+                end
+            end,OrionLib.Flags["LockerEsp"])
         end
     end
 })
@@ -585,39 +517,25 @@ Esp:AddToggle({ -- keycard
     Name = "钥匙卡透视",
     Save = true,
     Default = true,
+    Flag = "KeycardEsp",
     Callback = function(Value)
         if Value then
-            keyesp = true
             for _, themodel in pairs(workspace:GetDescendants()) do
-                espmodel(themodel,"NormalKeyCard","钥匙卡","0","0","1",true)
-                espmodel(themodel,"InnerKeyCard","特殊钥匙卡","100","0","255",true)
-                espmodel(themodel,"RidgeKeyCard","山脊钥匙卡","1","1","0",true)
-            end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                espmodel(themodel,"NormalKeyCard","钥匙卡","0","0","1",true)
-                espmodel(themodel,"InnerKeyCard","特殊钥匙卡","100","0","255",true)
-                espmodel(themodel,"RidgeKeyCard","山脊钥匙卡","1","1","0",true)
-            end)
-            table.insert(EspConnects,esp)
-            task.spawn(function()
-                while OrionLib:IsRunning() do
-                    if keyesp == false then
-                        esp:Disconnect()
-                        unesp("钥匙卡")
-                        unesp("特殊钥匙卡")
-                        unesp("山脊钥匙卡")
-                        for _, hl in pairs(PlayerGui:GetChildren()) do
-                            if hl.Name == "钥匙卡透视高光" or hl.Name == "特殊钥匙卡透视高光" or hl.Name == "山脊钥匙卡透视高光" then
-                                hl:Destroy()                            
-                            end
-                        end
-                        break
-                    end   
-                    task.wait(0.1)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players then
+                    if themodel.Name == "NormalKeyCard" then AddESP({inst = themodel, Name = "钥匙卡", Color = Color3.new(0,0,1), value = OrionLib.Flags["KeycardEsp"]})
+                    elseif themodel.Name == "InnerKeyCard" then AddESP({inst = themodel, Name = "特殊钥匙卡", Color = Color3.new(100,0,255), value = OrionLib.Flags["KeycardEsp"]})
+                    elseif themodel.Name == "RidgeKeyCard" then AddESP({inst = themodel, Name = "山脊钥匙卡", Color = Color3.new(1,1,0), value = OrionLib.Flags["KeycardEsp"]})
+                    end
                 end
-            end)
-        else
-            keyesp = false
+            end
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players then
+                    if themodel.Name == "NormalKeyCard" then AddESP({inst = themodel, Name = "钥匙卡", Color = Color3.new(0,0,1), value = OrionLib.Flags["KeycardEsp"]})
+                    elseif themodel.Name == "InnerKeyCard" then AddESP({inst = themodel, Name = "特殊钥匙卡", Color = Color3.new(100,0,255), value = OrionLib.Flags["KeycardEsp"]})
+                    elseif themodel.Name == "RidgeKeyCard" then AddESP({inst = themodel, Name = "山脊钥匙卡", Color = Color3.new(1,1,0), value = OrionLib.Flags["KeycardEsp"]})
+                    end
+                end
+            end,OrionLib.Flags["KeycardEsp"])
         end
     end
 })
@@ -625,37 +543,19 @@ Esp:AddToggle({ -- fake door
     Name = "假门透视",
     Save = true,
     Default = true,
+    Flag = "FakeDoorEsp",
     Callback = function(Value)
         if Value then
-            fakedooresp = true
             for _, themodel in pairs(workspace:GetDescendants()) do
-                espmodel(themodel,"TricksterRoom", "假门", "1", "0", "0",true)
-                espmodel(themodel,"ServerTrickster", "假门", "1", "0", "0",true)
-                espmodel(themodel,"RidgeTricksterRoom", "假门", "1", "0", "0",true)
-            end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                espmodel(themodel,"TricksterRoom", "假门", "1", "0", "0",true)
-                espmodel(themodel,"ServerTrickster", "假门", "1", "0", "0",true)
-                espmodel(themodel,"RidgeTricksterRoom", "假门", "1", "0", "0",true)
-            end)
-            table.insert(EspConnects,esp)
-            task.spawn(function()
-                while OrionLib:IsRunning() do
-                    if fakedooresp == false then
-                        esp:Disconnect()
-                        unesp("假门")
-                        for _, hl in pairs(PlayerGui:GetChildren()) do
-                            if hl.Name == "假门透视高光" then
-                                hl:Destroy()                            
-                            end
-                        end
-                        break
-                    end   
-                    task.wait(0.1)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players and (themodel.Name == "TricksterRoom" or themodel.Name == "ServerTrickster" or themodel.Name == "RidgeTricksterRoom") then
+                    AddESP({inst = themodel, Name = "假门", Color = Color3.new(1,0,0), value = OrionLib.Flags["FakeDoorEsp"]})
                 end
-            end)
-        else
-            fakedooresp = false
+            end
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players and (themodel.Name == "TricksterRoom" or themodel.Name == "ServerTrickster" or themodel.Name == "RidgeTricksterRoom") then
+                    AddESP({inst = themodel, Name = "假门", Color = Color3.new(1,0,0), value = OrionLib.Flags["FakeDoorEsp"]})
+                end
+            end,OrionLib.Flags["FakeDoorEsp"])
         end
     end
 })
@@ -663,28 +563,19 @@ Esp:AddToggle({ -- fake locker
     Name = "假柜透视",
     Save = true,
     Default = true,
+    Flag = "FakeLockerEsp",
     Callback = function(Value)
         if Value then
-            fakelockeresp = true
             for _, themodel in pairs(workspace:GetDescendants()) do
-                espmodel(themodel,"MonsterLocker", "假柜子", "1", "0", "0",false)
-            end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                espmodel(themodel,"MonsterLocker", "假柜子", "1", "0", "0",false)
-            end)
-            table.insert(EspConnects,esp)
-            task.spawn(function()
-                while OrionLib:IsRunning() do
-                    if fakelockeresp == false then
-                        esp:Disconnect()
-                        unesp("假柜子")
-                        break
-                    end   
-                    task.wait(0.1)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players and themodel.Name == "MonsterLocker" then
+                    AddESP({inst = themodel, Name = "假柜子", Color = Color3.new(1,0,0), value = OrionLib.Flags["FakeLockerEsp"]})
                 end
-            end)
-        else
-            fakelockeresp = false
+            end
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players and themodel.Name == "MonsterLocker" then
+                    AddESP({inst = themodel, Name = "假柜子", Color = Color3.new(1,0,0), value = OrionLib.Flags["FakeLockerEsp"]})
+                end
+            end,OrionLib.Flags["FakeLockerEsp"])
         end
     end
 })
@@ -692,31 +583,23 @@ Esp:AddToggle({ -- 发电机
     Name = "修复设备透视",
     Save = true,
     Default = true,
+    Flag = "FixDeviceEsp",
     Callback = function(Value)
         if Value then
-            fixdeviceesp = true
             for _, themodel in pairs(workspace:GetDescendants()) do
-                espmodel(themodel,"EncounterGenerator", "未修复发电机", "1", "0", "0",false)
-                espmodel(themodel,"BrokenCables", "未修复电缆", "1", "0", "0",false)
-            end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                espmodel(themodel,"EncounterGenerator", "未修复发电机", "1", "0", "0",false)
-                espmodel(themodel,"BrokenCables", "未修复电缆", "1", "0", "0",false)
-            end)
-            table.insert(EspConnects,esp)
-            task.spawn(function()
-                while OrionLib:IsRunning() do
-                    if fixdeviceesp == false then
-                        esp:Disconnect()
-                        unesp("未修复发电机")
-                        unesp("未修复电缆")
-                        break
-                    end   
-                    task.wait(0.1)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players then
+                    if themodel.Name == "EncounterGenerator" then AddESP({inst = themodel, Name = "未修复发电机", Color = Color3.new(1,0,0), value = OrionLib.Flags["FixDeviceEsp"]})
+                    elseif themodel.Name == "BrokenCables" then AddESP({inst = themodel, Name = "未修复电缆", Color = Color3.new(1,0,0), value = OrionLib.Flags["FixDeviceEsp"]})
+                    end
                 end
-            end)
-        else
-            fixdeviceesp = false
+            end
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players then
+                    if themodel.Name == "EncounterGenerator" then AddESP({inst = themodel, Name = "未修复发电机", Color = Color3.new(1,0,0), value = OrionLib.Flags["FixDeviceEsp"]})
+                    elseif themodel.Name == "BrokenCables" then AddESP({inst = themodel, Name = "未修复电缆", Color = Color3.new(1,0,0), value = OrionLib.Flags["FixDeviceEsp"]})
+                    end
+                end
+            end,OrionLib.Flags["FixDeviceEsp"])
         end
     end
 })
@@ -724,63 +607,41 @@ Esp:AddToggle({ -- 物品
     Name = "物品透视",
     Save = true,
     Default = true,
+    Flag = "ItemEsp",
     Callback = function(Value)
         if Value then
-            itemesp = true
             for _, themodel in pairs(workspace:GetDescendants()) do
-                espmodel(themodel,"DefaultBattery1", "电池", "1", "1", "1",false)
-                espmodel(themodel,"Flashlight", "手电筒", "25", "25", "25",false)
-                espmodel(themodel,"Lantern", "灯笼", "99", "99", "99",false)
-                espmodel(themodel,"FlashBeacon", "闪光", "1", "1", "1",false)
-                espmodel(themodel,"Blacklight", "黑光", "127", "0", "255",false)
-                espmodel(themodel,"Gummylight", "软糖手电筒", "15", "230", "100",false)
-                espmodel(themodel,"CodeBreacher", "红卡", "255", "30", "30",false)
-                espmodel(themodel,"DwellerPiece", "墙居者肉块", "50", "10", "25",false)
-                espmodel(themodel,"Medkit", "医疗箱", "80", "51", "235",false)
-                espmodel(themodel,"WindupLight", "手摇手电筒", "85", "100", "66",false)
-                espmodel(themodel,"Book", "魔法书", "0", "255", "255",true)
-            end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                espmodel(themodel,"DefaultBattery1", "电池", "1", "1", "1",false)
-                espmodel(themodel,"Flashlight", "手电筒", "25", "25", "25",false)
-                espmodel(themodel,"Lantern", "灯笼", "99", "99", "99",false)
-                espmodel(themodel,"FlashBeacon", "闪光", "1", "1", "1",false)
-                espmodel(themodel,"Blacklight", "黑光", "127", "0", "255",false)
-                espmodel(themodel,"Gummylight", "软糖手电筒", "15", "230", "100",false)
-                espmodel(themodel,"CodeBreacher", "红卡", "255", "30", "30",false)
-                espmodel(themodel,"DwellerPiece", "墙居者肉块", "50", "10", "25",false)
-                espmodel(themodel,"Medkit", "医疗箱", "80", "51", "235",false)
-                espmodel(themodel,"WindupLight", "手摇手电筒", "85", "100", "66",false)
-                espmodel(themodel,"Book", "魔法书", "0", "255", "255",true)
-            end)
-            table.insert(EspConnects,esp)
-            task.spawn(function()
-                while OrionLib:IsRunning() do
-                    if itemesp == false then
-                        esp:Disconnect()
-                        unesp("电池")
-                        unesp("手电筒")
-                        unesp("灯笼")
-                        unesp("闪光")
-                        unesp("黑光")
-                        unesp("软糖手电筒")
-                        unesp("红卡")
-                        unesp("墙居者肉块")
-                        unesp("医疗箱")
-                        unesp("手摇手电筒")
-                        unesp("魔法书")
-                        for _, hl in pairs(PlayerGui:GetChildren()) do
-                            if hl.Name == "魔法书透视高光" then
-                                hl:Destroy()                            
-                            end
-                        end
-                        break
-                    end   
-                    task.wait(0.1)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players then
+                    if themodel.Name == "DefaultBattery1" then AddESP({inst = themodel, Name = "电池", Color = Color3.new(1,1,1), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Flashlight" then AddESP({inst = themodel, Name = "手电筒", Color = Color3.new(25,25,25), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Lantern" then AddESP({inst = themodel, Name = "灯笼", Color = Color3.new(99,99,99), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "FlashBeacon" then AddESP({inst = themodel, Name = "闪光", Color = Color3.new(1,1,1), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Blacklight" then AddESP({inst = themodel, Name = "黑光", Color = Color3.new(127,0,255), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Gummylight" then AddESP({inst = themodel, Name = "软糖手电筒", Color = Color3.new(15,230,100), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "CodeBreacher" then AddESP({inst = themodel, Name = "红卡", Color = Color3.new(255,30,30), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "DwellerPiece" then AddESP({inst = themodel, Name = "墙居者肉块", Color = Color3.new(50,10,25), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Medkit" then AddESP({inst = themodel, Name = "医疗箱", Color = Color3.new(80,51,235), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "WindupLight" then AddESP({inst = themodel, Name = "手摇手电筒", Color = Color3.new(85,100,66), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Book" then AddESP({inst = themodel, Name = "魔法书", Color = Color3.new(0,255,255), value = OrionLib.Flags["ItemEsp"]})
+                    end
                 end
-            end)
-        else
-            itemesp = false
+            end
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players then
+                    if themodel.Name == "DefaultBattery1" then AddESP({inst = themodel, Name = "电池", Color = Color3.new(1,1,1), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Flashlight" then AddESP({inst = themodel, Name = "手电筒", Color = Color3.new(25,25,25), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Lantern" then AddESP({inst = themodel, Name = "灯笼", Color = Color3.new(99,99,99), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "FlashBeacon" then AddESP({inst = themodel, Name = "闪光", Color = Color3.new(1,1,1), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Blacklight" then AddESP({inst = themodel, Name = "黑光", Color = Color3.new(127,0,255), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Gummylight" then AddESP({inst = themodel, Name = "软糖手电筒", Color = Color3.new(15,230,100), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "CodeBreacher" then AddESP({inst = themodel, Name = "红卡", Color = Color3.new(255,30,30), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "DwellerPiece" then AddESP({inst = themodel, Name = "墙居者肉块", Color = Color3.new(50,10,25), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Medkit" then AddESP({inst = themodel, Name = "医疗箱", Color = Color3.new(80,51,235), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "WindupLight" then AddESP({inst = themodel, Name = "手摇手电筒", Color = Color3.new(85,100,66), value = OrionLib.Flags["ItemEsp"]})
+                    elseif themodel.Name == "Book" then AddESP({inst = themodel, Name = "魔法书", Color = Color3.new(0,255,255), value = OrionLib.Flags["ItemEsp"]})
+                    end
+                end
+            end,OrionLib.Flags["ItemEsp"])
         end
     end
 })
@@ -788,57 +649,37 @@ Esp:AddToggle({ -- 钱
     Name = "研究(钱)透视",
     Save = true,
     Default = true,
+    Flag = "MoneyEsp",
     Callback = function(Value)
         if Value then
-            moneyesp = true
             for _, themodel in pairs(workspace:GetDescendants()) do
-                espmodel(themodel,"5Currency", "5钱", "1", "1", "1",false)
-                espmodel(themodel,"10Currency", "10钱", "1", "1", "1",false)
-                espmodel(themodel,"15Currency", "15钱", "0.5", "0.5", "0.5",false)
-                espmodel(themodel,"20Currency", "20钱", "1", "1", "1",false)
-                espmodel(themodel,"25Currency", "25钱", "1", "1", "0",false)
-                espmodel(themodel,"50Currency", "50钱", "1", "0.5", "0",true)
-                espmodel(themodel,"100Currency", "100钱", "1", "0", "1",true)
-                espmodel(themodel,"200Currency", "200钱", "0", "1", "1",true)
-                espmodel(themodel,"Relic", "500钱", "0", "1", "1",true)
-            end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                espmodel(themodel,"5Currency", "5钱", "1", "1", "1",false)
-                espmodel(themodel,"10Currency", "10钱", "1", "1", "1",false)
-                espmodel(themodel,"15Currency", "15钱", "0.5", "0.5", "0.5",false)
-                espmodel(themodel,"20Currency", "20钱", "1", "1", "1",false)
-                espmodel(themodel,"25Currency", "25钱", "1", "1", "0",false)
-                espmodel(themodel,"50Currency", "50钱", "1", "0.5", "0",true)
-                espmodel(themodel,"100Currency", "100钱", "1", "0", "1",true)
-                espmodel(themodel,"200Currency", "200钱", "0", "1", "1",true)
-                espmodel(themodel,"Relic", "500钱", "0", "1", "1",true)
-            end)
-            table.insert(EspConnects,esp)
-            task.spawn(function()
-                while OrionLib:IsRunning() do
-                    if moneyesp == false then
-                        esp:Disconnect()
-                        unesp("5钱")
-                        unesp("10钱")
-                        unesp("15钱")
-                        unesp("20钱")
-                        unesp("25钱")
-                        unesp("50钱")
-                        unesp("100钱")
-                        unesp("200钱")
-                        unesp("500钱")
-                        for _, hl in pairs(PlayerGui:GetChildren()) do
-                            if hl.Name == "50钱透视高光" or hl.Name == "100钱透视高光" or hl.Name == "200钱透视高光" or hl.Name == "500钱透视高光" then
-                                hl:Destroy()                            
-                            end
-                        end
-                        break
-                    end   
-                    task.wait(0.1)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players then
+                    if themodel.Name == "5Currency" then AddESP({inst = themodel, Name = "5钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "10Currency" then AddESP({inst = themodel, Name = "10钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "15Currency" then AddESP({inst = themodel, Name = "15钱", Color = Color3.new(0.5,0.5,0.5), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "20Currency" then AddESP({inst = themodel, Name = "20钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "25Currency" then AddESP({inst = themodel, Name = "25钱", Color = Color3.new(1,1,0), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "50Currency" then AddESP({inst = themodel, Name = "50钱", Color = Color3.new(1,0.5,0), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "100Currency" then AddESP({inst = themodel, Name = "100钱", Color = Color3.new(1,0,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "200Currency" then AddESP({inst = themodel, Name = "200钱", Color = Color3.new(0,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "Relic" then AddESP({inst = themodel, Name = "500钱", Color = Color3.new(0,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    end
                 end
-            end)
-        else
-            moneyesp = false
+            end
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent.Parent ~= Players then
+                    if themodel.Name == "5Currency" then AddESP({inst = themodel, Name = "5钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "10Currency" then AddESP({inst = themodel, Name = "10钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "15Currency" then AddESP({inst = themodel, Name = "15钱", Color = Color3.new(0.5,0.5,0.5), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "20Currency" then AddESP({inst = themodel, Name = "20钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "25Currency" then AddESP({inst = themodel, Name = "25钱", Color = Color3.new(1,1,0), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "50Currency" then AddESP({inst = themodel, Name = "50钱", Color = Color3.new(1,0.5,0), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "100Currency" then AddESP({inst = themodel, Name = "100钱", Color = Color3.new(1,0,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "200Currency" then AddESP({inst = themodel, Name = "200钱", Color = Color3.new(0,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "Relic" then AddESP({inst = themodel, Name = "500钱", Color = Color3.new(0,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    end
+                end
+            end,OrionLib.Flags["MoneyEsp"])
         end
     end
 })
@@ -881,7 +722,7 @@ end) -- 房间
 AddConnection(workspace.DescendantAdded,function(inst) -- 其他
     if inst.Name == "Eyefestation" and OrionLib.Flags.noeyefestation.Value then
         inst:Destroy()
-        delNotifi("Eyefestation")
+        OrionNotify("Eyefestation", NotifyMes["delete"])
     end
     if inst.Name == "EnragedEyefestation" and OrionLib.Flags.noeyefestation.Value then
         inst:Destroy()
@@ -909,7 +750,7 @@ AddConnection(workspace.DescendantAdded,function(inst) -- 其他
                 SLE_room.Searchlights:Destroy()
             end
         end
-        delNotifi("Searchlights")
+        OrionNotify("Searchlights", NotifyMes["delete"])
     end
     if inst.Name == "Steams" and OrionLib.Flags.nodamage.Value then -- 无环境伤害
         task.wait(0.1)
@@ -954,22 +795,22 @@ AddConnection(workspace.DescendantAdded,function(inst) -- 其他
     if inst.Name == "FriendPart" and OrionLib.Flags.noFriendPart.Value then -- z432nowatertoswim
         task.wait(0.1)
         inst:Destroy()
-        delNotifi("z432")
+        OrionNotify("z432", NotifyMes["delete"])
     end
     if inst.Name == "WaterPart" and inst:FindFirstAncestorOfClass("Folder").Name == "Rooms" and OrionLib.Flags.nowatertoswim.Value then -- 水区
         task.wait(0.1)
         inst:Destroy()
     end
     if inst.Name == "Trickster" and inst:FindFirstAncestorOfClass("Model").Name == "Trickster" and OrionLib.Flags.noTrickster.Value then -- 假门
-        Notify("检测假门", "尝试删除")
+        OrionNotify("检测假门", "尝试删除")
         inst.Trickster:Destroy()
     end
     if (inst.Name == "WallDweller" or inst.Name == "RottenWallDweller") and OrionLib.Flags.NotifyEntities.Value then
-        entityNotifi("墙居者出现")
+        OrionNotify(NotifyMes["entity"], "墙居者出现")
         if OrionLib.Flags.chatNotifyEntities.Value then chatMessage("墙居者出现") end
         repeat task.wait() until not inst
         if not OrionLib.Flags.NotifyEntities.Value then return end
-        entityNotifi("墙居者消失")
+        OrionNotify(NotifyMes["entity"], "墙居者消失")
         if OrionLib.Flags.chatNotifyEntities.Value then chatMessage("墙居者消失") end
     end
 end)
@@ -977,13 +818,13 @@ AddConnection(workspace.ChildAdded,function(child) -- 关于实体
     local childName = string.lower(child.Name)
     if table.find(entityNames, child.Name) and child:IsDescendantOf(workspace) then
         if OrionLib.Flags.NotifyEntities.Value and OrionLib.Flags.avoid.Value == false then -- 实体提醒
-            entityNotifi(child.Name .. "出现")
+            OrionNotify(NotifyMes["entity"], child.Name .. "出现")
         end
         if OrionLib.Flags.avoid.Value and childName ~= "mirage" then -- 自动躲避
             createPlatform("AvoidPlatform", Vector3.new(3000, 1, 3000), Vector3.new(5000, 10000, 5000))
-            teleportPlayerTo(Players.LocalPlayer, Platform.Position + Vector3.new(0, Platform.Size.Y / 2 + 5, 0),true)
+            teleportPlayer(Players.LocalPlayer, Platform.Position + Vector3.new(0, Platform.Size.Y / 2 + 5, 0))
             Entitytoavoid[child] = true
-            entityNotifi(child.Name .. "出现,自动躲避中")
+            OrionNotify(NotifyMes["entity"], child.Name .. "出现,自动躲避中")
         end
         if OrionLib.Flags.chatNotifyEntities.Value then -- 实体播报
             chatMessage(child.Name .. "出现")
@@ -999,18 +840,18 @@ AddConnection(workspace.ChildAdded,function(child) -- 关于实体
         if OrionLib.Flags.nopandemonium.Value and (string.find(childName, "pande") or string.find(childName, "monium")) then -- 删除z367
             task.wait(0.1)
             child:Destroy()
-            delNotifi("Pandemonium")
+            OrionNotify("Pandemonium", NotifyMes["delete"])
         end
     end
 end)
 AddConnection(workspace.ChildRemoved,function(child) -- 关于实体
     if table.find(entityNames, child.Name) then
         if OrionLib.Flags.avoid.Value and Entitytoavoid[child] then -- 自动躲避
-            teleportPlayerBack(Players.LocalPlayer)
+            teleportBack(Players.LocalPlayer)
             Entitytoavoid[child] = nil 
         end
         if OrionLib.Flags.NotifyEntities.Value and OrionLib.Flags.avoid.Value == false then -- 实体提醒
-            entityNotifi(child.Name .. "消失")
+            OrionNotify(NotifyMes["entity"], child.Name .. "消失")
         end
         if OrionLib.Flags.chatNotifyEntities.Value then -- 实体播报
             chatMessage(child.Name .. "消失")
@@ -1018,7 +859,7 @@ AddConnection(workspace.ChildRemoved,function(child) -- 关于实体
     end 
     if child.Name == "Mirage" then -- Mirage
         if OrionLib.Flags.NotifyEntities.Value then
-            entityNotifi("Mirage消失")
+            OrionNotify(NotifyMes["entity"], "Mirage消失")
         end
         if OrionLib.Flags.chatNotifyEntities.Value then
             chatMessage(child.Name .. "消失")
@@ -1032,7 +873,7 @@ AddConnection(Players.PlayerAdded,function(player)
         else
             Notififriend = ""
         end
-        Notify("玩家提醒", player.Name .. Notififriend .. "已加入", 2,false)
+        OrionNotify("玩家提醒", player.Name .. Notififriend .. "已加入", 2,false)
     end
     if OrionLib.Flags['PlayerEsp'] then
         AddESP({
@@ -1050,6 +891,6 @@ AddConnection(Players.PlayerRemoving,function(player)
         else
             Notififriend = ""
         end
-        Notify("玩家提醒", player.Name .. Notififriend .. "已退出", 2,false)
+        OrionNotify("玩家提醒", player.Name .. Notififriend .. "已退出", 2,false)
     end
 end)

@@ -184,7 +184,7 @@ AutoChallengeToggle = Tab:AddToggle({
 
         local cacheConnections = {}
 
-        TaskAmountUpdate = DailyChallenge.TaskAmountUpdate.OnClientEvent:Connect(function(currentProgress)
+        TaskAmountUpdate = AddConnection(DailyChallenge.TaskAmountUpdate.OnClientEvent,function(currentProgress)
             if Amount <= currentProgress then finishChallenge = true end
         end,OrionLib.Flags['AutoChallenge']); table.insert(cacheConnections,TaskAmountUpdate)
         
@@ -197,7 +197,7 @@ AutoChallengeToggle = Tab:AddToggle({
         local TaskTracker = Character and (Character:FindFirstChild('JumpTaskTracker') or Character:FindFirstChild('KnockYourselfTaskTracker'))
         local Remote; if TaskTracker then Remote = TaskTracker:FindFirstChild('Remote') end
         local HeartbeatConnection; if Type == 'Walk' then 
-            HeartbeatConnection = game:GetService('RunService').Heartbeat:Connect(function()
+            HeartbeatConnection = AddConnection(RunService.Heartbeat,function()
                 HumanoidRootPart.CFrame = HumanoidRootPart.CFrame + Vector3.new(10,0,0)
             end)
             table.insert(cacheConnections,HeartbeatConnection)

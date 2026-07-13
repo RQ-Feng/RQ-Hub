@@ -324,19 +324,19 @@ local function GoldPileEsp(GoldPile)
     })
 end
 
-Tab = Window:MakeTab({
+local Tab = Window:MakeTab({
     Name = "主界面",
     Icon = "rbxassetid://4483345998"
 })
-Feature = Window:MakeTab({
+local Feature = Window:MakeTab({
     Name = "功能",
     Icon = "rbxassetid://4483345998"
 })
-Esp = Window:MakeTab({
+local Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })
-Floor = Window:MakeTab({
+local Floor = Window:MakeTab({
     Name = "楼层",
     Icon = "rbxassetid://4483345998"
 })
@@ -748,7 +748,7 @@ Feature:AddToggle({
             end)
         end
 
-        OxygenNotify = Notify({
+        OxygenNotify = PopupNotify({
             Text = '剩余氧气',
             Content = Character:GetAttribute('Oxygen')
         }); SetCloseTask(Character)
@@ -758,7 +758,7 @@ Feature:AddToggle({
             CheckOxygenEvent = AddConnection(char:GetAttributeChangedSignal('Oxygen'),function()
                 local currentOxygen = char:GetAttribute('Oxygen') and math.floor(char:GetAttribute('Oxygen'))
 
-                if not OxygenNotify then OxygenNotify = Notify({
+                if not OxygenNotify then OxygenNotify = PopupNotify({
                     Text = '剩余氧气',
                     Content = currentOxygen
                 }) end

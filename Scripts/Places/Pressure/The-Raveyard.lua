@@ -1,146 +1,51 @@
 -- local设置
-EspConnects = {}
-doors = {"CryptDoor","GraveyardGate"}
-Character = Players.LocalPlayer.Character -- 本地玩家Character
-humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
-Espboxes = Players.LocalPlayer.PlayerGui
-RemoteFolder = ReplicatedStorage.Events -- Remote Event储存区之一
+local EspConnects = {}
+local playerPositions = {}
+local doors = {"CryptDoor","GraveyardGate"}
+local ezinst,autoinst -- 功能开关
+local humanoid = Character:FindFirstChild("Humanoid") -- 本地玩家humanoid
+local Espboxes = Players.LocalPlayer.PlayerGui
+local RemoteFolder = ReplicatedStorage.Events -- Remote Event储存区之一
 --local结束->Function设置
-function Notify(name,content,time,Sound,SoundId) -- 信息
-    OrionLib:MakeNotification({
-        Name = name,
-        Content = content,
-        Image = "rbxassetid://4483345998",
-        Time = time or "3",
-        SoundId = SoundId,
-        Sound = Sound
-    })
+local function delNotifi(delthings) -- 删除信息
+    OrionNotify(delthings, "已成功删除")
 end
-function delNotifi(delthings) -- 删除信息
-    Notify(delthings, "已成功删除")
+local function entityNotifi(entityname) -- 实体提醒
+    OrionNotify("实体提醒", entityname)
 end
-function entityNotifi(entityname) -- 实体提醒
-    Notify("实体提醒", entityname)
-end
-function copyitems(copyitem) -- 复制物品
-    create_NumberValue = Instance.new("NumberValue") -- copy items-type NumberValue
+local function copyitems(copyitem) -- 复制物品
+    local create_NumberValue = Instance.new("NumberValue") -- copy items-type NumberValue
     create_NumberValue.Name = copyitem
     create_NumberValue.Parent = game.Players.LocalPlayer.PlayerFolder.Inventory
 end
-function createBilltoesp(theobject,name,color,hlset) -- 创建BillboardGui-颜色:Color3.new(r,g,b)
-    bill = Instance.new("BillboardGui", theobject) -- 创建BillboardGui
-    bill.AlwaysOnTop = true
-    bill.Size = UDim2.new(0, 100, 0, 50)
-    bill.Adornee = theobject
-    bill.MaxDistance = 2000
-    bill.Name = name .. "esp"
-    mid = Instance.new("Frame", bill) -- 创建Frame-圆形
-    mid.AnchorPoint = Vector2.new(0.5, 0.5)
-    mid.BackgroundColor3 = color
-    mid.Size = UDim2.new(0, 8, 0, 8)
-    mid.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Instance.new("UICorner", mid).CornerRadius = UDim.new(1, 0)
-    Instance.new("UIStroke", mid)
-    txt = Instance.new("TextLabel", bill) -- 创建TextLabel-显示
-    txt.AnchorPoint = Vector2.new(0.5, 0.5)
-    txt.BackgroundTransparency = 1
-    txt.TextColor3 =color
-    txt.Size = UDim2.new(1, 0, 0, 20)
-    txt.Position = UDim2.new(0.5, 0, 0.7, 0)
-    txt.Text = name
-    Instance.new("UIStroke", txt)
-    if hlset then
-        hl = Instance.new("Highlight",bill)
-        hl.Name = name .. "透视高光"
-        hl.Parent = Players.LocalPlayer.PlayerGui
-        hl.Adornee = theobject
-        hl.DepthMode = "AlwaysOnTop"
-        hl.FillColor = color
-        hl.FillTransparency = "0.5"
-        task.spawn(function()
-            while hl do
-                if hl.Adornee == nil or not hl.Adornee:IsDescendantOf(workspace) then
-                    hl:Destroy()
-                end
-                task.wait()
-            end
-        end)
-    end
-end
-function espmodel(modelname,name,r,g,b,hlset) -- Esp物品(Model对象)用
-    for _, themodel in pairs(workspace:GetDescendants()) do
-        if themodel:IsA("Model") and themodel.Parent ~= Players and themodel.Name == modelname then
-            createBilltoesp(themodel,name, Color3.new(r,g,b),hlset)
-        end
-    end
-    esp = workspace.DescendantAdded:Connect(function(themodel)
-        if themodel:IsA("Model") and themodel.Parent ~= Players and themodel.Name == modelname then
-            createBilltoesp(themodel,name, Color3.new(r,g,b),hlset)
-        end
-    end)
-    table.insert(EspConnects,esp)
-end
-function unesp(name) -- unEsp物品用
-    for _, esp in pairs(workspace:GetDescendants()) do
-        if esp.Name == name .. "esp" then
-            esp:Destroy()
-        end
-    end
-    for _, hl in pairs(workspace:GetDescendants()) do
-        if hl.Name == name .. "透视高光" then
-            hl:Destroy()
-        end
-    end
-end
-function teleportPlayerTo(player,toPositionVector3,saveposition) -- 传送玩家-Vector3.new(x,y,z)
+-- #sym:ESPLibrary
+local function teleportPlayer(player,toPositionVector3)
     if player.Character:FindFirstChild("HumanoidRootPart") then
-        if saveposition then
-            playerPositions[player.UserId] = player.Character.HumanoidRootPart.CFrame
-        end
+        playerPositions[player.UserId] = player.Character.HumanoidRootPart.CFrame
         player.Character.HumanoidRootPart.CFrame = CFrame.new(toPositionVector3)
     end
 end
-function loadfinish() -- 加载完成后向控制台发送
-    print("--------------------------加载完成--------------------------")
-    print("--Pressure Script已加载完成")
-    print("--欢迎使用!" .. game.Players.LocalPlayer.Name)
-    print("--此服务器游戏ID为:" .. GameId)
-    print("--此服务器位置ID为:" .. PlaceId)
-    print("--此服务器UUID为:" .. game.JobId)
-    print("--此服务器上的游戏版本为:version_" .. game.PlaceVersion)
-    print("--当前您位于Pressure-The Raveyard")
-    print("--------------------------欢迎使用--------------------------")
-end
 --Function结束-其他
-task.spawn(function()--关闭esp的Connect
-	while (OrionLib:IsRunning()) do
-		task.wait()
-	end
-	for _, Connection in pairs(EspConnects) do
-		Connection:Disconnect()
-	end
-end)
-loadfinish()--其他结束->加载完成信息
-Notify("加载完成", "已成功加载")
+OrionNotify("加载完成", "已成功加载")
 --Tab界面
-Tab = Window:MakeTab({
+local Tab = Window:MakeTab({
     Name = "主界面",
     Icon = "rbxassetid://4483345998"
 })
-Del = Window:MakeTab({
+local Del = Window:MakeTab({
     Name = "删除",
     Icon = "rbxassetid://4483345998"
 })
-Esp = Window:MakeTab({
+local Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })
-others = Window:MakeTab({
+local others = Window:MakeTab({
     Name = "其他",
     Icon = "rbxassetid://4483345998"
 })
 --子界面
-Section = Tab:AddSection({
+local Section = Tab:AddSection({
     Name = "实体"
 })
 Tab:AddToggle({
@@ -149,7 +54,7 @@ Tab:AddToggle({
     Default = true,
     Flag = "NotifyEntities",
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "交互"
 })
 Tab:AddToggle({ -- 轻松交互
@@ -198,52 +103,22 @@ Tab:AddToggle({ -- 轻松交互
         end)
     end
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "相机"
 })
 Tab:AddToggle({ -- 保持广角
     Name = "保持广角",
     Save = true,
     Default = true,
-    Callback = function(Value)
-        if Value then
-            keep120fov = true
-            task.spawn(function()
-                while game.Workspace.Camera.FieldOfView ~= "120" and keep120fov and OrionLib:IsRunning() do
-                    game.Workspace.Camera.FieldOfView = "120"
-                    task.wait()
-                end
-            end)
-        else
-            keep120fov = false
-        end
-    end
+    Flag = "keep120fov",
 })
 Tab:AddToggle({ -- 高亮
     Name = "高亮(低质量)",
     Save = true,
     Default = true,
-    Callback = function(Value)
-        Light = game:GetService("Lighting")
-        if Value then
-            FullBrightLite = true
-            task.spawn(function()
-                while FullBrightLite and OrionLib:IsRunning() do
-                    Light.Ambient = Color3.new(1, 1, 1)
-                    Light.ColorShift_Bottom = Color3.new(1, 1, 1)
-                    Light.ColorShift_Top = Color3.new(1, 1, 1)
-                    task.wait()
-                end
-            end)
-        else
-            FullBrightLite = false
-            Light.Ambient = Color3.new(0, 0, 0)
-            Light.ColorShift_Bottom = Color3.new(0, 0, 0)
-            Light.ColorShift_Top = Color3.new(0, 0, 0)
-        end
-    end
+    Flag = "FullBrightLite",
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "其他"
 })
 Tab:AddButton({ --传送门
@@ -251,7 +126,7 @@ Tab:AddButton({ --传送门
     Callback = function()
         for _, notopendoor in pairs(workspace:GetDescendants()) do
             if table.find(doors, notopendoor.Name) and notopendoor.Parent.Name == "Entrances" and notopendoor.OpenValue.Value == false then
-                teleportPlayerTo(Players.LocalPlayer, notopendoor.Root.Position + Vector3.new(0,5,0), false)
+                teleportPlayer(Players.LocalPlayer, notopendoor.Root.Position + Vector3.new(0,5,0))
             end
         end
     end
@@ -276,7 +151,7 @@ Tab:AddToggle({
                                 Exit = nil
                                 return
                             end
-                            teleportPlayerTo(Players.LocalPlayer,notopendoor.Root.Position + Vector3.new(0,5,0), false)
+                            teleportPlayer(Players.LocalPlayer,notopendoor.Root.Position + Vector3.new(0,5,0))
                             if notopendoor.OpenValue.Value == true then
                                 break         
                             end
@@ -293,7 +168,7 @@ Tab:AddToggle({
 Tab:AddButton({
     Name = "再来一局",
     Callback = function()
-        Notify("再来一局","请稍等...")
+        OrionNotify("再来一局","请稍等...")
         RemoteFolder.PlayAgain:FireServer()
     end
 })
@@ -358,28 +233,23 @@ Esp:AddToggle({ -- door
     Name = "门透视",
     Save = true,
     Default = true,
+    Flag = "DoorEsp",
     Callback = function(Value)
         if Value then
             for _, themodel in pairs(workspace:GetDescendants()) do
-                if themodel:IsA("Model") and themodel.Parent.Name == "Entrances" and themodel.Name == "CryptDoor" then
-                    createBilltoesp(themodel,"门", Color3.new(0,1,0),true)
-                end
-                if themodel:IsA("Model") and themodel.Parent.Name == "Entrances" and themodel.Name == "GraveyardGate" then
-                    createBilltoesp(themodel,"大门", Color3.new(0,1,0),true)
+                if themodel:IsA("Model") and themodel.Parent.Name == "Entrances" then
+                    if themodel.Name == "CryptDoor" then AddESP({inst = themodel, Name = "门", Color = Color3.new(0,1,0), value = OrionLib.Flags["DoorEsp"]})
+                    elseif themodel.Name == "GraveyardGate" then AddESP({inst = themodel, Name = "大门", Color = Color3.new(0,1,0), value = OrionLib.Flags["DoorEsp"]})
+                    end
                 end
             end
-            esp = workspace.DescendantAdded:Connect(function(themodel)
-                if themodel:IsA("Model") and themodel.Parent.Name == "Entrances" and themodel.Name == "CryptDoor" then
-                    createBilltoesp(themodel,"门", Color3.new(0,1,0),true)
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent.Name == "Entrances" then
+                    if themodel.Name == "CryptDoor" then AddESP({inst = themodel, Name = "门", Color = Color3.new(0,1,0), value = OrionLib.Flags["DoorEsp"]})
+                    elseif themodel.Name == "GraveyardGate" then AddESP({inst = themodel, Name = "大门", Color = Color3.new(0,1,0), value = OrionLib.Flags["DoorEsp"]})
+                    end
                 end
-                if themodel:IsA("Model") and themodel.Parent.Name == "Entrances" and themodel.Name == "GraveyardGate" then
-                    createBilltoesp(themodel,"大门", Color3.new(0,1,0),true)
-                end
-            end)
-            table.insert(EspConnects,esp)
-        else
-            unesp("门")
-            unesp("大门")
+            end,OrionLib.Flags["DoorEsp"])
         end
     end
 })
@@ -387,27 +257,37 @@ Esp:AddToggle({ -- 钱
     Name = "钱透视(待做)",
     Save = true,
     Default = true,
+    Flag = "MoneyEsp",
     Callback = function(Value)
         if Value then
-            espmodel("5Currency", "5钱", "1", "1", "1",false)
-            espmodel("10Currency", "10钱", "1", "1", "1",false)
-            espmodel("15Currency", "15钱", "0.5", "0.5", "0.5",false)
-            espmodel("20Currency", "20钱", "1", "1", "1",false)
-            espmodel("25Currency", "25钱", "1", "1", "0",false)
-            espmodel("50Currency", "50钱", "1", "0.5", "0",true)
-            espmodel("100Currency", "100钱", "1", "0", "1",true)
-            espmodel("200Currency", "200钱", "0", "1", "1",true)
-            espmodel("Relic", "500钱", "0", "1", "1",true)
-        else
-            unesp("5钱")
-            unesp("10钱")
-            unesp("15钱")
-            unesp("20钱")
-            unesp("25钱")
-            unesp("50钱")
-            unesp("100钱")
-            unesp("200钱")
-            unesp("500钱")
+            for _, themodel in pairs(workspace:GetDescendants()) do
+                if themodel:IsA("Model") and themodel.Parent ~= Players then
+                    if themodel.Name == "5Currency" then AddESP({inst = themodel, Name = "5钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "10Currency" then AddESP({inst = themodel, Name = "10钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "15Currency" then AddESP({inst = themodel, Name = "15钱", Color = Color3.new(0.5,0.5,0.5), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "20Currency" then AddESP({inst = themodel, Name = "20钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "25Currency" then AddESP({inst = themodel, Name = "25钱", Color = Color3.new(1,1,0), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "50Currency" then AddESP({inst = themodel, Name = "50钱", Color = Color3.new(1,0.5,0), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "100Currency" then AddESP({inst = themodel, Name = "100钱", Color = Color3.new(1,0,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "200Currency" then AddESP({inst = themodel, Name = "200钱", Color = Color3.new(0,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "Relic" then AddESP({inst = themodel, Name = "500钱", Color = Color3.new(0,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    end
+                end
+            end
+            AddConnection(workspace.DescendantAdded,function(themodel)
+                if themodel:IsA("Model") and themodel.Parent ~= Players then
+                    if themodel.Name == "5Currency" then AddESP({inst = themodel, Name = "5钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "10Currency" then AddESP({inst = themodel, Name = "10钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "15Currency" then AddESP({inst = themodel, Name = "15钱", Color = Color3.new(0.5,0.5,0.5), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "20Currency" then AddESP({inst = themodel, Name = "20钱", Color = Color3.new(1,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "25Currency" then AddESP({inst = themodel, Name = "25钱", Color = Color3.new(1,1,0), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "50Currency" then AddESP({inst = themodel, Name = "50钱", Color = Color3.new(1,0.5,0), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "100Currency" then AddESP({inst = themodel, Name = "100钱", Color = Color3.new(1,0,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "200Currency" then AddESP({inst = themodel, Name = "200钱", Color = Color3.new(0,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    elseif themodel.Name == "Relic" then AddESP({inst = themodel, Name = "500钱", Color = Color3.new(0,1,1), value = OrionLib.Flags["MoneyEsp"]})
+                    end
+                end
+            end,OrionLib.Flags["MoneyEsp"])
         end
     end
 })
@@ -421,24 +301,21 @@ Esp:AddToggle({ -- 玩家
     Name = "玩家透视",
     Save = true,
     Default = false,
+    Flag = "PlayerEsp",
     Callback = function(Value)
         for _, player in pairs(game.Players:GetPlayers()) do
             if Value then
                 if player ~= game.Players.LocalPlayer then
-                    createBilltoesp(player.Character, player.Name, Color3.new(238, 201, 0),false)
-                end
-            else
-                if player.Character:FindFirstChildOfClass("BillboardGui") then
-                    player.Character:FindFirstChildOfClass("BillboardGui"):Destroy()
+                    AddESP({inst = player.Character, Name = player.Name, Color = Color3.new(238, 201, 0), value = OrionLib.Flags['PlayerEsp']})
                 end
             end
         end
     end
 })
-workspaceDA = workspace.DescendantAdded:Connect(function(inst) -- 其他
+local workspaceDA = AddConnection(workspace.DescendantAdded,function(inst) -- 其他
     if inst.Name == "Bouncer" then -- 无环境伤害
-        if OrionLib.Flags.EntityEsp.Value then -- 实体esp
-            createBilltoesp(inst, inst.Name, Color3.new(1, 0, 0), true)
+        if OrionLib.Flags.EntityEsp and OrionLib.Flags.EntityEsp.Value then -- 实体esp
+            AddESP({inst = inst, Name = inst.Name, Color = Color3.new(1, 0, 0), value = OrionLib.Flags['EntityEsp']})
         end
         if OrionLib.Flags.NotifyEntities.Value and OrionLib.Flags.noBouncer.Value == false then
             entityNotifi("z564出现")
@@ -449,8 +326,8 @@ workspaceDA = workspace.DescendantAdded:Connect(function(inst) -- 其他
         end
     end
     if inst.Name == "SkeletonHead" then
-        if OrionLib.Flags.EntityEsp.Value then -- 实体esp
-            createBilltoesp(inst, inst.Name, Color3.new(1, 0, 0), true)
+        if OrionLib.Flags.EntityEsp and OrionLib.Flags.EntityEsp.Value then -- 实体esp
+            AddESP({inst = inst, Name = inst.Name, Color = Color3.new(1, 0, 0), value = OrionLib.Flags['EntityEsp']})
         end
         if OrionLib.Flags.NotifyEntities.Value and OrionLib.Flags.noSkeletonHead.Value == false then
             entityNotifi("z565出现")
@@ -469,8 +346,8 @@ workspaceDA = workspace.DescendantAdded:Connect(function(inst) -- 其他
         inst:Destroy()
     end
     if inst.Name == "StatueRoot" then
-        if OrionLib.Flags.EntityEsp.Value then -- 实体esp
-            createBilltoesp(inst, inst.Name, Color3.new(1, 0, 0), true)
+        if OrionLib.Flags.EntityEsp and OrionLib.Flags.EntityEsp.Value then -- 实体esp
+            AddESP({inst = inst, Name = inst.Name, Color = Color3.new(1, 0, 0), value = OrionLib.Flags['EntityEsp']})
         end
         if OrionLib.Flags.NotifyEntities.Value and OrionLib.Flags.noStatueRoot.Value == false then
             entityNotifi("z566出现")
@@ -484,28 +361,35 @@ workspaceDA = workspace.DescendantAdded:Connect(function(inst) -- 其他
         task.wait(0.1)
         inst:Destroy()
     end
-    if inst.Name == "DamagePart" and OrionLib.Flags.nodzamage.Value then
+    if inst.Name == "DamagePart" and OrionLib.Flags.nodamage.Value then
         task.wait(0.1)
         inst:Destroy()
     end
 end)
-Players.PlayerAdded:Connect(function(player)
-    if OrionLib.Flags.PlayerNotifications.Value then
-        if player:IsFriendsWith(Players.LocalPlayer.UserId) then
-            Notififriend = "(好友)"
-        else
-            Notififriend = ""
-        end
-        Notify("玩家提醒", player.Name .. Notififriend .. "已加入", 2,false)
+-- 功能循环
+AddConnection(RunService.RenderStepped,function()
+    if OrionLib.Flags.keep120fov and OrionLib.Flags.keep120fov.Value and workspace.Camera.FieldOfView ~= 120 then
+        workspace.Camera.FieldOfView = 120
+    end
+    if OrionLib.Flags.FullBrightLite and OrionLib.Flags.FullBrightLite.Value then
+        Lighting.Ambient = Color3.new(1, 1, 1)
+        Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+        Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+    elseif not OrionLib.Flags.FullBrightLite or not OrionLib.Flags.FullBrightLite.Value then
+        Lighting.Ambient = Color3.new(0, 0, 0)
+        Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
+        Lighting.ColorShift_Top = Color3.new(0, 0, 0)
     end
 end)
-Players.PlayerRemoving:Connect(function(player)
-    if OrionLib.Flags.PlayerNotifications.Value then
-        if player:IsFriendsWith(Players.LocalPlayer.UserId) then
-            Notififriend = "(好友)"
-        else
-            Notififriend = ""
-        end
-        Notify("玩家提醒", player.Name .. Notififriend .. "已退出", 2,false)
+AddConnection(Players.PlayerAdded,function(player)
+    if OrionLib.Flags.PlayerNotifications and OrionLib.Flags.PlayerNotifications.Value then
+        local Notififriend = player:IsFriendsWith(Players.LocalPlayer.UserId) and "(好友)" or ""
+        OrionNotify("玩家提醒", player.Name .. Notififriend .. "已加入", 2,false)
+    end
+end)
+AddConnection(Players.PlayerRemoving,function(player)
+    if OrionLib.Flags.PlayerNotifications and OrionLib.Flags.PlayerNotifications.Value then
+        local Notififriend = player:IsFriendsWith(Players.LocalPlayer.UserId) and "(好友)" or ""
+        OrionNotify("玩家提醒", player.Name .. Notififriend .. "已退出", 2,false)
     end
 end)

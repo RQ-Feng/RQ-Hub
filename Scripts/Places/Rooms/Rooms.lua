@@ -1,114 +1,52 @@
 -- local设置
 local a60 = workspace:WaitForChild("monster")
 local a120 = workspace:WaitForChild("monster2")
+local NotifyEntities,workspaceDA
 --local结束->Function设置
-local function Notify(name,content,Sound,SoundId) -- 信息
-    OrionLib:MakeNotification({
+local function entityNotifi(entityname) -- 实体提醒
+    OrionNotify("实体提醒", entityname)
+end
+-- #sym:ESPLibrary
+local function AddRoomESP(obj,name,color3) -- Esp
+    AddESP({
+        inst = obj,
         Name = name,
-        Content = content,
-        Image = "rbxassetid://4483345998",
-        Time = 3,
-        Sound = Sound,
-        SoundId = SoundId
+        Color = color3,
     })
 end
-local function entityNotifi(entityname) -- 实体提醒
-    Notify("实体提醒", entityname)
-end
-local function espobj(obj,name,color3) -- Esp
-    bill = Instance.new("BillboardGui",obj) -- 创建BillboardGui
-    bill.AlwaysOnTop = true
-    bill.Size = UDim2.new(0, 100, 0, 50)
-    bill.Adornee = obj
-    bill.MaxDistance = inf
-    bill.Name = name .. "esp"
-
-    mid = Instance.new("Frame", bill) -- 创建Frame-圆形
-    mid.AnchorPoint = Vector2.new(0.5, 0.5)
-    mid.BackgroundColor3 = color
-    mid.Size = UDim2.new(0, 8, 0, 8)
-    mid.Position = UDim2.new(0.5, 0, 0.5, 0)
-
-    Instance.new("UICorner", mid).CornerRadius = UDim.new(1, 0)
-    Instance.new("UIStroke", mid)
-
-    txt = Instance.new("TextLabel", bill) -- 创建TextLabel-显示
-    txt.AnchorPoint = Vector2.new(0.5, 0.5)
-    txt.BackgroundTransparency = 1
-    txt.TextColor3 = color
-    txt.Size = UDim2.new(1, 0, 0, 20)
-    txt.Position = UDim2.new(0.5, 0, 0.7, 0)
-    txt.Text = name
-    Instance.new("UIStroke", txt)
-    
-    hl = Instance.new("Highlight",obj)
-    hl.Name = name .. "透视高光"
-    hl.Adornee = obj
-    hl.DepthMode = "AlwaysOnTop"
-    hl.FillColor = color
-    hl.FillTransparency = "0.6"
-end
-function teleportPlayerTo(player,toPositionVector3,saveposition) -- 传送玩家-Vector3.new(x,y,z)
+local playerPositions = {}
+local function teleportPlayer(player,toPositionVector3)
     if player.Character:FindFirstChild("HumanoidRootPart") then
+        playerPositions[player.UserId] = player.Character.HumanoidRootPart.CFrame
         player.Character.HumanoidRootPart.CFrame = CFrame.new(toPositionVector3)
     end
 end
 --Function结束-其他
-Notify("加载完成", "已成功加载")
+OrionNotify("加载完成", "已成功加载")
 --Tab界面
-Tab = Window:MakeTab({
+local Tab = Window:MakeTab({
     Name = "主界面",
     Icon = "rbxassetid://4483345998"
 })
-Esp = Window:MakeTab({
+local Esp = Window:MakeTab({
     Name = "透视",
     Icon = "rbxassetid://4483345998"
 })
-others = Window:MakeTab({
+local others = Window:MakeTab({
     Name = "其他",
     Icon = "rbxassetid://4483345998"
 })
 --子界面
-Section = Tab:AddSection({
+local Section = Tab:AddSection({
     Name = "实体"
 })
-local NotifyEntities
 Tab:AddToggle({
     Name = "实体移动提醒",
     Save = true,
     Default = true,
-    Callback = function(value)
-        NotifyEntities = value
-        if NotifyEntities == true then
-           local a60oldpos,a60newpos = a60.Position,a60.Position
-           local a120oldpos,a120newpos = a120.Position,a120.Position
-           local a60detect,a120detect = false,false
-           while OrionLib:IsRunning() and NotifyEntities do
-                a60newpos = a60.Position
-                a120newpos = a120.Position
-
-                if a60newpos ~= a60oldpos then
-                    Notify("实体提醒","a60开始移动")
-                    a60detect = true
-                elseif a60newpos == a60oldpos and a120detect == true then
-                    Notify("实体提醒","a60停止移动")
-                    a60detect = false
-                end
-
-                if a120newpos ~= a120oldpos then
-                    Notify("实体提醒","a120开始移动")
-                    a120detect = true
-                elseif a120newpos == a120oldpos and a120detect == true then
-                    Notify("实体提醒","a120停止移动")
-                    a120detect = false
-                end
-                
-                task.wait()
-            end
-        end
-    end,
+    Flag = "NotifyEntities",
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "交互"
 })
 Tab:AddToggle({ -- 轻松交互
@@ -117,7 +55,7 @@ Tab:AddToggle({ -- 轻松交互
     Default = true,
     Flag = "InfInteract",
 })
-Section = Tab:AddSection({
+Tab:AddSection({
     Name = "其他"
 })
 Tab:AddButton({ --传送门
@@ -125,7 +63,7 @@ Tab:AddButton({ --传送门
     Callback = function()
         for _, notopendoor in pairs(workspace:GetDescendants()) do
             if notopendoor.Name == "NormalDoor" and notopendoor.Parent.Name == "Entrances" and notopendoor.OpenValue.Value == false then
-                teleportPlayerTo(Players.LocalPlayer, notopendoor.Root.Position, false)
+                teleportPlayer(Players.LocalPlayer, notopendoor.Root.Position)
             end
         end
     end
@@ -153,11 +91,80 @@ Esp:AddToggle({ -- 实体
     Save = true,
     Default = true,
     Callback = function(Value)
-
+        if Value then
+            for _, door in pairs(workspace:GetDescendants()) do
+                if door.Name == "NormalDoor" and door.Parent.Name == "Entrances" then
+                    AddRoomESP(door,"门",Color3.new(0,1,0))
+                end
+            end
+        end
     end
 })
-workspaceDA = workspace.DescendantAdded:Connect(function(inst) -- 其他
-    if inst:IsA("ClickDetector") and OrionLib.Flags.InfInteract.Value then -- 无限交互距离
+Esp:AddToggle({ -- locker
+    Name = "柜子透视",
+    Save = true,
+    Default = true,
+    Flag = "LockerEsp",
+    Callback = function(Value)
+        if Value then
+            for _, locker in pairs(workspace:GetDescendants()) do
+                if locker.Name == "Locker" and locker.Parent.Name ~= Players then
+                    AddRoomESP(locker,"柜子",Color3.new(0,1,0))
+                end
+            end
+        end
+    end
+})
+Esp:AddToggle({ -- 物品
+    Name = "电池透视",
+    Save = true,
+    Default = true,
+    Flag = "BatteryEsp",
+    Callback = function(Value)
+        if Value then
+            for _, battery in pairs(workspace:GetDescendants()) do
+                if battery.Name == "DefaultBattery1" then
+                    AddRoomESP(battery,"电池",Color3.new(1,1,1))
+                end
+            end
+        end
+    end
+})
+Esp:AddToggle({ -- 实体
+    Name = "实体透视",
+    Save = true,
+    Default = true,
+    Flag = "EntityEsp",
+    Callback = function(Value)
+        if Value then
+            AddRoomESP(a60,"a60",Color3.new(1,0,0))
+            AddRoomESP(a120,"a120",Color3.new(1,0,0))
+        end
+    end
+})
+local workspaceDA = AddConnection(workspace.DescendantAdded,function(inst) -- 其他
+    if inst:IsA("ClickDetector") and OrionLib.Flags.InfInteract and OrionLib.Flags.InfInteract.Value then -- 无限交互距离
         inst.MaxActivationDistance = inf
+    end
+    if OrionLib.Flags.DoorsEsp and OrionLib.Flags.DoorsEsp.Value and inst.Name == "NormalDoor" and inst.Parent.Name == "Entrances" then
+        AddRoomESP(inst,"门",Color3.new(0,1,0))
+    end
+    if OrionLib.Flags.LockerEsp and OrionLib.Flags.LockerEsp.Value and inst.Name == "Locker" then
+        AddRoomESP(inst,"柜子",Color3.new(0,1,0))
+    end
+    if OrionLib.Flags.BatteryEsp and OrionLib.Flags.BatteryEsp.Value and inst.Name == "DefaultBattery1" then
+        AddRoomESP(inst,"电池",Color3.new(1,1,1))
+    end
+    if OrionLib.Flags.EntityEsp and OrionLib.Flags.EntityEsp.Value and (inst == a60 or inst == a120) then
+        AddRoomESP(inst,inst.Name,Color3.new(1,0,0))
+    end
+    if OrionLib.Flags.NotifyEntities and OrionLib.Flags.NotifyEntities.Value then
+        local oldPos = inst.Position
+        task.spawn(function()
+            task.wait(0.5)
+            if inst and inst.Parent and inst.Position ~= oldPos then
+                entityNotifi(inst.Name .. "开始移动")
+            end
+        end)
     end
 end)
