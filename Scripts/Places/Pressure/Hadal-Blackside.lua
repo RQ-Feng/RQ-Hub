@@ -263,7 +263,8 @@ Tab:AddToggle({ -- 轻松交互
     Callback = function(Value)
         if not Value then return end
         AddConnection(ProximityPromptService.PromptShown,function(prompt)
-            if table.find(autoInst_Blacklist,prompt:FindFirstAncestorOfClass("Model").Name) then return end
+            local model = prompt:FindFirstAncestorOfClass("Model")
+            if table.find(autoInst_Blacklist,model.Name) or string.find(model.Name,'bunny') then return end
             while prompt and prompt.Parent and OrionLib:IsRunning() and OrionLib.Flags['AutoPrompt'].Value do     
                 fireproximityprompt(prompt); task.wait() 
             end
