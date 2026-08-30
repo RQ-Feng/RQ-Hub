@@ -160,6 +160,7 @@ local ItemsName = {
     ['GoldGun'] = '金枪',
     ['StarJug'] = '星光桶',
     ['RiftSmoothie'] = '蓝光奶昔',
+    ['Leftovers'] = '餐盒',
 
     ['LiveBreakerPolePickup'] = '开关',
     ['LibraryHintPaper'] = '纸',
@@ -403,12 +404,12 @@ Tab:AddToggle({
     Default = true,
     Callback = function(Value)
         for _,prompt in pairs(workspace:GetDescendants()) do 
-            if not prompt:IsA('ProximityPrompt') then continue end
+            if not prompt:IsA('ProximityPrompt') or string.find(prompt.Name,'Exit') then continue end
             SetPrompt(prompt,(not Value and PromptIsChecked(prompt)) and 
             prompt.MaxActivationDistance / 2 or not PromptIsChecked(prompt) and (InteractPrompts[prompt.Name] or prompt.MaxActivationDistance * 2))
         end; if not Value then return end
         AddConnection(workspace.DescendantAdded,function(prompt)
-            if not prompt:IsA('ProximityPrompt') then return end
+            if not prompt:IsA('ProximityPrompt') or string.find(prompt.Name,'Exit') then return end
             SetPrompt(prompt,not PromptIsChecked(prompt) and (InteractPrompts[prompt.Name] or prompt.MaxActivationDistance * 2))
         end,OrionLib.Flags['BetterPrompt'])
     end
@@ -511,7 +512,7 @@ Feature:AddSlider({
     Flag = 'BypassSpeedACRate'
 })
 Feature:AddToggle({
-    Name = "速度绕过",
+    Name = "速度绕过(Broken)",
     Save = true,
     Default = false,
     Flag = 'BypassSpeedAC',
@@ -685,7 +686,7 @@ Feature:AddToggle({
     Callback = function(Value)
         if not Value then return end
         task.spawn(function()
-            repeat RemotesFolder.Crouch:FireServer(true); task.wait() until not OrionLib.Flags['SilentCrouch'].Value or not OrionLib:IsRunning()
+            repeat RemotesFolder.Crouch:FireServer(true); task.wait(0.1) until not OrionLib.Flags['SilentCrouch'].Value or not OrionLib:IsRunning()
             RemotesFolder.Crouch:FireServer(false)
         end)
     end
@@ -783,7 +784,7 @@ Feature:AddToggle({
     Callback = function(Value)
         if not Value then return end
         task.spawn(function()
-            repeat CurrentRoom().Door.ClientOpen:FireServer(); task.wait() until not OrionLib.Flags['OpenDoorFarer'].Value or not OrionLib:IsRunning()
+            repeat CurrentRoom().Door.ClientOpen:FireServer(); task.wait(0.1) until not OrionLib.Flags['OpenDoorFarer'].Value or not OrionLib:IsRunning()
         end)
     end
 })
@@ -1017,7 +1018,7 @@ Floor:AddToggle({
     Flag = 'AutoBreaker',
     Callback = function(Value)
         if not Value or not CheckFloor('Hotel') then return end
-        repeat RemotesFolder.EBF:FireServer(); task.wait() until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
+        repeat RemotesFolder.EBF:FireServer(); task.wait(0.1) until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
     end
 })
 local AutoRoomsScript
@@ -1194,6 +1195,12 @@ Anti:AddToggle({
     Default = false,
     Callback = function(Value) AntiClientEntity(Value,'SurgeRemote') end
 })
+Anti:AddToggle({
+    Name = "防Drone",
+    Flag = 'AntiDrone',
+    Save = true,
+    Default = false
+})
 
 AddConnection(workspace.ChildAdded,function(entity) -- Entity
     if not Entities[entity.Name] or not entity:IsA('Model') then return end
@@ -1206,6 +1213,9 @@ AddConnection(workspace.ChildAdded,function(entity) -- Entity
     end
     if OrionLib.Flags['EntitiesEsp'].Value then
         CheckEspItem({inst = entity,instName = entity.Name,Color = Color3.new(1,0,0),DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
+    end
+    if entity.Name == 'Drones' and entity:IsA('Model') and OrionLib.Flags['AntiDrone'] then 
+        entity:Destroy()
     end
 end)
 
