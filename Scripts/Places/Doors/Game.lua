@@ -43,7 +43,7 @@ local function SetClipFunction(char,value)
         char.Collision.CanCollide = CanCollide
         char.Collision.CollisionCrouch.CanCollide = CanCollide
     end
-    char.CollisionPart.CollisionGroup = "PlayerCrouching"
+    if char:FindFirstChild('CollisionPart') then char.CollisionPart.CollisionGroup = "PlayerCrouching" end
     if char:FindFirstChild('_CollisionPart') then char._CollisionPart.CanCollide = CanCollide end
 end
 
@@ -124,7 +124,9 @@ local GameItems = {
     ['TimerLever'] = '时间拉杆',
     ['GoldPile'] = '金币',
     ['StardustPickup'] = '星尘',
-    ['LadderModel'] = '梯子'
+    ['LadderModel'] = '梯子',
+    ['TV_Stand'] = '电视柜',
+    ['ShoppingCart'] = '购物车'
 }
 
 local ItemsName = {
@@ -189,6 +191,8 @@ local Entities = {
     ['MonumentEntity'] = 'Monument',
     ['Dread'] = 'Dread',
     ['Bramble'] = 'Bramble',
+    ['NoiseModel'] = 'Noise',
+    ['Creak'] = 'Creak',
     ['OnlyLocalization'] = {
         ['FigureRig'] = 'Figure'
         --['HaltMoving'] = 'Halt'
@@ -267,6 +271,12 @@ local EspMethods = {
             Color = Color3.new(1, 1, 0),
             value = OrionLib.Flags['CurrencyEsp']
         })
+    end,
+    ['TV_Stand'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'TV_Stand',Color = Color3.new(1,0,0),DisplayTable = GameItems,Flag = OrionLib.Flags['HazardEsp']})
+    end,
+    ['ShoppingCart'] = function(ItemInst)
+        CheckEspItem({inst = ItemInst,instName = 'ShoppingCart',Color = Color3.new(1,1,1),DisplayTable = GameItems,Flag = OrionLib.Flags['HazardEsp']})
     end,
 }
 
@@ -928,10 +938,21 @@ Esp:AddToggle({
     Flag = 'EntitiesEsp',
     Callback = function(Value)
         if not Value then return end
+        local function CheckFolderEntity(entity) -- NoiseModel/Creak
+            if not Entities[entity.Name] or not entity:IsA('Model') then return end
+            CheckEspItem({inst = entity,instName = entity.Name,Color = Color3.new(1,0,0),DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
+        end
         for _, entity in pairs(workspace:GetChildren()) do
             if not Entities[entity.Name] then continue end
             CheckEspItem({inst = entity,instName = Entities[entity.Name],Color = Color3.new(1,0,0),DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
-        end; local FigureSetup = CurrentRoom():FindFirstChild('FigureSetup')
+        end
+        for _,folder in pairs({workspace.Camera, workspace.LiveEntities}) do
+            if folder then
+                for _,entity in pairs(folder:GetChildren()) do CheckFolderEntity(entity) end
+                AddConnection(folder.ChildAdded,CheckFolderEntity,OrionLib.Flags['EntitiesEsp'])
+            end
+        end
+        local FigureSetup = CurrentRoom():FindFirstChild('FigureSetup')
         if not FigureSetup then return end
         CheckEspItem({
             inst = FigureSetup:WaitForChild('FigureRig',5),
@@ -940,6 +961,20 @@ Esp:AddToggle({
             DisplayTable = Entities['OnlyLocalization']
             ,Flag = OrionLib.Flags['EntitiesEsp']
         })
+    end
+})
+Esp:AddToggle({
+    Name = "危害透视",
+    Save = true,
+    Default = false,
+    Flag = 'HazardEsp',
+    Callback = function(Value)
+        if not Value then return end
+        local Misc = workspace.Misc -- TV_Stand/ShoppingCart
+        if Misc then
+            for _,inst in pairs(Misc:GetChildren()) do CheckAllEspItems(inst) end
+            AddConnection(Misc.ChildAdded,CheckAllEspItems,OrionLib.Flags['HazardEsp'])
+        end
     end
 })
 local function CheckFloor(floorName)
@@ -1011,16 +1046,16 @@ Floor:AddToggle({
         end)
     end
 })
-Floor:AddToggle({
-    Name = "自动电箱",
-    Save = true,
-    Default = false,
-    Flag = 'AutoBreaker',
-    Callback = function(Value)
-        if not Value or not CheckFloor('Hotel') then return end
-        repeat RemotesFolder.EBF:FireServer(); task.wait(0.1) until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
-    end
-})
+-- Floor:AddToggle({
+--     Name = "自动电箱",
+--     Save = true,
+--     Default = false,
+--     Flag = 'AutoBreaker',
+--     Callback = function(Value)
+--         if not Value or not CheckFloor('Hotel') then return end
+--         repeat RemotesFolder.EBF:FireServer(); task.wait(0.1) until not OrionLib.Flags['AutoBreaker'].Value or not OrionLib:IsRunning()
+--     end
+-- })
 local AutoRoomsScript
 Floor:AddSection({Name = "Rooms"})
 Floor:AddToggle({
