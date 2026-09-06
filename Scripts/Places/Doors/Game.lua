@@ -356,42 +356,70 @@ Anti = Window:MakeTab({
     Icon = "rbxassetid://4483345998"
 })
 Tab:AddSection({Name = "速度"})
-local SpeedWays = {"SpeedBoost", "SpeedBoostBehind"}
-local function CheckSpeed(Value)
-    if not Value then return end
-    local currentSpeedWay = OrionLib.Flags['SpeedWay'].Value
 
-    local function detectSpeed()
-        if OrionLib.Flags['Speed'].Value > 6 and (not OrionLib.Flags['BypassSpeedAC'] or not OrionLib.Flags['BypassSpeedAC'].Value) then
+-- local function updateSpeed()
+--     local currentSpeedWay = OrionLib.Flags['SpeedWay'].Value
+--     local function CheckIfNeedBypass()
+--         if OrionLib.Flags['Speed'].Value > 6 and not IsBypassingAC and (not OrionLib.Flags['BypassSpeedAC'] or not OrionLib.Flags['BypassSpeedAC'].Value) then
+--             repeat task.wait() until OrionLib.Flags['BypassSpeedAC'] and not Character:FindFirstChild('CollisionPart').Anchored
+--             OrionLib.Flags['BypassSpeedAC']:Set(true)
+--             OrionLib:MakeNotification({Name = "速度",Content = "已自动启动速度绕过.",Time = 3})
+--         end
+--     end
+--     Character:SetAttribute(currentSpeedWay,OrionLib.Flags['Speed'].Value)
+--     local cd = false
+--     if not speedEvent then
+--         speedEvent = AddConnection(Character:GetAttributeChangedSignal(currentSpeedWay),function()
+--             print('get event,cd :',cd)
+--             if cd then return else cd = true end
+--             CheckIfNeedBypass()
+--             basicSpeed = Character:GetAttribute(currentSpeedWay)
+--             Character:SetAttribute(currentSpeedWay,basicSpeed + OrionLib.Flags['Speed'].Value)
+--             print('get event,cd :',cd,'basicSpeed:',basicSpeed)
+--             task.wait()
+--             cd = false
+--         end,OrionLib.Flags['EnableSpeed']) 
+--     end
+--     repeat print('Speed:',OrionLib.Flags['Speed'].Value,'basicSpeed:',basicSpeed,'currentSpeedWay:',currentSpeedWay) task.wait() until OrionLib.Flags['SpeedWay'].Value ~= currentSpeedWay or not OrionLib.Flags['EnableSpeed'].Value or not OrionLib:IsRunning()
+--     print(OrionLib.Flags['SpeedWay'].Value ~= currentSpeedWay,not OrionLib.Flags['EnableSpeed'].Value , not OrionLib:IsRunning())
+--     if speedEvent then speedEvent:Disconnect() end
+--     Character:SetAttribute(currentSpeedWay,basicSpeed)
+--     basicSpeed = 0
+-- end
+
+local function updateSpeed()
+    local currentSpeedWay = OrionLib.Flags['SpeedWay'].Value
+    local function CheckIfNeedBypass()
+        if OrionLib.Flags['Speed'].Value > 6 and not IsBypassingAC and (not OrionLib.Flags['BypassSpeedAC'] or not OrionLib.Flags['BypassSpeedAC'].Value) then
             repeat task.wait() until OrionLib.Flags['BypassSpeedAC'] and not Character:FindFirstChild('CollisionPart').Anchored
             OrionLib.Flags['BypassSpeedAC']:Set(true)
             OrionLib:MakeNotification({Name = "速度",Content = "已自动启动速度绕过.",Time = 3})
         end
-    end; detectSpeed()
-
+    end
     Character:SetAttribute(currentSpeedWay,OrionLib.Flags['Speed'].Value)
     local event = AddConnection(Character:GetAttributeChangedSignal(currentSpeedWay),function()
-        detectSpeed()
+        CheckIfNeedBypass()
         Character:SetAttribute(currentSpeedWay,OrionLib.Flags['Speed'].Value)
     end,OrionLib.Flags['EnableSpeed'])
     repeat task.wait() until OrionLib.Flags['SpeedWay'].Value ~= currentSpeedWay or not OrionLib.Flags['EnableSpeed'].Value or not OrionLib:IsRunning()
     if event then event:Disconnect() end
     Character:SetAttribute(currentSpeedWay,0)
 end
+
 Tab:AddDropdown({
     Name = "加速方式",
     Save = true,
     Flag = 'SpeedWay',
     Default = "SpeedBoost",
-    Options = SpeedWays,
-    Callback = CheckSpeed
+    Options = {"SpeedBoost", "SpeedBoostBehind"},
+    Callback = updateSpeed
 })
 Tab:AddToggle({
     Name = "启动加速",
     Save = true,
     Default = false,
     Flag = 'EnableSpeed',
-    Callback = CheckSpeed
+    Callback = updateSpeed
 })
 Tab:AddSlider({
     Name = "速度",
@@ -473,15 +501,17 @@ Tab:AddToggle({
     Callback = FullBright
 })
 Tab:AddButton({
-    Name = "紫砂",
+    Name = "自杀",
     ClickTwice = true,
     Callback = function()
-        local UnderwaterClient = Character:GetAttribute('UnderwaterClient')
-        if ExecutorChecker['replicatesignal'] then replicatesignal(LocalPlayer.Kill) else 
-            RemotesFolder.Underwater:FireServer(not UnderwaterClient) end
-        local NotifyContent = ExecutorChecker['replicatesignal'] and "已成功紫砂." or (not UnderwaterClient and "紫砂中..." or '已停止紫砂.')
+        local suc = true
+        if ExecutorChecker['replicatesignal'] then replicatesignal(LocalPlayer.Kill) 
+        elseif Humanoid then Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+        else suc = false end
+        
+        local NotifyContent = suc and "已成功自杀." or "自杀失败,请尝试手动自杀."
         OrionLib:MakeNotification({
-            Name = "紫砂",
+            Name = "自杀",
             Content = NotifyContent,
             Time = 5
         })
@@ -653,6 +683,142 @@ Feature:AddToggle({
         end,OrionLib.Flags['BypassACFromLadder'])
         repeat task.wait() until not OrionLib.Flags['BypassACFromLadder'].Value or not OrionLib:IsRunning()
         IsBypassingAC = false
+    end
+})
+Feature:AddToggle({
+    Name = "自动开门-WIP(需要绕过反作弊)",
+    Save = true,
+    Default = false,
+    Flag = 'AutoOpenDoorByAC',
+    Callback = function(Value)
+        if not Value then return end
+
+        local Camera = workspace.CurrentCamera
+        local CameraType = Camera and Camera.CameraType or Enum.CameraType.Custom
+        local OriginalFOV = Camera and Camera.FieldOfView or 70
+        local OriginalCamEnabled = true
+        if Main_Game.Camera then OriginalCamEnabled = Main_Game.Camera.Enabled end
+
+        local function TakeCamera()
+            if Main_Game.Camera then Main_Game.Camera.Enabled = false end
+            if Camera then
+                Camera.CameraType = Enum.CameraType.Scriptable
+                Camera.FieldOfView = 120
+            end
+        end
+
+        local function RestoreCamera()
+            if Main_Game.Camera then Main_Game.Camera.Enabled = OriginalCamEnabled end
+            if Camera then
+                Camera.CameraType = CameraType
+                Camera.FieldOfView = OriginalFOV
+            end
+            if Character and Character:FindFirstChild('Head') then -- 偏 AutoRooms: 恢复相机时清掉头上的 PointLight
+                local Light = Character.Head:FindFirstChild('PointLight')
+                if Light then Light:Destroy() end
+            end
+        end
+
+        task.spawn(function() -- 相机接管: 垂直俯视跟随角色(偏 AutoRooms 样式,不禁用移动)
+            while OrionLib.Flags['AutoOpenDoorByAC'].Value and OrionLib:IsRunning() do
+                task.wait()
+                TakeCamera()
+                if HumanoidRootPart and Camera then
+                    Camera.CFrame = CFrame.lookAt(HumanoidRootPart.CFrame.Position + Vector3.new(0, 12, 0),HumanoidRootPart.CFrame.Position)
+                end
+            end
+            RestoreCamera()
+        end)
+
+        task.spawn(function()
+            local CurrentRoomValue,NoProgressTimer
+
+            local function StopNotify(Content)
+                OrionLib:MakeNotification({
+                    Name = "自动开门",
+                    Content = Content,
+                    Time = 5
+                })
+                OrionLib.Flags['AutoOpenDoorByAC']:Set(false)
+            end
+
+            local function Tp(part)
+                if part and (part:IsA('BasePart') or part:IsA('Model')) then
+                    Character:PivotTo(part:GetPivot())
+                    task.wait(0.1)
+                end
+            end
+
+            local function UsePrompt(prompt)
+                if prompt and prompt:IsA('ProximityPrompt') and prompt.Enabled then
+                    fireproximityprompt(prompt)
+                    task.wait(0.1)
+                end
+            end
+
+            local function Step()
+                if not IsBypassingAC then
+                    StopNotify("未在绕过反作弊,已自动关闭.")
+                    return false
+                end
+
+                local Room = workspace.CurrentRooms[LatestRoom.Value]
+                if not Room then return true end
+
+                if Room ~= CurrentRoomValue then -- 看门狗: 同房长时间无推进则判定处理不了
+                    CurrentRoomValue = Room
+                    NoProgressTimer = 0
+                else
+                    NoProgressTimer = (NoProgressTimer or 0) + 0.1
+                    if NoProgressTimer >= 10 then
+                        StopNotify("遇到无法自动处理的房间,已自动停止.")
+                        return false
+                    end
+                end
+
+                local Assets = Room:WaitForChild('Assets',2)
+                if not Assets then return true end
+
+                local Generator = Assets:WaitForChild('MinesGenerator',0.1)
+                if Generator then -- 发电机/保险丝特殊房
+                    for _,fuse in pairs(Assets:GetChildren()) do
+                        if fuse.Name == 'FuseObtain' then
+                            Tp(fuse:FindFirstChild('Hitbox'))
+                            UsePrompt(fuse:FindFirstChild('ModulePrompt'))
+                        end
+                    end
+                    Tp(Generator:FindFirstChild('GeneratorMain'))
+                    local Fuses = Generator:FindFirstChild('Fuses')
+                    if Fuses then
+                        for _,slot in pairs(Fuses:GetChildren()) do
+                            UsePrompt(slot:FindFirstChild('FusesPrompt'))
+                        end
+                    end
+                    local Lever = Generator:FindFirstChild('Lever')
+                    Tp(Lever)
+                    UsePrompt(Lever and Lever:FindFirstChild('LeverPrompt'))
+                    local GateButton = Assets:FindFirstChild('MinesGateButton')
+                    Tp(GateButton and GateButton:FindFirstChild('MainBase'))
+                    local Button = GateButton and GateButton:FindFirstChild('Button')
+                    UsePrompt(Button and Button:FindFirstChild('ActivateEventPrompt'))
+                else -- 普通房: 传送门
+                    local Door = Room:FindFirstChild('Door')
+                    Tp(Door and (Door:FindFirstChild('Door') or Door))
+                end
+
+                local Door = Room:FindFirstChild('Door')
+                if Door then
+                    local ClientOpen = Door:FindFirstChild('ClientOpen')
+                    if ClientOpen then ClientOpen:FireServer() end
+                end
+                return true
+            end
+
+            repeat task.wait(0.1)
+                if not Step() then break end
+            until not OrionLib.Flags['AutoOpenDoorByAC'].Value or not OrionLib:IsRunning()
+            RestoreCamera()
+        end)
     end
 })
 Feature:AddSection({Name = "玩家"})
