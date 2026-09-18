@@ -48,23 +48,23 @@ Tab:AddToggle({
     Flag = 'OldDWYECMusic',
     Callback = function(value)
         if not value then return end
-        local Notify
         if not isfile("dwyec.mp3") then
-            Notify = OrionLib:MakeNotification({
+            local Notify = OrionLib:MakeNotification({
                 Name = "提示",
                 Content = "正在下载资源,请稍等.",
                 Image = "rbxassetid://4483345998",
                 Time = 10
             })
             writefile("dwyec.mp3",game:HttpGet("https://storage.ruoqing.dpdns.org/audio/dwyec.mp3")) 
-        end; if Notify then OrionLib:CloseNotification(Notify) end
-        OrionLib:MakeNotification({
-            Name = "提示",
-            Content = "下载资源" .. (isfile("dwyec.mp3") and "成功,资源已缓存." or "失败,请稍后重试."),
-            Image = "rbxassetid://4483345998",
-            Time = 10
-        })
-        if not isfile("dwyec.mp3") then OrionLib.Flags['OldDWYECMusic']:Set(false); return end
+            if Notify then OrionLib:CloseNotification(Notify) end
+            OrionLib:MakeNotification({
+                Name = "提示",
+                Content = "下载资源" .. (isfile("dwyec.mp3") and "成功,资源已缓存." or "失败,请稍后重试."),
+                Image = "rbxassetid://4483345998",
+                Time = 10
+            })
+            if not isfile("dwyec.mp3") then OrionLib.Flags['OldDWYECMusic']:Set(false); return end
+        end
         local asset_id = getcustomasset("dwyec.mp3")
         AddConnection(HumanoidRootPart.ChildAdded,function(s)
             if s.Name ~= 'DancingWithYourEyesClosed' then return end
