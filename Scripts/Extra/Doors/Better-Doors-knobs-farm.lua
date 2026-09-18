@@ -14,6 +14,7 @@ local StopFarming = false
 local executor = identifyexecutor and tostring(identifyexecutor())
 local StatisticsEvent,ReStatisticsEvent
 local CurrentGetKnobs = 0
+local FinalCD = 0
 
 game:GetService("GuiService").ErrorMessageChanged:Connect(function(info)--Reconnecter 
     if TryingReconnect or info ~= 'Lost connection to the game server, please reconnect' then return end--Yeah hard code idc
@@ -308,7 +309,7 @@ task.spawn(function() --Fuck u Screech
 end)
 
 
-if GameData.Floor.Value ~= 'Mines' then return Notify('不支持此Floor.') end
+--if GameData.Floor.Value ~= 'Mines' then return Notify('不支持此Floor.') end
     
 local GoldVal = LocalPlayer.PlayerGui.TopbarUI.Topbar.StatsTopbarHandler.StatModules.Gold.GoldVal
 local Loots = {'Locker_Small','OldWoodenTable','Toolbox','Toolbox_Locked','Locker_Small_Locked'}
@@ -361,7 +362,10 @@ local function InitFarm()
             Remote:FireServer()
         end
     })
-    ReStatisticsEvent = LocalPlayer.CharacterAdded:Connect(ReStatistics)
+    ReStatisticsEvent = LocalPlayer.CharacterAdded:Connect(function()
+        FinalCD = 0
+        ReStatistics()
+    end)
     antiafk(); ReStatistics()
 end
 
@@ -426,3 +430,10 @@ Notify('(测试)手动点击以开始farm',math.huge,{
         InitFarm()
     end
 })
+
+task.spawn(function() --Auto stop when the awful stuck wastes 1m
+    repeat FinalCD = FinalCD + 1; task.wait(1) until FinalCD == 60
+    warn('Awful stuck bro...')
+    appendfile('KnobsFarm-Stats.txt','Total knobs got: ' .. CurrentGetKnobs)
+    game:Shutdown()
+end)

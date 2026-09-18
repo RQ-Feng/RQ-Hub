@@ -1,3 +1,5 @@
+local CurrentRooms = workspace.CurrentRooms
+
 local RemotesFolder = ReplicatedStorage.RemotesFolder
 local GameData = ReplicatedStorage.GameData
 local LatestRoom = GameData.LatestRoom
@@ -21,7 +23,7 @@ local Floors = {
     }
 } 
 local function CurrentRoom()
-    return workspace.CurrentRooms[LatestRoom.Value]
+    return CurrentRooms[LatestRoom.Value]
 end
 
 local function CurrentDoor()
@@ -264,9 +266,11 @@ local EspMethods = {
         CheckEspItem({inst = ItemInst,instName = 'StardustPickup',DisplayTable = GameItems,Flag = OrionLib.Flags['CurrencyEsp']})
     end,
     ['GoldPile'] = function(ItemInst)
+        local value = ItemInst:GetAttribute('GoldValue')
+        if not value then return end
         AddESP({
             inst = ItemInst,
-            Name = tostring(ItemInst:GetAttribute('GoldValue'))..GameItems['GoldPile'],
+            Name = tostring(value)..GameItems['GoldPile'],
             Type = 'Highlight',
             Color = Color3.new(1, 1, 0),
             value = OrionLib.Flags['CurrencyEsp']
@@ -650,7 +654,7 @@ Feature:AddToggle({
                 Content = "请先爬上梯子.",
                 Time = 30
             }); IsBypassingAC = false
-            for _, item in pairs(workspace.CurrentRooms:GetDescendants()) do
+            for _, item in pairs(CurrentRooms:GetDescendants()) do
                 if item.Name ~= 'LadderModel' then continue end
                 local ladderEsp = AddESP({
                     inst = item,
@@ -762,7 +766,7 @@ Feature:AddToggle({
                     return false
                 end
 
-                local Room = workspace.CurrentRooms[LatestRoom.Value]
+                local Room = CurrentRooms[LatestRoom.Value]
                 if not Room then return true end
 
                 if Room ~= CurrentRoomValue then -- 看门狗: 同房长时间无推进则判定处理不了
@@ -1036,7 +1040,7 @@ Esp:AddToggle({
     Flag = 'LeverEsp',
     Callback = function(Value)
         if not Value then return end
-        for _, item in pairs(workspace.CurrentRooms:GetDescendants()) do
+        for _, item in pairs(CurrentRooms:GetDescendants()) do
             CheckEspItem({inst = item,instName = 'LeverForGate',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
             CheckEspItem({inst = item,instName = 'VineGuillotine',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
             CheckEspItem({inst = item,instName = 'TimerLever',DisplayTable = GameItems,Flag = OrionLib.Flags['LeverEsp']})
@@ -1062,7 +1066,7 @@ Esp:AddToggle({
     Flag = 'CurrencyEsp',
     Callback = function(Value)
         if not Value then return end
-        for _, item in pairs(workspace.CurrentRooms:GetDescendants()) do
+        for _, item in pairs(CurrentRooms:GetDescendants()) do
             CheckEspItem({inst = item,instName = 'StardustPickup',DisplayTable = GameItems,Flag = OrionLib.Flags['CurrencyEsp']})
             GoldPileEsp(item)
         end
@@ -1076,7 +1080,7 @@ Esp:AddToggle({
     Callback = function(Value)
         if not Value then return end
         task.spawn(function()
-            for _, inst in pairs(workspace.CurrentRooms:GetDescendants()) do
+            for _, inst in pairs(CurrentRooms:GetDescendants()) do
                 local itemName = inst.Name
                 if inst:IsA('Model') and ItemsName[itemName] then
                     return CheckEspItem({
@@ -1153,21 +1157,22 @@ Floor:AddLabel('您当前位于 '..CurrentFloor()..' 楼层.')
 Floor:AddLabel('秘密楼层(无法直接加入): '..(GameData.SecretFloor.Value and '是' or '否'))
 local LatestRoomLabel = Floor:AddLabel('目前最前面为 '.. LatestRoom.Value ..' 号门.')
 AddConnection(LatestRoom.Changed,function() LatestRoomLabel:Set('目前最前面为 '.. LatestRoom.Value ..' 号门.') end)
-Floor:AddSection({Name = "酒店"})
-Floor:AddSlider({
+local AutoLibraryUnlockDistance = Floor:AddSlider({
     Name = "开锁距离",
     Save = true,
     Min = 10,
     Max = 250,
     Default = 40,
     Increment = 1,
-    Flag = 'AutoLibraryUnlockDistance'
+    Flag = 'AutoLibraryUnlockDistance',
+    Visible = CheckFloor('Hotel')
 })
-Floor:AddToggle({
+local AutoLibraryUnlock = Floor:AddToggle({
     Name = "自动图书馆开锁",
     Save = true,
     Default = false,
     Flag = 'AutoLibraryUnlock',
+    Visible = CheckFloor('Hotel'),
     Callback = function(Value)
         if not Value or not CheckFloor('Hotel') then return end
         if LatestRoom.Value > 50 then 
@@ -1179,7 +1184,7 @@ Floor:AddToggle({
             return
         end
         local Room; repeat 
-            Room = workspace.CurrentRooms:FindFirstChild("50"); task.wait() 
+            Room = CurrentRooms:FindFirstChild("50"); task.wait() 
         until Room or not OrionLib.Flags['AutoLibraryUnlock'].Value or not OrionLib:IsRunning()
         if not OrionLib.Flags['AutoLibraryUnlock'].Value then return end
 
@@ -1223,12 +1228,12 @@ Floor:AddToggle({
 --     end
 -- })
 local AutoRoomsScript
-Floor:AddSection({Name = "Rooms"})
-Floor:AddToggle({
+local AutoRooms = Floor:AddToggle({
     Name = "自动通关(会导致部分游戏功能失效)",
     Save = true,
     Default = false,
     Flag = 'AutoRooms',
+    Visible = CheckFloor('Rooms'),
     Callback = function(Value)
         if not Value or not CheckFloor('Rooms') then return end
         if not AutoRoomsScript then
@@ -1260,12 +1265,12 @@ Floor:AddToggle({
         end)
     end
 })
-Floor:AddSection({Name = "Daily Run"})
-Floor:AddToggle({
+local AutoDailyRunDoor = Floor:AddToggle({
     Name = "自动检测通关门",
     Save = true,
     Default = false,
     Flag = 'AutoDailyRunDoor',
+    Visible = CheckFloor('Daily Runs'),
     Callback = function(Value)
         if not Value or not CheckFloor('Daily Runs') then return end
         if not CurrentRoom():FindFirstChild('RippleExitDoor') then return end
@@ -1279,6 +1284,22 @@ Floor:AddToggle({
         end)
     end
 })
+
+local FloorElements = {
+    {Object = AutoLibraryUnlockDistance,Floor = 'Hotel'},
+    {Object = AutoLibraryUnlock,Floor = 'Hotel'},
+    {Object = AutoRooms,Floor = 'Rooms'},
+    {Object = AutoDailyRunDoor,Floor = 'Daily Runs'}
+}
+local function RefreshFloorElements()
+    local currentFloor = CurrentFloor()
+    for _,element in pairs(FloorElements) do
+        element.Object:SetVisible(currentFloor == element.Floor)
+    end
+end
+AddConnection(GameData.Floor.Changed,RefreshFloorElements)
+AddConnection(GameData.FloorSpecific.Changed,RefreshFloorElements)
+
 Anti:AddToggle({
     Name = "防相机抖动",
     Flag = 'AntiCameraShake',
@@ -1402,6 +1423,27 @@ Anti:AddToggle({
     Save = true,
     Default = false
 })
+Anti:AddToggle({
+    Name = "防Snare",
+    Flag = 'AntiSnare',
+    Save = true,
+    Default = false,
+    Callback = function(Value)
+        if not Value then return end
+        local function ClearSnare(Room) -- CurrentRooms[房间号].Assets.Snare
+            local Assets
+            local AssetsTask = task.spawn(function() _,Assets = pcall(function() return Room and Room:WaitForChild('Assets') end) end)
+            repeat task.wait() until not Room or LatestRoom.Value > (type(tonumber(Room.Name)) == "number" and tonumber(Room.Name) or -999) or not OrionLib.Flags['AntiSnare'].Value or not OrionLib:IsRunning()
+            task.cancel(AssetsTask)
+            if not Assets or not OrionLib.Flags['AntiSnare'].Value or not OrionLib:IsRunning() then return end
+
+            AddConnection(CurrentRooms.ChildAdded,function(inst) if inst.Name == 'Snare' then inst:Destroy() end end,OrionLib.Flags['AntiSnare'])
+            for _,inst in pairs(Assets:GetChildren()) do if inst.Name == 'Snare' then inst:Destroy() end end
+        end
+        for _,Room in pairs(CurrentRooms:GetChildren()) do ClearSnare(Room) end -- 先清已有房间
+        AddConnection(CurrentRooms.ChildAdded,ClearSnare,OrionLib.Flags['AntiSnare'])
+    end
+})
 
 AddConnection(workspace.ChildAdded,function(entity) -- Entity
     if not Entities[entity.Name] or not entity:IsA('Model') then return end
@@ -1420,7 +1462,7 @@ AddConnection(workspace.ChildAdded,function(entity) -- Entity
     end
 end)
 
-AddConnection(workspace.CurrentRooms.DescendantAdded,function(inst) -- Esp
+AddConnection(CurrentRooms.DescendantAdded,function(inst) -- Esp
     local itemName = inst.Name
     if not EspMethods[itemName] and not GameItems[itemName] and not ItemsName[itemName] then return end
     CheckAllEspItems(inst)
@@ -1461,7 +1503,7 @@ AddConnection(LatestRoom.Changed,function(value)
     end
     if OrionLib.Flags['AutoDailyRunDoor'].Value then
         task.spawn(function()
-            local RippleExitDoor = workspace.CurrentRooms[value]:WaitForChild('RippleExitDoor',2)
+            local RippleExitDoor = CurrentRooms[value]:WaitForChild('RippleExitDoor',2)
             if not RippleExitDoor then return end
             local Hidden = RippleExitDoor:WaitForChild('Hidden',2)
             if not Hidden then return end

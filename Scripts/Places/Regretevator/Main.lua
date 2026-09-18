@@ -140,6 +140,14 @@ Tab:AddToggle({
         AddConnection(Humanoid.Died,function() RE.Respawn:FireServer() end,OrionLib.Flags['AutoRevive'])
     end
 })
+Tab:AddToggle({
+    Name = "无模糊效果",
+    Flag = 'NoEffectBlur',
+    Default = true,
+    Callback = function(value)
+        Lighting.EffectBlur.Enabled = value
+    end
+})
 local TaskAmountUpdate,ChallengeEventAsync,MultiPlrContinue,finishChallenge --For AutoChallenge
 local AutoChallengeToggle --Toggle
 

@@ -41,8 +41,22 @@ Tab:AddToggle({
     end
 })
 Tab:AddSection({Name = "其他"})
+Tab:AddToggle({
+    Name = "使用旧版dancing with your eyes closed音乐",
+    Save = true,
+    Default = false,
+    Flag = 'OldDWYECMusic',
+    Callback = function(value)
+        if not value then return end
+        local asset_id = getcustomasset("dwyec.mp3")
+        AddConnection(HumanoidRootPart.ChildAdded,function(s)
+            if s.Name ~= 'DancingWithYourEyesClosed' then return end
+            s.SoundId = asset_id
+        end,OrionLib.Flags['OldDWYECMusic'])
+    end
+})
 Tab:AddButton({
-    Name = "紫砂",
+    Name = "自杀",
     ClickTwice = true,
     Callback = function() events.player.char.ClientDeath:FireServer() end
 })
