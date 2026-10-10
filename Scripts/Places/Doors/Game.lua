@@ -128,7 +128,8 @@ local GameItems = {
     ['StardustPickup'] = '星尘',
     ['LadderModel'] = '梯子',
     ['TV_Stand'] = '电视柜',
-    ['ShoppingCart'] = '购物车'
+    ['ShoppingCart'] = '购物车',
+    ['StairwellCrusher'] = '楼梯碾压机'
 }
 
 local ItemsName = {
@@ -168,13 +169,17 @@ local ItemsName = {
 
     ['LiveBreakerPolePickup'] = '开关',
     ['LibraryHintPaper'] = '纸',
-    ['LiveHintBook'] = '书本'
+    ['LiveHintBook'] = '书本',
+    ['StairwellFireAlarm'] = '火闸拉杆'
 }
 
 local GetEspItemBoxes = {
     ['KeyObtain'] = function(item)
         local hitbox = item:WaitForChild('Hitbox',3)
         if hitbox then return hitbox:WaitForChild('KeyHitbox',3) end
+    end,
+    ['StairwellCrusher'] = function(item) -- 只框实际碾压部件 StairwellCrusher.Crusher(MeshPart)
+        return item:WaitForChild('Crusher',3)
     end
 }
 
@@ -281,6 +286,9 @@ local EspMethods = {
     end,
     ['ShoppingCart'] = function(ItemInst)
         CheckEspItem({inst = ItemInst,instName = 'ShoppingCart',Color = Color3.new(1,1,1),DisplayTable = GameItems,Flag = OrionLib.Flags['HazardEsp']})
+    end,
+    ['StairwellCrusher'] = function(ItemInst) -- 楼梯碾压机(位于 CurrentRooms 下,不在 workspace.Misc)
+        CheckEspItem({inst = ItemInst,instName = 'StairwellCrusher',Color = Color3.new(1,0,0),DisplayTable = GameItems,Flag = OrionLib.Flags['HazardEsp']})
     end,
 }
 
@@ -494,6 +502,26 @@ Tab:AddToggle({
                     Time = 5
                 })
             end
+        end
+    end
+})
+Tab:AddButton({
+    Name = "强制将手持物品收回背包",
+    Callback = function()
+        local tool = Character:FindFirstChildofClass('Tool') and Character:FindFirstChildofClass('Tool')
+        if tool then
+            tool.Parent = LocalPlayer.Backpack
+            OrionLib:MakeNotification({
+                Name = "收回手持物品",
+                Content = "已将手持物品收回背包.",
+                Time = 5
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "收回手持物品",
+                Content = "未检测到手持物品.",
+                Time = 5
+            })
         end
     end
 })
@@ -1083,7 +1111,7 @@ Esp:AddToggle({
             for _, inst in pairs(CurrentRooms:GetDescendants()) do
                 local itemName = inst.Name
                 if inst:IsA('Model') and ItemsName[itemName] then
-                    return CheckEspItem({
+                    CheckEspItem({
                         inst = inst,instName = itemName,DisplayTable = ItemsName,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']
                     })
                 end
@@ -1093,7 +1121,7 @@ Esp:AddToggle({
             for _, inst in pairs(workspace.Drops:GetDescendants()) do
                 local itemName = inst.Name
                 if inst:IsA('Model') and ItemsName[itemName] then
-                    return CheckEspItem({
+                    CheckEspItem({
                         inst = inst,instName = itemName,DisplayTable = ItemsName,EspType = 'Highlight',Flag = OrionLib.Flags['ItemsEsp']
                     })
                 end
@@ -1144,6 +1172,9 @@ Esp:AddToggle({
         if Misc then
             for _,inst in pairs(Misc:GetChildren()) do CheckAllEspItems(inst) end
             AddConnection(Misc.ChildAdded,CheckAllEspItems,OrionLib.Flags['HazardEsp'])
+        end
+        for _,inst in pairs(CurrentRooms:GetDescendants()) do -- StairwellCrusher(房间已加载时补扫)
+            if inst.Name == 'StairwellCrusher' then CheckAllEspItems(inst) end
         end
     end
 })
