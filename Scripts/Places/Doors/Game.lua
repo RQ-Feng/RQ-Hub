@@ -14,7 +14,7 @@ local Main_Game = MainUI.Initiator.Main_Game
 local RemoteListener = Main_Game.RemoteListener
 local RemoteModules = RemoteListener.Modules
 
-local IsBypassingAC = false
+local IsBypassingAC = GameData:FindFirstChild('PreRun') and GameData.PreRun.Value or false
 
 local Floors = {
     ['Garden'] = 'Outdoors',
@@ -198,6 +198,7 @@ local Entities = {
     ['MonumentEntity'] = 'Monument',
     ['Dread'] = 'Dread',
     ['Bramble'] = 'Bramble',
+    ['Drones'] = 'Drone',
     ['NoiseModel'] = 'Noise',
     ['Creak'] = 'Creak',
     ['OnlyLocalization'] = {
@@ -508,7 +509,7 @@ Tab:AddToggle({
 Tab:AddButton({
     Name = "强制将手持物品收回背包",
     Callback = function()
-        local tool = Character:FindFirstChildofClass('Tool') and Character:FindFirstChildofClass('Tool')
+        local tool = Character:FindFirstChildOfClass('Tool')
         if tool then
             tool.Parent = LocalPlayer.Backpack
             OrionLib:MakeNotification({
@@ -1475,6 +1476,50 @@ Anti:AddToggle({
         AddConnection(CurrentRooms.ChildAdded,ClearSnare,OrionLib.Flags['AntiSnare'])
     end
 })
+Anti:AddToggle({
+    Name = "防Noise电视",
+    Flag = 'AntiNoiseTV',
+    Save = true,
+    Default = false,
+    Callback = function(Value)
+        if not Value then return end
+
+        local function HandleNoiseTV(TVStand)
+            if typeof(TVStand) ~= 'Instance' or TVStand.Name ~= 'TV_Stand' then return end
+            task.spawn(function()
+                local Collider = TVStand:WaitForChild('Collider',3)
+                local CartPrompt = TVStand:WaitForChild('CartPrompt',3)
+                if not Collider or not CartPrompt or not CartPrompt:IsA('ProximityPrompt') then return end
+                if not OrionLib.Flags['AntiNoiseTV'].Value or not OrionLib:IsRunning() then return end
+
+                OrionLib:MakeNotification({
+                    Name = "防Noise电视",
+                    Content = '检测到Noise电视,交互以摧毁电视.',
+                    Time = 5
+                })
+
+                local Destroyed = false
+                AddConnection(CartPrompt.Triggered,function(player)
+                    if player ~= LocalPlayer or Destroyed then return end
+                    if not OrionLib.Flags['AntiNoiseTV'].Value or not OrionLib:IsRunning() then return end
+                    Destroyed = true
+                    pcall(function() Collider.AssemblyAngularVelocity = Vector3.new(20,0,0) end)
+                    OrionLib:MakeNotification({
+                        Name = "防Noise电视",
+                        Content = '已摧毁Noise电视.',
+                        Time = 5
+                    })
+                end,OrionLib.Flags['AntiNoiseTV'])
+            end)
+        end
+
+        local Misc = workspace.Misc
+        if Misc then
+            for _,inst in pairs(Misc:GetChildren()) do HandleNoiseTV(inst) end
+            AddConnection(Misc.ChildAdded,HandleNoiseTV,OrionLib.Flags['AntiNoiseTV'])
+        end
+    end
+})
 
 AddConnection(workspace.ChildAdded,function(entity) -- Entity
     if not Entities[entity.Name] or not entity:IsA('Model') then return end
@@ -1488,7 +1533,7 @@ AddConnection(workspace.ChildAdded,function(entity) -- Entity
     if OrionLib.Flags['EntitiesEsp'].Value then
         CheckEspItem({inst = entity,instName = entity.Name,Color = Color3.new(1,0,0),DisplayTable = Entities,Flag = OrionLib.Flags['EntitiesEsp']})
     end
-    if entity.Name == 'Drones' and entity:IsA('Model') and OrionLib.Flags['AntiDrone'] then 
+    if entity.Name == 'Drones' and OrionLib.Flags['AntiDrone'] then 
         entity:Destroy()
     end
 end)
