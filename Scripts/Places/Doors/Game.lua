@@ -402,20 +402,28 @@ Tab:AddSection({Name = "速度"})
 
 local function updateSpeed()
     local currentSpeedWay = OrionLib.Flags['SpeedWay'].Value
-    local function CheckIfNeedBypass()
-        if OrionLib.Flags['Speed'].Value > 6 and not IsBypassingAC and (not OrionLib.Flags['BypassSpeedAC'] or not OrionLib.Flags['BypassSpeedAC'].Value) then
-            repeat task.wait() until OrionLib.Flags['BypassSpeedAC'] and not Character:FindFirstChild('CollisionPart').Anchored
-            OrionLib.Flags['BypassSpeedAC']:Set(true)
-            OrionLib:MakeNotification({Name = "速度",Content = "已自动启动速度绕过.",Time = 3})
-        end
-    end
-    Character:SetAttribute(currentSpeedWay,OrionLib.Flags['Speed'].Value)
+    OrionLib.Flags['SilentCrouch']:Set(true)
+    local OriginalSilentCrouch = OrionLib.Flags['SilentCrouch'].Value
+
+    local Task = task.spawn(function()--fully disabler lol
+        while OrionLib.Flags['EnableSpeed'].Value and OrionLib:IsRunning() do task.wait()
+            if OrionLib.Flags['SilentCrouch'].Value then continue end
+            OrionLib:MakeNotification({
+                Name = "速度绕过",
+                Content = "请不要手动关闭静步.",
+                Time = 2
+            }); OrionLib.Flags['SilentCrouch']:Set(true)
+        end 
+    end)
+
     local event = AddConnection(Character:GetAttributeChangedSignal(currentSpeedWay),function()
-        CheckIfNeedBypass()
         Character:SetAttribute(currentSpeedWay,OrionLib.Flags['Speed'].Value)
-    end,OrionLib.Flags['EnableSpeed'])
+    end,OrionLib.Flags['EnableSpeed'])--防止加速被覆盖
+
+    Character:SetAttribute(currentSpeedWay,OrionLib.Flags['Speed'].Value)
     repeat task.wait() until OrionLib.Flags['SpeedWay'].Value ~= currentSpeedWay or not OrionLib.Flags['EnableSpeed'].Value or not OrionLib:IsRunning()
-    if event then event:Disconnect() end
+    if event then event:Disconnect() end; if Task then task.cancel(Task) end
+    OrionLib.Flags['SilentCrouch']:Set(OriginalSilentCrouch)
     Character:SetAttribute(currentSpeedWay,0)
 end
 
@@ -575,80 +583,6 @@ Tab:AddButton({
     end
 })
 Feature:AddSection({Name = "绕过"})
-Feature:AddSlider({
-    Name = "绕过速率",
-    Save = true,
-    Min = 0.18,
-    Max = 0.3,
-    Default = 0.23,
-    Increment = 0.01,
-    Flag = 'BypassSpeedACRate'
-})
-Feature:AddToggle({
-    Name = "速度绕过(Broken)",
-    Save = true,
-    Default = false,
-    Flag = 'BypassSpeedAC',
-    Callback = function(Value)
-        if not Value then return end
-
-        local CollisionPart = Character:FindFirstChild('CollisionPart')
-        local CloneCollisionPart,AntiAnchorLagNotify
-
-        local function CloneBypassPart(char)
-            CloneCollisionPart = char:FindFirstChild('CollisionPart'):Clone()
-            CloneCollisionPart.Parent = char
-            CloneCollisionPart.CanCollide = false
-            CloneCollisionPart.Anchored = false
-            CloneCollisionPart.Name = '_CollisionPart'
-            return CloneCollisionPart
-        end
-        
-        CloneCollisionPart = Character:FindFirstChild('_CollisionPart') or CloneBypassPart(Character)
-
-        local function NotifyWhenAnchor(content)
-            if AntiAnchorLagNotify then OrionLib:CloseNotification(AntiAnchorLagNotify) end
-            AntiAnchorLagNotify = OrionLib:MakeNotification({
-                Name = "速度绕过",
-                Content = content,
-                Time = 2
-            })
-        end
-
-        local function BypassSpeedAC()
-            task.spawn(function()
-                while OrionLib.Flags['BypassSpeedAC'].Value and OrionLib:IsRunning() do
-                    if IsBypassingAC then 
-                        OrionLib.Flags['BypassSpeedAC']:Set(false)
-                        OrionLib:MakeNotification({
-                            Name = "速度绕过",
-                            Content = '已绕过反作弊,自动关闭.',
-                            Time = 5
-                        }); break
-                    end
-                    if CollisionPart.Anchored then 
-                        NotifyWhenAnchor("检测到被锚定,等待中...")
-                        if CloneCollisionPart then CloneCollisionPart.Massless = true end
-                        if OrionLib.Flags['ClipByACBind'].Holding then repeat task.wait() until not OrionLib.Flags['ClipByACBind'].Holding end
-                        repeat task.wait() until not CollisionPart.Anchored or not OrionLib:IsRunning()
-                        if not OrionLib:IsRunning() then return end
-                        task.wait(0.5)
-                        NotifyWhenAnchor("已自动重启.")
-                    end
-                    if CloneCollisionPart then CloneCollisionPart.Massless = not CloneCollisionPart.Massless end
-                    task.wait(OrionLib.Flags['BypassSpeedACRate'].Value) 
-                end
-            end)
-        end; BypassSpeedAC()
-
-        AddConnection(LocalPlayer.CharacterAdded,CloneBypassPart,OrionLib.Flags['BypassSpeedAC'])
-
-        task.spawn(function()
-            repeat task.wait() until not OrionLib.Flags['BypassSpeedAC'].Value or not OrionLib:IsRunning()
-            if CloneCollisionPart then CloneCollisionPart:Destroy() end
-        end)
-    end
-})
 Feature:AddBind({
 	Name = "使用反作弊穿墙",
 	Default = Enum.KeyCode.V,
@@ -895,7 +829,7 @@ Feature:AddToggle({
     Callback = function(Value)
         if not Value then return end
         task.spawn(function()
-            repeat RemotesFolder.Crouch:FireServer(true); task.wait(0.1) until not OrionLib.Flags['SilentCrouch'].Value or not OrionLib:IsRunning()
+            repeat RemotesFolder.Crouch:FireServer(true,true); task.wait(0.1) until not OrionLib.Flags['SilentCrouch'].Value or not OrionLib:IsRunning()
             RemotesFolder.Crouch:FireServer(false)
         end)
     end
@@ -1482,44 +1416,21 @@ Anti:AddToggle({
     Save = true,
     Default = false,
     Callback = function(Value)
-        if not Value then return end
-
-        local function HandleNoiseTV(TVStand)
-            if typeof(TVStand) ~= 'Instance' or TVStand.Name ~= 'TV_Stand' then return end
-            task.spawn(function()
-                local Collider = TVStand:WaitForChild('Collider',3)
-                local CartPrompt = TVStand:WaitForChild('CartPrompt',3)
-                if not Collider or not CartPrompt or not CartPrompt:IsA('ProximityPrompt') then return end
-                if not OrionLib.Flags['AntiNoiseTV'].Value or not OrionLib:IsRunning() then return end
-
-                OrionLib:MakeNotification({
-                    Name = "防Noise电视",
-                    Content = '检测到Noise电视,交互以摧毁电视.',
-                    Time = 5
-                })
-
-                local Destroyed = false
-                AddConnection(CartPrompt.Triggered,function(player)
-                    if player ~= LocalPlayer or Destroyed then return end
-                    if not OrionLib.Flags['AntiNoiseTV'].Value or not OrionLib:IsRunning() then return end
-                    Destroyed = true
-                    pcall(function() Collider.AssemblyAngularVelocity = Vector3.new(20,0,0) end)
-                    OrionLib:MakeNotification({
-                        Name = "防Noise电视",
-                        Content = '已摧毁Noise电视.',
-                        Time = 5
-                    })
-                end,OrionLib.Flags['AntiNoiseTV'])
-            end)
-        end
-
-        local Misc = workspace.Misc
-        if Misc then
-            for _,inst in pairs(Misc:GetChildren()) do HandleNoiseTV(inst) end
-            AddConnection(Misc.ChildAdded,HandleNoiseTV,OrionLib.Flags['AntiNoiseTV'])
-        end
+        OrionLib:MakeNotification({
+            Name = "防Noise电视",
+            Content = '开启后交互电视才会尝试摧毁',
+            Time = 5
+        })
     end
 })
+
+AddConnection(RemotesFolder.CartControl.OnClientEvent,function(cart)--CartControl
+    if cart.Name == 'TV_Stand' and OrionLib.Flags['AntiNoiseTV'].Value then 
+        local Collider = cart:FindFirstChild('Collider')
+        if not Collider then return end
+        Collider.AssemblyAngularVelocity = Vector3.new(20,0,0)
+    end
+end)
 
 AddConnection(workspace.ChildAdded,function(entity) -- Entity
     if not Entities[entity.Name] or not entity:IsA('Model') then return end
